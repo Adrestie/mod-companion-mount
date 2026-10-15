@@ -11,4 +11,5 @@ AzerothCore Mount mod
 - utilisable en même temps que le pet du joueur
 - clic droit sur la monture permet de grimper dessus normalement
 - la monture possède son inventaire dédié
+- la monture possède des sorts ou compétences selon son archétype
 - nice to have : la monture possède son équipement -> ajout de loot en donjons et dans le monde, faisable via https://github.com/Adrestie/WoW-mods-dynamicloot
