@@ -194,6 +194,8 @@ namespace CompanionMount
     bool IsLootableCorpse(Player* player, Creature* creature);
     Creature* FindCorpseToLoot(Player* player, Creature* companion, State const& state);
     LootResult LootCorpse(Player* player, Creature* creature);
+    // Le corps atteint, et ceux que mod-aoe-loot y joindrait pour le joueur.
+    std::vector<Creature*> FindAreaCorpses(Player* player, Creature* companion, Creature* reached);
     // Appelee par l'IA arrivee au corps (ou qui y renonce).
     void OnLootReached(Player* player, Creature* corpse);
 

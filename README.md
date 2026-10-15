@@ -56,6 +56,9 @@ AzerothCore Mount mod
   du core : objets de quête, « chacun le sien », conditions, hauts faits, partage de l'argent avec
   le groupe. Elle ne prend que ce que la fenêtre de butin laisserait prendre au joueur (rien en
   jet de dés, réservé au maître du butin ou au tour d'un autre) ; le reste reste sur le corps.
+- Avec mod-aoe-loot, elle ramasse comme le joueur avec ce module : arrivée à un corps, elle
+  fouille aussi les autres corps à portée, avec les réglages de mod-aoe-loot (`AoeLoot.Enable`,
+  `Range`, `MaxCorpses`, `LineOfSight`, lus dans sa conf ; mod-aoe-loot n'est pas modifié).
 - Pas de doublon avec mod-aoe-loot : même objet `loot` du core, et elle ne touche à rien tant que
   le joueur a une fenêtre de butin ouverte. Sacs pleins : elle laisse l'objet et le dit (une fois
   par minute).

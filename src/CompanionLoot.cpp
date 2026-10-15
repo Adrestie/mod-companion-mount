@@ -30,6 +30,13 @@
  * au maitre du butin ou au tour de role d'un autre. Ce qui reste reste sur le
  * corps, et le joueur peut toujours le fouiller lui-meme.
  *
+ * COMME AVEC mod-aoe-loot : quand ce module est la, le joueur qui ouvre un
+ * corps ramasse aussi celui des corps autour. La bete fait de meme : arrivee a
+ * un corps, elle fouille aussi les autres corps a portee, avec les reglages de
+ * mod-aoe-loot (AoeLoot.Enable, Range, MaxCorpses, LineOfSight) lus dans sa
+ * configuration -- mesures depuis la bete, qui se tient au corps comme le
+ * joueur s'y tiendrait. Sans mod-aoe-loot, un corps a la fois.
+ *
  * PAS DE DOUBLON AVEC mod-aoe-loot : le butin est pris dans le meme objet
  * `creature->loot` que tout le monde -- ce qui est pris n'y est plus. Et la
  * bete ne touche a rien tant que le joueur a une fenetre de butin ouverte :
@@ -44,6 +51,7 @@
 #include "CompanionMount.h"
 
 #include "CellImpl.h"
+#include "Config.h"
 #include "Creature.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
@@ -298,6 +306,39 @@ namespace CompanionMount
             return false;
 
         return sScriptMgr->OnAllowedToLootContainerCheck(player, creature->GetGUID());
+    }
+
+    std::vector<Creature*> FindAreaCorpses(Player* player, Creature* companion, Creature* reached)
+    {
+        std::vector<Creature*> corpses{ reached };
+
+        // Les reglages de mod-aoe-loot, s'il est la (sans bruit sinon).
+        if (!sConfigMgr->GetOption<bool>("AoeLoot.Enable", false, false))
+            return corpses;
+        float const range = std::clamp(sConfigMgr->GetOption<float>("AoeLoot.Range", 30.0f, false), 5.0f, 100.0f);
+        uint32 const maxCorpses = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("AoeLoot.MaxCorpses", 15, false), 1, 50);
+        bool const lineOfSight = sConfigMgr->GetOption<bool>("AoeLoot.LineOfSight", true, false);
+
+        std::list<Creature*> found;
+        auto check = [&](Creature* creature)
+        {
+            return creature != reached && creature != companion && companion->IsWithinDistInMap(creature, range)
+                && IsLootableCorpse(player, creature) && (!lineOfSight || companion->IsWithinLOSInMap(creature));
+        };
+        Acore::CreatureListSearcher<decltype(check)> searcher(companion, found, check);
+        Cell::VisitObjects(companion, searcher, range);
+
+        std::vector<Creature*> others(found.begin(), found.end());
+        std::sort(others.begin(), others.end(), [companion](Creature* a, Creature* b)
+        {
+            return companion->GetExactDist2dSq(a) < companion->GetExactDist2dSq(b);
+        });
+        // le corps atteint compte dans la limite, comme celui que le joueur clique
+        if (others.size() > maxCorpses - 1)
+            others.resize(maxCorpses - 1);
+
+        corpses.insert(corpses.end(), others.begin(), others.end());
+        return corpses;
     }
 
     Creature* FindCorpseToLoot(Player* player, Creature* companion, State const& state)

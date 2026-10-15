@@ -426,10 +426,19 @@ namespace CompanionMount
         if (player->GetLootGUID())
             return;
 
-        LootResult const result = LootCorpse(player, corpse);
-        RememberTried(state, corpse->GetGUID());
+        // COMME LE JOUEUR AVEC mod-aoe-loot : les corps autour avec celui-ci.
+        bool bagsFull = false;
+        Creature* companion = GetCompanion(player);
+        std::vector<Creature*> corpses = companion
+            ? FindAreaCorpses(player, companion, corpse) : std::vector<Creature*>{ corpse };
+        for (Creature* each : corpses)
+        {
+            if (LootCorpse(player, each) == LOOT_RESULT_BAGS_FULL)
+                bagsFull = true;
+            RememberTried(state, each->GetGUID());
+        }
 
-        if (result == LOOT_RESULT_BAGS_FULL && !state.bagsFullTimer)
+        if (bagsFull && !state.bagsFullTimer)
         {
             Say(player, TEXT_BAGS_FULL);
             state.bagsFullTimer = 60 * IN_MILLISECONDS;
