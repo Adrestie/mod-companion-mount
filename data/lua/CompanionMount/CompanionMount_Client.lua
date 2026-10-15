@@ -63,6 +63,7 @@ local L = {
     passive       = FR and "Passive" or "Passive",
     passiveTip    = FR and "N'attaque que sur ordre." or "Attacks only when told to.",
     moveTip    = FR and "Maj + glisser : déplacer la barre" or "Shift + drag: move the bar",
+    level      = FR and "Niv. %d" or "Lv %d",
 }
 
 -- ---------------------------------------------------------------------------
@@ -72,7 +73,7 @@ local L = {
 local COMMAND_FOLLOW, COMMAND_STAY = 0, 1
 local REACT_PASSIVE, REACT_DEFENSIVE, REACT_AGGRESSIVE = 0, 1, 2
 
-local state = { mount = 0, summoned = false, command = COMMAND_FOLLOW, react = REACT_DEFENSIVE }
+local state = { mount = 0, summoned = false, command = COMMAND_FOLLOW, react = REACT_DEFENSIVE, level = 0 }
 local hidden = false
 
 -- ---------------------------------------------------------------------------
@@ -160,10 +161,15 @@ for i, def in ipairs(BUTTONS) do
     buttons[i] = b
 end
 
+-- The level of the mount, on the call button.
+local levelText = buttons[1]:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+levelText:SetPoint("BOTTOMRIGHT", buttons[1], "BOTTOMRIGHT", -1, 2)
+
 local function Refresh()
     -- The call button wears the face of the chosen mount.
     local icon = state.mount ~= 0 and select(3, GetSpellInfo(state.mount))
     buttons[1].icon:SetTexture(icon or BUTTONS[1].icon)
+    levelText:SetText((state.level or 0) > 0 and string.format(L.level, state.level) or "")
 
     for _, b in ipairs(buttons) do
         local usable = not b.def.needsOut or state.summoned

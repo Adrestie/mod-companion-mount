@@ -38,16 +38,21 @@ local ORDERS = {
 
 local function State(player)
     local q = CharDBQuery(string.format(
-        "SELECT mount_spell, summoned, command_state, react_state "
-        .. "FROM mod_companion_mount_character WHERE guid = %d", player:GetGUIDLow()))
+        "SELECT c.mount_spell, c.summoned, c.command_state, c.react_state, m.level "
+        .. "FROM mod_companion_mount_character c "
+        .. "LEFT JOIN mod_companion_mount_mount m ON m.guid = c.guid AND m.mount_spell = c.mount_spell "
+        .. "WHERE c.guid = %d", player:GetGUIDLow()))
     if not q then
-        return { mount = 0, summoned = false, command = 0, react = 1 }
+        return { mount = 0, summoned = false, command = 0, react = 1, level = 0 }
     end
     return {
         mount = q:GetUInt32(0),
         summoned = q:GetUInt8(1) ~= 0,
         command = q:GetUInt8(2),
         react = q:GetUInt8(3),
+        -- the level is written as it changes, a moment later: the bar shows
+        -- it as of the last order or command
+        level = q:IsNull(4) and 0 or q:GetUInt8(4),
     }
 end
 

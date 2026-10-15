@@ -111,3 +111,57 @@ CompanionMount.Loot.Range = 30
 #                     0 - (Disabled)
 
 CompanionMount.KillsRewardOwner = 1
+
+########################################
+# Levels
+########################################
+#
+#    CompanionMount.Level.Enable
+#        Description: Each mount has its own level and experience. Off, the
+#                     companion mount simply takes its master's level.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.Level.Enable = 1
+
+#
+#    CompanionMount.Level.Start
+#        Description: The level of a mount the first time it comes out.
+#        Default:     1
+
+CompanionMount.Level.Start = 1
+
+#
+#    CompanionMount.Level.CapToOwner
+#        Description: A mount never goes past its master's level (as a pet).
+#                     Off, only the server's highest level stops it.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.Level.CapToOwner = 1
+
+#
+#    CompanionMount.Level.XpNeedRate
+#        Description: Share of what a player needs for a level that a mount
+#                     needs for the same level (0.05 = 5 %, as hunter pets).
+#        Default:     0.05
+
+CompanionMount.Level.XpNeedRate = 0.05
+
+#
+#    CompanionMount.Level.XpKillRate
+#        Description: Multiplier of the experience a kill gives the mount:
+#                     the core's formula at the mount's level, twice for an
+#                     elite.
+#        Default:     1.0
+
+CompanionMount.Level.XpKillRate = 1.0
+
+#
+#    CompanionMount.Level.SharedPercent
+#        Description: Percentage of the experience of the mount out that every
+#                     other mount of the character receives, even those that
+#                     never came out yet.
+#        Default:     10
+
+CompanionMount.Level.SharedPercent = 10

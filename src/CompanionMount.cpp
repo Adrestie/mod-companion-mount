@@ -176,7 +176,7 @@ namespace CompanionMount
             summon->SetDisplayId(model.CreatureDisplayID, model.DisplayScale);
             summon->SetNativeDisplayId(model.CreatureDisplayID);
 
-            ApplyStats(summon, player->GetLevel());
+            ApplyStats(summon, EffectiveLevel(player, state));
 
             if (summon->HasUnitTypeMask(UNIT_MASK_MINION))
                 static_cast<Minion*>(summon)->SetFollowAngle(FOLLOW_ANGLE);
@@ -207,6 +207,12 @@ namespace CompanionMount
         sConfig.lootEnabled = sConfigMgr->GetOption<bool>("CompanionMount.Loot.Enable", true);
         sConfig.lootRange = std::max(5.0f, sConfigMgr->GetOption<float>("CompanionMount.Loot.Range", 30.0f));
         sConfig.killsRewardOwner = sConfigMgr->GetOption<bool>("CompanionMount.KillsRewardOwner", true);
+        sConfig.levelEnabled = sConfigMgr->GetOption<bool>("CompanionMount.Level.Enable", true);
+        sConfig.levelStart = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Level.Start", 1), 1, 255);
+        sConfig.levelCapToOwner = sConfigMgr->GetOption<bool>("CompanionMount.Level.CapToOwner", true);
+        sConfig.levelXpNeedRate = std::max(0.001f, sConfigMgr->GetOption<float>("CompanionMount.Level.XpNeedRate", 0.05f));
+        sConfig.levelXpKillRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.Level.XpKillRate", 1.0f));
+        sConfig.levelSharedPercent = std::min<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Level.SharedPercent", 10), 100);
     }
 
     State& GetState(Player* player)
@@ -221,12 +227,13 @@ namespace CompanionMount
         state.loaded = true;
 
         QueryResult result = CharacterDatabase.Query(
-            "SELECT `mount_spell`, `summoned`, `react_state` FROM `mod_companion_mount_character` WHERE `guid` = {}",
+            "SELECT `mount_spell`, `summoned`, `react_state`, `shared_pool` FROM `mod_companion_mount_character` WHERE `guid` = {}",
             player->GetGUID().GetCounter());
         if (!result)
             return;
 
         Field* fields = result->Fetch();
+        state.pool = fields[3].Get<uint64>();
         uint8 const react = fields[2].Get<uint8>();
         state.react = react <= REACT_AGGRESSIVE ? ReactStates(react) : REACT_DEFENSIVE;
 
@@ -237,6 +244,7 @@ namespace CompanionMount
 
         state.mountSpell = mountSpell;
         state.summoned = fields[1].Get<bool>();
+        LoadMount(player, state);
         // La connexion repart sur « suivre » : la base le dit aussi a l'interface.
         SaveState(player);
     }
@@ -247,10 +255,10 @@ namespace CompanionMount
     {
         State const& state = GetState(player);
         CharacterDatabase.DirectExecute(
-            "REPLACE INTO `mod_companion_mount_character` (`guid`, `mount_spell`, `summoned`, `command_state`, `react_state`) "
-            "VALUES ({}, {}, {}, {}, {})",
+            "REPLACE INTO `mod_companion_mount_character` (`guid`, `mount_spell`, `summoned`, `command_state`, `react_state`, `shared_pool`) "
+            "VALUES ({}, {}, {}, {}, {}, {})",
             player->GetGUID().GetCounter(), state.mountSpell, state.summoned ? 1 : 0,
-            uint32(state.command), uint32(state.react));
+            uint32(state.command), uint32(state.react), state.pool);
     }
 
     void DeleteState(ObjectGuid::LowType guid)
@@ -301,7 +309,14 @@ namespace CompanionMount
         State& state = GetState(player);
         Despawn(state, GetCompanion(player));
 
-        state.mountSpell = mountSpell;
+        // UNE AUTRE MONTURE : la precedente garde sa progression, la nouvelle
+        // reprend la sienne (et sa part du pot commun).
+        if (state.mountSpell != mountSpell || !state.loaded)
+        {
+            SaveMount(player, state);
+            state.mountSpell = mountSpell;
+            LoadMount(player, state);
+        }
         state.summoned = true;
         state.reviveTimer = 0;
         state.updateTimer = 0;
@@ -408,8 +423,8 @@ namespace CompanionMount
             }
             else
             {
-                if (companion->GetLevel() != player->GetLevel())
-                    ApplyStats(companion, player->GetLevel());
+                if (companion->GetLevel() != EffectiveLevel(player, state))
+                    ApplyStats(companion, EffectiveLevel(player, state));
                 UpdateLoot(player, state, companion, elapsed);
             }
         }

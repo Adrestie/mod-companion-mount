@@ -56,6 +56,7 @@ public:
             PLAYERHOOK_ON_LOGOUT,
             PLAYERHOOK_ON_DELETE,
             PLAYERHOOK_ON_UPDATE,
+            PLAYERHOOK_ON_CREATURE_KILL,
         }) { }
 
     void OnPlayerLogin(Player* player) override
@@ -71,6 +72,11 @@ public:
     void OnPlayerDelete(ObjectGuid guid, uint32 /*accountId*/) override
     {
         DeleteState(guid.GetCounter());
+    }
+
+    void OnPlayerCreatureKill(Player* killer, Creature* killed) override
+    {
+        GiveKillXP(killer, killed);
     }
 
     void OnPlayerUpdate(Player* player, uint32 diff) override

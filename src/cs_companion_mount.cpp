@@ -151,6 +151,12 @@ public:
 
         Say(handler, TEXT_INFO_FULL, SpellName(player, state.mountSpell), String(handler, stateText),
             String(handler, commandText), String(handler, reactText));
+
+        uint8 const level = EffectiveLevel(player, state);
+        if (state.xp || level < player->GetLevel())
+            Say(handler, TEXT_LEVEL, uint32(level), state.xp, NextLevelXP(level));
+        else
+            Say(handler, TEXT_LEVEL_MAX, uint32(level));
         return true;
     }
 

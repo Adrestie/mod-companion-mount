@@ -27,10 +27,12 @@
   "database": {
     "characters": {
       "tables": [
-        "mod_companion_mount_character"
+        "mod_companion_mount_character",
+        "mod_companion_mount_mount"
       ],
       "kept_on_update": [
-        "mod_companion_mount_character"
+        "mod_companion_mount_character",
+        "mod_companion_mount_mount"
       ],
       "rows": [
         {

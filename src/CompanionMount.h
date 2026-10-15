@@ -90,6 +90,9 @@ namespace CompanionMount
         TEXT_REACT_AGGRESSIVE = 20,
         TEXT_INFO_FULL       = 21,  // remplace TEXT_INFO (7), retire
         TEXT_BAGS_FULL       = 22,
+        TEXT_LEVEL           = 23,
+        TEXT_LEVEL_MAX       = 24,
+        TEXT_LEVEL_UP        = 25,
     };
 
     // LES ORDRES, comme ceux de la barre du familier.
@@ -140,6 +143,14 @@ namespace CompanionMount
         bool lootEnabled = true;
         float lootRange = 30.0f;      // metres autour du joueur
         bool killsRewardOwner = true; // ses coups ouvrent butin et recompense
+
+        // LES NIVEAUX (CompanionLevel.cpp).
+        bool levelEnabled = true;
+        uint32 levelStart = 1;
+        bool levelCapToOwner = true;
+        float levelXpNeedRate = 0.05f;   // part de l'experience d'un joueur
+        float levelXpKillRate = 1.0f;
+        uint32 levelSharedPercent = 10;  // ce que recoivent les autres montures
     };
 
     // CE QUE LE JOUEUR A CHOISI, et ou en est sa monture.
@@ -165,6 +176,12 @@ namespace CompanionMount
         uint32 lootTimer = 0;
         std::vector<ObjectGuid> lootTried;
         uint32 bagsFullTimer = 0;     // ms avant de redire « sacs pleins »
+
+        // LA PROGRESSION de la monture choisie, et le pot commun du personnage.
+        uint8 level = 1;
+        uint32 xp = 0;
+        uint64 poolSeen = 0;
+        uint64 pool = 0;
     };
 
     Config const& GetConfig();
@@ -194,6 +211,14 @@ namespace CompanionMount
     bool IsLootableCorpse(Player* player, Creature* creature);
     Creature* FindCorpseToLoot(Player* player, Creature* companion, State const& state);
     LootResult LootCorpse(Player* player, Creature* creature);
+    // LES NIVEAUX (CompanionLevel.cpp).
+    uint32 NextLevelXP(uint8 level);
+    uint8 EffectiveLevel(Player* player, State const& state);
+    void LoadMount(Player* player, State& state);
+    void SaveMount(Player* player, State const& state);
+    void AddXP(Player* player, State& state, uint32 amount);
+    void GiveKillXP(Player* owner, Creature* victim);
+
     // Le corps atteint, et ceux que mod-aoe-loot y joindrait pour le joueur.
     std::vector<Creature*> FindAreaCorpses(Player* player, Creature* companion, Creature* reached);
     // Appelee par l'IA arrivee au corps (ou qui y renonce).

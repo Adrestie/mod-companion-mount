@@ -66,6 +66,19 @@ AzerothCore Mount mod
   (`CompanionMount.KillsRewardOwner`) : sans cela, le core ne donne rien d'un monstre tué par
   un familier seul.
 
+## Jalon 4 : l'expérience et les niveaux
+
+- Chaque monture a sa progression (par personnage et par sort de monture). Celle qui est dehors
+  gagne de l'expérience à chaque monstre que le joueur ou elle achève : la formule du core,
+  calculée à son niveau, doublée pour un élite. Il lui faut 5 % de ce qu'il faut au joueur pour un
+  niveau (comme le familier du chasseur), et elle ne dépasse pas le niveau du joueur. Ses PV et
+  ses dégâts suivent son niveau.
+- Les montures restées à l'écurie reçoivent 10 % de cette expérience, même celles jamais sorties
+  (un pot commun par personnage, versé à la sortie).
+- `.companion info` donne niveau et expérience, la barre affiche le niveau.
+- Réglages : `CompanionMount.Level.Enable`, `Start` (1), `CapToOwner` (1), `XpNeedRate` (0.05),
+  `XpKillRate` (1.0), `SharedPercent` (10).
+
 ## Identifiants provisoires
 
 La tranche 91 (`91000-91999`) est libre dans `ID_RANGES.md` mais **pas encore attribuée** :
@@ -75,7 +88,7 @@ il sert à la ligne de `npc_spellclick_spells`). À changer dans `src/CompanionM
 
 ## Ce qui vient ensuite
 
-Expérience et niveaux, talents DPS / Tank / Heal, inventaire, renommage — interface par
+Talents DPS / Tank / Heal, inventaire, renommage — interface par
 patch client et addon.
 
 # Installation (développement)

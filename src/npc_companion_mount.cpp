@@ -75,6 +75,15 @@ struct npc_companion_mount : public ScriptedAI
         return false;
     }
 
+    // LA BETE ACHEVE : l'experience est pour elle (le joueur qui acheve passe
+    // par CompanionMountPlayerScript::OnPlayerCreatureKill).
+    void KilledUnit(Unit* victim) override
+    {
+        if (Creature* killed = victim->ToCreature())
+            if (Player* owner = GetOwnerPlayer())
+                GiveKillXP(owner, killed);
+    }
+
     void JustDied(Unit* /*killer*/) override
     {
         if (Player* owner = GetOwnerPlayer())
