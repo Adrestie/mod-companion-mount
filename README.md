@@ -29,9 +29,11 @@ AzerothCore Mount mod
 - **Dehors seulement** : elle rentre à l'intérieur des bâtiments, en donjon et en champ de bataille
   (réglable), en vol de taxi, en véhicule, à la mort du joueur ; elle ressort d'elle-même ensuite.
   Tombée au combat, elle revient au bout de 60 s (réglable).
-- **Clic droit** : on la chevauche — le sort de monture correspondant est lancé sur le joueur
-  (instantané par défaut, réglable) et elle disparaît comme un familier renvoyé. Pied à terre : elle
-  revient. Les refus habituels du sort (combat, intérieur…) s'affichent et elle reste là.
+- **Clic droit** : on la chevauche — le sort de monture correspondant est lancé sur le joueur comme
+  depuis son grimoire (temps d'incantation, impossible en combat ; instantané en option). Les refus
+  habituels du sort s'affichent et elle reste là.
+- **Monter renvoie le compagnon**, quelle que soit la monture (clic droit, grimoire, objet) ; pied
+  à terre, il revient.
 - `.companion dismiss` la renvoie à l'écurie, `.companion info` dit où elle en est.
 
 ## Jalon 2 : les ordres, comme un familier

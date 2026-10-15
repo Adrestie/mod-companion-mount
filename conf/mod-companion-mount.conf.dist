@@ -40,11 +40,12 @@ CompanionMount.AllowInBattlegrounds = 0
 #
 #    CompanionMount.InstantMount
 #        Description: A right click on the companion mount mounts at once.
-#                     Off, the mount spell keeps its usual cast time.
-#        Default:     1 - (Enabled)
-#                     0 - (Disabled)
+#                     Off, the mount spell is cast as from the spellbook: its
+#                     usual cast time, and not in combat.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
 
-CompanionMount.InstantMount = 1
+CompanionMount.InstantMount = 0
 
 #
 #    CompanionMount.ReviveDelay

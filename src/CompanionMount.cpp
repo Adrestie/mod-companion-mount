@@ -80,8 +80,9 @@ namespace CompanionMount
                 return false;
             if (player->IsInFlight() || player->GetVehicle())
                 return false;
-            // ELLE PORTE SON MAITRE : la bete n'est plus a cote, elle est dessous.
-            if (player->HasAura(state.mountSpell))
+            // LE MAITRE MONTE (elle, ou n'importe quelle autre monture) : elle
+            // rentre, et revient quand il met pied a terre.
+            if (player->IsMounted())
                 return false;
             if (!player->IsOutdoors())
                 return false;
@@ -166,9 +167,21 @@ namespace CompanionMount
             player->GetClosePoint(x, y, z, player->GetCombatReach(), PET_FOLLOW_DIST, FOLLOW_ANGLE);
             Position const pos(x, y, z, player->GetOrientation());
 
-            TempSummon* summon = player->GetMap()->SummonCreature(NPC_COMPANION, pos, properties, 0, player);
-            if (!summon)
+            // LA BETE EST FAITE AVANT D'ENTRER DANS LE MONDE, a son niveau, avec
+            // son visage et son nom : ce que fait Map::SummonCreature, avec nos
+            // reglages glisses avant AddToMap. Change apres coup, le niveau
+            // ferait jouer au client l'animation de montee de niveau a chaque
+            // apparition.
+            Map* map = player->GetMap();
+            Guardian* summon = new Guardian(properties, player->GetGUID());
+            if (!summon->Create(map->GenerateLowGuid<HighGuid::Unit>(), map, player->GetPhaseMask(), NPC_COMPANION, 0,
+                    pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation()))
+            {
+                delete summon;
                 return nullptr;
+            }
+            summon->SetHomePosition(pos);
+            summon->InitStats(0);
 
             // LE VISAGE DE LA MONTURE : celui que le sort pose sous le joueur.
             CreatureModel model = *ObjectMgr::ChooseDisplayId(mountTemplate);
@@ -178,6 +191,13 @@ namespace CompanionMount
 
             ApplyStats(summon, EffectiveLevel(player, state));
             ApplyName(summon, state);
+
+            if (!map->AddToMap(summon->ToCreature(), true))
+            {
+                delete summon;
+                return nullptr;
+            }
+            summon->InitSummon();
 
             if (summon->HasUnitTypeMask(UNIT_MASK_MINION))
                 static_cast<Minion*>(summon)->SetFollowAngle(FOLLOW_ANGLE);
@@ -199,7 +219,7 @@ namespace CompanionMount
         sConfig.enabled = sConfigMgr->GetOption<bool>("CompanionMount.Enable", true);
         sConfig.allowInDungeons = sConfigMgr->GetOption<bool>("CompanionMount.AllowInDungeons", false);
         sConfig.allowInBattlegrounds = sConfigMgr->GetOption<bool>("CompanionMount.AllowInBattlegrounds", false);
-        sConfig.instantMount = sConfigMgr->GetOption<bool>("CompanionMount.InstantMount", true);
+        sConfig.instantMount = sConfigMgr->GetOption<bool>("CompanionMount.InstantMount", false);
         sConfig.reviveDelay = sConfigMgr->GetOption<uint32>("CompanionMount.ReviveDelay", 60);
         sConfig.healthRate = std::max(0.01f, sConfigMgr->GetOption<float>("CompanionMount.HealthRate", 1.0f));
         sConfig.damageRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.DamageRate", 1.0f));
@@ -323,8 +343,8 @@ namespace CompanionMount
         state.updateTimer = 0;
         SaveState(player);
 
-        // SUR CETTE MONTURE-LA : le joueur descend, elle marche a cote.
-        if (player->HasAura(mountSpell))
+        // MONTE : le joueur descend, elle marche a cote. Pas en plein vol.
+        if (player->IsMounted() && !player->IsFlying())
             player->RemoveAurasByType(SPELL_AURA_MOUNTED);
 
         if (CanBeOut(player, state))
@@ -360,21 +380,19 @@ namespace CompanionMount
             return false;
         }
 
-        // Une autre monture sous le joueur : il en descend d'abord.
-        if (player->IsMounted())
-            player->RemoveAurasByType(SPELL_AURA_MOUNTED);
-
-        // LE SORT DE MONTURE, lance sur le joueur. Ses verifications restent
-        // (combat, interieur, zone sans vol...) : un refus s'affiche comme
-        // d'habitude et la bete reste la.
+        // LE SORT DE MONTURE, lance sur le joueur comme depuis son grimoire :
+        // son temps d'incantation, ses refus (combat, interieur, zone sans
+        // vol...) qui s'affichent comme d'habitude, et la bete reste la. Monte,
+        // il la renvoie (CanBeOut) ; descendu, elle revient.
         TriggerCastFlags const flags = sConfig.instantMount
             ? TriggerCastFlags(TRIGGERED_CAST_DIRECTLY | TRIGGERED_IGNORE_GCD)
             : TRIGGERED_NONE;
         if (player->CastSpell(player, state.mountSpell, flags) != SPELL_CAST_OK)
             return false;
 
-        // Monte tout de suite : elle s'en va comme un familier renvoye. Avec
-        // un temps d'incantation, la mise a jour suivante s'en charge.
+        // Monte tout de suite (incantation instantanee en option) : elle s'en
+        // va comme un familier renvoye. Sinon la mise a jour qui suit la fin de
+        // l'incantation s'en charge.
         if (player->HasAura(state.mountSpell))
             Despawn(state, companion);
         return true;

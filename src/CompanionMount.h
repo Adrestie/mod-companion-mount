@@ -137,7 +137,7 @@ namespace CompanionMount
         bool enabled = true;
         bool allowInDungeons = false;
         bool allowInBattlegrounds = false;
-        bool instantMount = true;
+        bool instantMount = false;
         uint32 reviveDelay = 60;      // secondes
         float healthRate = 1.0f;
         float damageRate = 1.0f;
