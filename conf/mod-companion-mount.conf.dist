@@ -1,0 +1,81 @@
+#
+# mod-companion-mount configuration
+#
+# Copy this file to mod-companion-mount.conf in the folder of the module
+# configurations (configs/modules) to change its values.
+#
+
+[worldserver]
+
+########################################
+# Companion mount
+########################################
+#
+#    CompanionMount.Enable
+#        Description: Turns the module on or off. Off, no companion mount
+#                     comes out and the commands answer that it is disabled.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.Enable = 1
+
+#
+#    CompanionMount.AllowInDungeons
+#        Description: Lets the companion mount follow its master into
+#                     dungeons and raids (outdoor parts only).
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+CompanionMount.AllowInDungeons = 0
+
+#
+#    CompanionMount.AllowInBattlegrounds
+#        Description: Lets the companion mount follow its master into
+#                     battlegrounds and arenas (outdoor parts only).
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+CompanionMount.AllowInBattlegrounds = 0
+
+#
+#    CompanionMount.InstantMount
+#        Description: A right click on the companion mount mounts at once.
+#                     Off, the mount spell keeps its usual cast time.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.InstantMount = 1
+
+#
+#    CompanionMount.ReviveDelay
+#        Description: Seconds before a companion mount that fell comes back.
+#        Default:     60
+
+CompanionMount.ReviveDelay = 60
+
+#
+#    CompanionMount.HealthRate
+#    CompanionMount.DamageRate
+#        Description: Multipliers of the health and damage of a creature of
+#                     the master's level (creature_classlevelstats).
+#        Default:     1.0
+
+CompanionMount.HealthRate = 1.0
+CompanionMount.DamageRate = 1.0
+
+#
+#    CompanionMount.LeashDistance
+#        Description: Yards from its master past which the companion mount
+#                     drops its prey and comes back. Twice that distance, it
+#                     is summoned again at its master's side.
+#        Default:     40
+
+CompanionMount.LeashDistance = 40
+
+#
+#    CompanionMount.ClickDistance
+#        Description: Yards from which a right click on the companion mount
+#                     mounts it.
+#        Default:     10
+
+CompanionMount.ClickDistance = 10
