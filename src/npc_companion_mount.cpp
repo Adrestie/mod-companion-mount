@@ -25,6 +25,8 @@
  *                     maitre, ou ce qui la frappe (attitude par defaut) ;
  *   AGRESSIVE         elle va en plus chercher tout ennemi a 20 metres ;
  *   ATTAQUER          la cible du maitre, quelle que soit l'attitude.
+ * Hors combat, quand elle suit, elle va aux corps a fouiller que
+ * CompanionMount lui designe (State::lootTarget), puis revient.
  * Trop loin du maitre, elle lache sa proie et revient (la laisse).
  *
  * Les ordres vivent dans l'etat du maitre (CompanionMount::State) : la bete
@@ -92,6 +94,13 @@ struct npc_companion_mount : public ScriptedAI
                 if (Unit* target = ObjectAccessor::GetUnit(*me, state.attackTarget))
                     AttackStart(target);
                 break;
+            case ACTION_LOOT:
+                if (Creature* corpse = ObjectAccessor::GetCreature(*me, state.lootTarget))
+                {
+                    me->GetMotionMaster()->Clear(false);
+                    me->GetMotionMaster()->MovePoint(POINT_LOOT, corpse->GetPosition());
+                }
+                break;
             case ACTION_ORDERS_CHANGED:
                 // RESTER : ici meme. Un nouvel ordre, ou passive : elle lache
                 // tout et rejoint son poste.
@@ -144,6 +153,8 @@ struct npc_companion_mount : public ScriptedAI
             }
             DoMeleeAttackIfReady();
         }
+        else if (state.lootTarget)
+            GoLoot(owner, state);
         else
             KeepPost(owner, state);
     }
@@ -228,6 +239,26 @@ private:
             me->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, FOLLOW_ANGLE, MOTION_SLOT_ACTIVE);
     }
 
+    // AU CORPS : arrivee, elle fouille (pour son maitre) et revient.
+    void GoLoot(Player* owner, State& state)
+    {
+        Creature* corpse = ObjectAccessor::GetCreature(*me, state.lootTarget);
+        if (!corpse)
+        {
+            state.lootTarget.Clear();
+            ReturnToPost(owner, state);
+            return;
+        }
+
+        if (me->GetExactDist2d(corpse) <= LOOT_REACH)
+        {
+            OnLootReached(owner, corpse);
+            ReturnToPost(owner, state);
+        }
+        else if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() != POINT_MOTION_TYPE)
+            me->GetMotionMaster()->MovePoint(POINT_LOOT, corpse->GetPosition());
+    }
+
     // Sans proie : a son poste. Rester, c'est revenir a sa place si un combat
     // l'en a ecartee ; suivre, c'est suivre.
     void KeepPost(Player* owner, State const& state)
@@ -249,6 +280,9 @@ private:
             ReturnToPost(owner, state);
         }
     }
+
+    static constexpr uint32 POINT_LOOT = 1;
+    static constexpr float LOOT_REACH = 4.0f;    // metres
 
     uint32 _decideTimer = 0;
     bool _hasStayPos = false;

@@ -94,9 +94,61 @@ namespace CompanionMount
             return true;
         }
 
+        void RememberTried(State& state, ObjectGuid guid)
+        {
+            state.lootTried.push_back(guid);
+            if (state.lootTried.size() > LOOT_MEMORY)
+                state.lootTried.erase(state.lootTried.begin());
+        }
+
+        // LE BUTIN, hors combat et quand elle suit : un corps a la fois. Elle y
+        // marche (l'IA), et l'IA appelle OnLootReached une fois dessus.
+        void UpdateLoot(Player* player, State& state, Creature* companion, uint32 elapsed)
+        {
+            if (!sConfig.lootEnabled || state.command != ORDER_FOLLOW)
+            {
+                state.lootTarget.Clear();
+                return;
+            }
+
+            bool const busy = player->IsInCombat() || companion->IsInCombat() || companion->GetVictim();
+
+            if (state.lootTarget)
+            {
+                state.lootTimer += elapsed;
+                // Trop long, ou le combat reprend : elle renonce a ce corps.
+                if (state.lootTimer >= LOOT_TIMEOUT || busy)
+                {
+                    if (state.lootTimer >= LOOT_TIMEOUT)
+                        RememberTried(state, state.lootTarget);
+                    state.lootTarget.Clear();
+                    if (companion->IsAIEnabled)
+                        companion->AI()->DoAction(ACTION_ORDERS_CHANGED);
+                }
+                return;
+            }
+
+            if (busy || player->GetLootGUID())
+                return;
+
+            // Les corps disparus sortent de sa memoire.
+            state.lootTried.erase(std::remove_if(state.lootTried.begin(), state.lootTried.end(),
+                [player](ObjectGuid const& guid) { return !player->GetMap()->GetCreature(guid); }),
+                state.lootTried.end());
+
+            if (Creature* corpse = FindCorpseToLoot(player, companion, state))
+            {
+                state.lootTarget = corpse->GetGUID();
+                state.lootTimer = 0;
+                if (companion->IsAIEnabled)
+                    companion->AI()->DoAction(ACTION_LOOT);
+            }
+        }
+
         void Despawn(State& state, Creature* companion)
         {
             state.companion.Clear();
+            state.lootTarget.Clear();
             if (companion && companion->IsSummon())
                 companion->ToTempSummon()->UnSummon();
         }
@@ -152,6 +204,9 @@ namespace CompanionMount
         sConfig.damageRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.DamageRate", 1.0f));
         sConfig.leashDistance = std::max(10.0f, sConfigMgr->GetOption<float>("CompanionMount.LeashDistance", 40.0f));
         sConfig.clickDistance = std::max(2.0f, sConfigMgr->GetOption<float>("CompanionMount.ClickDistance", 10.0f));
+        sConfig.lootEnabled = sConfigMgr->GetOption<bool>("CompanionMount.Loot.Enable", true);
+        sConfig.lootRange = std::max(5.0f, sConfigMgr->GetOption<float>("CompanionMount.Loot.Range", 30.0f));
+        sConfig.killsRewardOwner = sConfigMgr->GetOption<bool>("CompanionMount.KillsRewardOwner", true);
     }
 
     State& GetState(Player* player)
@@ -323,6 +378,8 @@ namespace CompanionMount
 
         if (state.reviveTimer)
             state.reviveTimer = elapsed >= state.reviveTimer ? 0 : state.reviveTimer - elapsed;
+        if (state.bagsFullTimer)
+            state.bagsFullTimer = elapsed >= state.bagsFullTimer ? 0 : state.bagsFullTimer - elapsed;
 
         Creature* companion = GetCompanion(player);
         bool const canBeOut = CanBeOut(player, state);
@@ -349,8 +406,33 @@ namespace CompanionMount
                 Despawn(state, companion);
                 Spawn(player, state);
             }
-            else if (companion->GetLevel() != player->GetLevel())
-                ApplyStats(companion, player->GetLevel());
+            else
+            {
+                if (companion->GetLevel() != player->GetLevel())
+                    ApplyStats(companion, player->GetLevel());
+                UpdateLoot(player, state, companion, elapsed);
+            }
+        }
+        else
+            state.lootTarget.Clear();
+    }
+
+    void OnLootReached(Player* player, Creature* corpse)
+    {
+        State& state = GetState(player);
+        state.lootTarget.Clear();
+
+        // Le joueur fouille lui-meme a cet instant : on reviendra.
+        if (player->GetLootGUID())
+            return;
+
+        LootResult const result = LootCorpse(player, corpse);
+        RememberTried(state, corpse->GetGUID());
+
+        if (result == LOOT_RESULT_BAGS_FULL && !state.bagsFullTimer)
+        {
+            Say(player, TEXT_BAGS_FULL);
+            state.bagsFullTimer = 60 * IN_MILLISECONDS;
         }
     }
 

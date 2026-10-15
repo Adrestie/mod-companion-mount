@@ -79,3 +79,35 @@ CompanionMount.LeashDistance = 40
 #        Default:     10
 
 CompanionMount.ClickDistance = 10
+
+#
+#    CompanionMount.Loot.Enable
+#        Description: Out of combat, while it follows, the companion mount
+#                     walks to the corpses its master may loot and loots them
+#                     for him, as if he did: same rights, same rolls, the loot
+#                     goes to his bags. It leaves what the loot window would
+#                     not let him take (rolls, master looter, another's turn).
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.Loot.Enable = 1
+
+#
+#    CompanionMount.Loot.Range
+#        Description: Yards around the master within which the companion
+#                     mount looks for corpses to loot.
+#        Default:     30
+
+CompanionMount.Loot.Range = 30
+
+#
+#    CompanionMount.KillsRewardOwner
+#        Description: The blows of the companion mount count as its master's
+#                     for loot and rewards (experience, reputation, quests).
+#                     The core gives them only when a PLAYER struck: without
+#                     this, a creature the companion mount kills alone drops
+#                     nothing, as one a pet kills alone.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.KillsRewardOwner = 1

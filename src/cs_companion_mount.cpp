@@ -36,7 +36,10 @@
 
 #include "Chat.h"
 #include "ChatCommand.h"
+#include "CellImpl.h"
 #include "Creature.h"
+#include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
 #include "MotionMaster.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -214,6 +217,23 @@ public:
         handler->PSendSysMessage("companion: script {} evade {} nearest hostile {} at {:.1f}",
             companion->GetScriptName(), companion->IsInEvadeMode(),
             nearest ? nearest->GetName() : std::string("none"), nearest ? companion->GetDistance(nearest) : 0.0f);
+        handler->PSendSysMessage("companion: lootTarget {} tried {}", state.lootTarget.ToString(), state.lootTried.size());
+
+        // Les creatures autour du joueur, avec le GUID que les commandes
+        // attendent (.die, .companion attack avec une cible).
+        std::list<Creature*> around;
+        Acore::AllWorldObjectsInRange check(player, 15.0f);
+        Acore::CreatureListSearcher<Acore::AllWorldObjectsInRange> searcher(player, around, check);
+        Cell::VisitObjects(player, searcher, 15.0f);
+        uint32 shown = 0;
+        for (Creature* creature : around)
+        {
+            if (creature == companion || ++shown > 10)
+                continue;
+            handler->PSendSysMessage("  {} {} alive {} lootable {} for you {}", creature->GetName(),
+                creature->GetGUID().ToString(), creature->IsAlive(), creature->HasDynamicFlag(UNIT_DYNFLAG_LOOTABLE),
+                IsLootableCorpse(player, creature));
+        }
         return true;
     }
 

@@ -49,6 +49,20 @@ AzerothCore Mount mod
   `.companion` correspondante au nom du joueur et renvoie l'état à la barre.
 - `.companion debug` (MJ) : ce que le serveur sait de la bête (PV, cible, mouvement), pour les tests.
 
+## Jalon 3 : le butin, comme le joueur
+
+- Hors combat, quand elle suit, la monture va au corps le plus proche (30 m autour du joueur,
+  réglable) que le joueur a le droit de fouiller, et le butin passe dans ses sacs par les chemins
+  du core : objets de quête, « chacun le sien », conditions, hauts faits, partage de l'argent avec
+  le groupe. Elle ne prend que ce que la fenêtre de butin laisserait prendre au joueur (rien en
+  jet de dés, réservé au maître du butin ou au tour d'un autre) ; le reste reste sur le corps.
+- Pas de doublon avec mod-aoe-loot : même objet `loot` du core, et elle ne touche à rien tant que
+  le joueur a une fenêtre de butin ouverte. Sacs pleins : elle laisse l'objet et le dit (une fois
+  par minute).
+- Ses coups comptent comme ceux du joueur pour le butin et les récompenses
+  (`CompanionMount.KillsRewardOwner`) : sans cela, le core ne donne rien d'un monstre tué par
+  un familier seul.
+
 ## Identifiants provisoires
 
 La tranche 91 (`91000-91999`) est libre dans `ID_RANGES.md` mais **pas encore attribuée** :
@@ -58,7 +72,7 @@ il sert à la ligne de `npc_spellclick_spells`). À changer dans `src/CompanionM
 
 ## Ce qui vient ensuite
 
-Loot comme le joueur, expérience et niveaux, talents DPS / Tank / Heal, inventaire, renommage — interface par
+Expérience et niveaux, talents DPS / Tank / Heal, inventaire, renommage — interface par
 patch client et addon.
 
 # Installation (développement)

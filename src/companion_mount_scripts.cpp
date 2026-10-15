@@ -26,6 +26,7 @@
 
 #include "CompanionMount.h"
 
+#include "Creature.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 
@@ -78,8 +79,36 @@ public:
     }
 };
 
+// LES COUPS DE LA BETE COMPTENT COMME CEUX DU MAITRE. Le coeur ne donne butin
+// et recompense que si un JOUEUR a frappe (Creature::_damagedByPlayer) : un
+// monstre tue par un familier seul ne rapporte rien. La monture-compagnon
+// combat a la place du joueur : ses coups lui ouvrent les memes droits.
+class CompanionMountUnitScript : public UnitScript
+{
+public:
+    CompanionMountUnitScript() : UnitScript("CompanionMountUnitScript", true, { UNITHOOK_ON_DAMAGE }) { }
+
+    void OnDamage(Unit* attacker, Unit* victim, uint32& damage) override
+    {
+        if (!attacker || !victim || !damage || !GetConfig().killsRewardOwner)
+            return;
+
+        Creature* companion = attacker->ToCreature();
+        if (!companion || companion->GetEntry() != NPC_COMPANION)
+            return;
+
+        Creature* target = victim->ToCreature();
+        if (!target || target->IsControlledByPlayer())
+            return;
+
+        if (Player* owner = companion->GetCharmerOrOwnerPlayerOrPlayerItself())
+            target->LowerPlayerDamageReq(std::min(damage, target->GetHealth()), true, owner->GetLevel());
+    }
+};
+
 void AddSC_companion_mount_scripts()
 {
     new CompanionMountWorldScript();
     new CompanionMountPlayerScript();
+    new CompanionMountUnitScript();
 }

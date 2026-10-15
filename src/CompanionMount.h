@@ -42,6 +42,7 @@
 #include "SharedDefines.h"
 
 #include <string>
+#include <vector>
 
 class Creature;
 class SpellInfo;
@@ -88,6 +89,7 @@ namespace CompanionMount
         TEXT_REACT_DEFENSIVE = 19,
         TEXT_REACT_AGGRESSIVE = 20,
         TEXT_INFO_FULL       = 21,  // remplace TEXT_INFO (7), retire
+        TEXT_BAGS_FULL       = 22,
     };
 
     // LES ORDRES, comme ceux de la barre du familier.
@@ -102,7 +104,21 @@ namespace CompanionMount
     {
         ACTION_ORDERS_CHANGED = 1,   // suivre/rester ou attitude changes
         ACTION_ATTACK         = 2,   // State::attackTarget vient d'etre pose
+        ACTION_LOOT           = 3,   // State::lootTarget vient d'etre pose
     };
+
+    // Ce que la bete a fait d'un corps.
+    enum LootResult : uint8
+    {
+        LOOT_RESULT_NOTHING   = 0,   // rien a prendre, ou pas maintenant
+        LOOT_RESULT_DONE      = 1,   // tout ce qu'elle avait le droit de prendre
+        LOOT_RESULT_BAGS_FULL = 2,   // des objets restent faute de place
+    };
+
+    // Combien de temps la bete cherche a atteindre un corps avant d'y renoncer.
+    constexpr uint32 LOOT_TIMEOUT = 15000;   // ms
+    // Combien de corps deja visites elle se rappelle (pour ne pas y revenir).
+    constexpr size_t LOOT_MEMORY = 64;
 
     // Distance a laquelle une monture AGRESSIVE va chercher la bagarre.
     constexpr float AGGRESSIVE_RANGE = 20.0f;
@@ -121,6 +137,9 @@ namespace CompanionMount
         float damageRate = 1.0f;
         float leashDistance = 40.0f;  // metres
         float clickDistance = 10.0f;  // metres
+        bool lootEnabled = true;
+        float lootRange = 30.0f;      // metres autour du joueur
+        bool killsRewardOwner = true; // ses coups ouvrent butin et recompense
     };
 
     // CE QUE LE JOUEUR A CHOISI, et ou en est sa monture.
@@ -139,6 +158,13 @@ namespace CompanionMount
         uint8 command = ORDER_FOLLOW;
         ReactStates react = REACT_DEFENSIVE;
         ObjectGuid attackTarget;      // la cible designee par « attaquer »
+
+        // LE BUTIN : le corps vers lequel elle marche, depuis quand, et ceux
+        // qu'elle a deja fouilles (ce qui y reste n'est pas pour elle).
+        ObjectGuid lootTarget;
+        uint32 lootTimer = 0;
+        std::vector<ObjectGuid> lootTried;
+        uint32 bagsFullTimer = 0;     // ms avant de redire « sacs pleins »
     };
 
     Config const& GetConfig();
@@ -163,6 +189,13 @@ namespace CompanionMount
     void SetCommand(Player* player, Order order);
     void SetReact(Player* player, ReactStates react);
     bool OrderAttack(Player* player, Unit* target);
+
+    // LE BUTIN (CompanionLoot.cpp).
+    bool IsLootableCorpse(Player* player, Creature* creature);
+    Creature* FindCorpseToLoot(Player* player, Creature* companion, State const& state);
+    LootResult LootCorpse(Player* player, Creature* creature);
+    // Appelee par l'IA arrivee au corps (ou qui y renonce).
+    void OnLootReached(Player* player, Creature* corpse);
 
     // Les evenements.
     void Update(Player* player, uint32 diff);
