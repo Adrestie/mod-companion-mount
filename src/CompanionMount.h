@@ -80,7 +80,35 @@ namespace CompanionMount
         TEXT_DIED            = 11,
         TEXT_NOT_YOURS       = 12,
         TEXT_TOO_FAR         = 13,
+        TEXT_BAD_TARGET      = 14,
+        TEXT_NOT_OUT         = 15,
+        TEXT_CMD_FOLLOW      = 16,
+        TEXT_CMD_STAY        = 17,
+        TEXT_REACT_PASSIVE   = 18,
+        TEXT_REACT_DEFENSIVE = 19,
+        TEXT_REACT_AGGRESSIVE = 20,
+        TEXT_INFO_FULL       = 21,  // remplace TEXT_INFO (7), retire
     };
+
+    // LES ORDRES, comme ceux de la barre du familier.
+    enum Order : uint8
+    {
+        ORDER_FOLLOW = 0,
+        ORDER_STAY   = 1,
+    };
+
+    // Ce que l'IA recoit de CompanionMount (CreatureAI::DoAction).
+    enum Action : int32
+    {
+        ACTION_ORDERS_CHANGED = 1,   // suivre/rester ou attitude changes
+        ACTION_ATTACK         = 2,   // State::attackTarget vient d'etre pose
+    };
+
+    // Distance a laquelle une monture AGRESSIVE va chercher la bagarre.
+    constexpr float AGGRESSIVE_RANGE = 20.0f;
+
+    // Jusqu'ou une monture a qui l'on a dit de rester attend son maitre.
+    constexpr float STAY_RANGE = 100.0f;
 
     struct Config
     {
@@ -104,6 +132,13 @@ namespace CompanionMount
         ObjectGuid companion;         // la creature, quand elle est dehors
         uint32 updateTimer = 0;
         uint32 reviveTimer = 0;       // ms avant qu'elle revienne apres sa mort
+
+        // LES ORDRES. L'attitude est gardee en base ; suivre/rester aussi, mais
+        // une connexion repart toujours sur « suivre » -- l'endroit ou elle
+        // restait n'a plus de sens.
+        uint8 command = ORDER_FOLLOW;
+        ReactStates react = REACT_DEFENSIVE;
+        ObjectGuid attackTarget;      // la cible designee par « attaquer »
     };
 
     Config const& GetConfig();
@@ -125,6 +160,9 @@ namespace CompanionMount
     bool Summon(Player* player, uint32 mountSpell);
     void Dismiss(Player* player);
     bool Ride(Player* player, Creature* companion);
+    void SetCommand(Player* player, Order order);
+    void SetReact(Player* player, ReactStates react);
+    bool OrderAttack(Player* player, Unit* target);
 
     // Les evenements.
     void Update(Player* player, uint32 diff);

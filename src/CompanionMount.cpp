@@ -19,6 +19,7 @@
 
 #include "Config.h"
 #include "Creature.h"
+#include "CreatureAI.h"
 #include "CreatureData.h"
 #include "DatabaseEnv.h"
 #include "DBCStores.h"
@@ -165,12 +166,15 @@ namespace CompanionMount
         state.loaded = true;
 
         QueryResult result = CharacterDatabase.Query(
-            "SELECT `mount_spell`, `summoned` FROM `mod_companion_mount_character` WHERE `guid` = {}",
+            "SELECT `mount_spell`, `summoned`, `react_state` FROM `mod_companion_mount_character` WHERE `guid` = {}",
             player->GetGUID().GetCounter());
         if (!result)
             return;
 
         Field* fields = result->Fetch();
+        uint8 const react = fields[2].Get<uint8>();
+        state.react = react <= REACT_AGGRESSIVE ? ReactStates(react) : REACT_DEFENSIVE;
+
         uint32 const mountSpell = fields[0].Get<uint32>();
         // Une monture oubliee depuis (sort retire, base changee) ne revient pas.
         if (!player->HasSpell(mountSpell) || !IsMountSpell(sSpellMgr->GetSpellInfo(mountSpell)))
@@ -178,14 +182,20 @@ namespace CompanionMount
 
         state.mountSpell = mountSpell;
         state.summoned = fields[1].Get<bool>();
+        // La connexion repart sur « suivre » : la base le dit aussi a l'interface.
+        SaveState(player);
     }
 
+    // ECRITURE IMMEDIATE : l'interface (ALE) relit la ligne juste apres la
+    // commande ; une ecriture differee lui montrerait l'etat d'avant.
     void SaveState(Player* player)
     {
         State const& state = GetState(player);
-        CharacterDatabase.Execute(
-            "REPLACE INTO `mod_companion_mount_character` (`guid`, `mount_spell`, `summoned`) VALUES ({}, {}, {})",
-            player->GetGUID().GetCounter(), state.mountSpell, state.summoned ? 1 : 0);
+        CharacterDatabase.DirectExecute(
+            "REPLACE INTO `mod_companion_mount_character` (`guid`, `mount_spell`, `summoned`, `command_state`, `react_state`) "
+            "VALUES ({}, {}, {}, {}, {})",
+            player->GetGUID().GetCounter(), state.mountSpell, state.summoned ? 1 : 0,
+            uint32(state.command), uint32(state.react));
     }
 
     void DeleteState(ObjectGuid::LowType guid)
@@ -324,15 +334,70 @@ namespace CompanionMount
         else if (companion)
         {
             // TROP LOIN (teleportation proche, chute, poursuite) : elle revient
-            // aupres du maitre plutot que de courir a travers la zone.
-            if (!companion->IsWithinDistInMap(player, sConfig.leashDistance * 2.0f))
+            // aupres du maitre plutot que de courir a travers la zone. Celle a
+            // qui on a dit de RESTER attend plus loin, jusqu'a la limite de vue ;
+            // au-dela elle revient, et suit de nouveau.
+            float const farAway = state.command == ORDER_STAY ? STAY_RANGE : sConfig.leashDistance * 2.0f;
+            if (!companion->IsWithinDistInMap(player, farAway))
             {
+                if (state.command == ORDER_STAY)
+                {
+                    state.command = ORDER_FOLLOW;
+                    SaveState(player);
+                }
+                state.attackTarget.Clear();
                 Despawn(state, companion);
                 Spawn(player, state);
             }
             else if (companion->GetLevel() != player->GetLevel())
                 ApplyStats(companion, player->GetLevel());
         }
+    }
+
+    void SetCommand(Player* player, Order order)
+    {
+        State& state = GetState(player);
+        state.command = order;
+        state.attackTarget.Clear();
+        SaveState(player);
+        if (Creature* companion = GetCompanion(player))
+            if (companion->IsAIEnabled)
+                companion->AI()->DoAction(ACTION_ORDERS_CHANGED);
+    }
+
+    void SetReact(Player* player, ReactStates react)
+    {
+        State& state = GetState(player);
+        state.react = react;
+        state.attackTarget.Clear();
+        SaveState(player);
+        if (Creature* companion = GetCompanion(player))
+            if (companion->IsAIEnabled)
+                companion->AI()->DoAction(ACTION_ORDERS_CHANGED);
+    }
+
+    // « ATTAQUER » : quelle que soit l'attitude, meme passive, comme le
+    // familier. La cible reste designee jusqu'a sa mort ou un autre ordre.
+    bool OrderAttack(Player* player, Unit* target)
+    {
+        Creature* companion = GetCompanion(player);
+        if (!companion)
+        {
+            Say(player, TEXT_NOT_OUT);
+            return false;
+        }
+        if (!target || target == player || !target->IsAlive() || !companion->IsValidAttackTarget(target)
+            || !player->IsValidAttackTarget(target))
+        {
+            Say(player, TEXT_BAD_TARGET);
+            return false;
+        }
+
+        State& state = GetState(player);
+        state.attackTarget = target->GetGUID();
+        if (companion->IsAIEnabled)
+            companion->AI()->DoAction(ACTION_ATTACK);
+        return true;
     }
 
     void OnCompanionDied(Player* owner)

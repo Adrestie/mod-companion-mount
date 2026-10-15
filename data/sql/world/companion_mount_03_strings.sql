@@ -1,12 +1,12 @@
 -- mod-companion-mount — the texts.
 --
 -- English in `module_string`, other languages in `module_string_locale`
--- (English when a language is missing). Ids match the Text enum of
+-- (English when a language is missing). Ids 1-13 match the Text enum of
 -- src/CompanionMount.h and are never reused once retired.
 --
 -- Idempotent: the file may be replayed.
 
-DELETE FROM `module_string` WHERE `module` = 'mod-companion-mount';
+DELETE FROM `module_string` WHERE `module` = 'mod-companion-mount' AND `id` BETWEEN 1 AND 13;
 INSERT INTO `module_string` (`module`, `id`, `string`) VALUES
 ('mod-companion-mount',  1, 'Companion mount: the module is disabled.'),
 ('mod-companion-mount',  2, 'Spell {} is not a mount you know.'),
@@ -22,7 +22,7 @@ INSERT INTO `module_string` (`module`, `id`, `string`) VALUES
 ('mod-companion-mount', 12, 'This is not your mount.'),
 ('mod-companion-mount', 13, 'You are too far from your mount.');
 
-DELETE FROM `module_string_locale` WHERE `module` = 'mod-companion-mount';
+DELETE FROM `module_string_locale` WHERE `module` = 'mod-companion-mount' AND `id` BETWEEN 1 AND 13;
 INSERT INTO `module_string_locale` (`module`, `id`, `locale`, `string`) VALUES
 ('mod-companion-mount',  1, 'frFR', 'Monture-compagnon : le module est désactivé.'),
 ('mod-companion-mount',  2, 'frFR', 'Le sort {} n''est pas une monture que vous connaissez.'),

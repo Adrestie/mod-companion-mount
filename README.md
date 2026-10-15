@@ -34,6 +34,21 @@ AzerothCore Mount mod
   revient. Les refus habituels du sort (combat, intérieur…) s'affichent et elle reste là.
 - `.companion dismiss` la renvoie à l'écurie, `.companion info` dit où elle en est.
 
+## Jalon 2 : les ordres, comme un familier
+
+- **Barre de la monture** (envoyée au client par AIO, rien à installer en plus d'AIO_Client) :
+  Appeler, Renvoyer, Attaquer, Suivre, Rester, Agressive, Défensive, Passive — les icônes de la
+  barre du familier. L'ordre et l'attitude en cours sont allumés. Maj + glisser déplace la barre
+  (gardée par personnage), `/companion` ou `/compagnon` la cache ou la montre.
+- **Mêmes ordres au clavier** : `.companion attack | follow | stay | passive | defensive | aggressive`.
+  Passive : n'attaque que sur ordre. Défensive (défaut) : votre cible, ce qui vous attaque, ce qui
+  l'attaque. Agressive : en plus, tout ennemi à 20 m. Rester : garde sa place et y revient après un
+  combat ; à plus de 100 m du joueur elle revient et suit de nouveau.
+- L'attitude est gardée en base ; une connexion repart toujours sur « suivre ».
+- La partie ALE (`data/lua/CompanionMount`) ne décide rien : chaque bouton lance la commande
+  `.companion` correspondante au nom du joueur et renvoie l'état à la barre.
+- `.companion debug` (MJ) : ce que le serveur sait de la bête (PV, cible, mouvement), pour les tests.
+
 ## Identifiants provisoires
 
 La tranche 91 (`91000-91999`) est libre dans `ID_RANGES.md` mais **pas encore attribuée** :
@@ -43,12 +58,12 @@ il sert à la ligne de `npc_spellclick_spells`). À changer dans `src/CompanionM
 
 ## Ce qui vient ensuite
 
-Contrôle de la monture par l'interface (ALE : attaquer, suivre, rester, passif), loot comme le
-joueur, expérience et niveaux, talents DPS / Tank / Heal, inventaire, renommage — interface par
+Loot comme le joueur, expérience et niveaux, talents DPS / Tank / Heal, inventaire, renommage — interface par
 patch client et addon.
 
 # Installation (développement)
 
 Le dossier du module dans `modules/` du core (copie ou jonction), recompiler, copier
 `conf/mod-companion-mount.conf.dist` en `mod-companion-mount.conf` dans `configs/modules`. Le SQL de
-`data/sql/world` et `data/sql/characters` est appliqué par le core au démarrage.
+`data/sql/world` et `data/sql/characters` est appliqué par le core au démarrage. Le dossier
+`data/lua/CompanionMount` va dans `lua_scripts` (ALE + AIO).

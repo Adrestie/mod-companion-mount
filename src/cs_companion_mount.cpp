@@ -22,7 +22,11 @@
  *                                          que l'on chevauche, sinon le sort
  *                                          donne (id ou lien), sinon la derniere
  * .companion dismiss         (SEC_PLAYER)  la renvoie a l'ecurie
- * .companion info            (SEC_PLAYER)  quelle monture, et ou elle en est
+ * .companion info            (SEC_PLAYER)  quelle monture, ou elle en est, ses ordres
+ * .companion attack          (SEC_PLAYER)  attaque la cible du joueur
+ * .companion follow|stay     (SEC_PLAYER)  suivre le joueur, ou rester sur place
+ * .companion passive|defensive|aggressive  (SEC_PLAYER)  son attitude
+ * .companion debug           (SEC_GAMEMASTER)  la bete vue du serveur : PV, cible, mouvement
  *
  * Elles sont le chemin que prendra l'interface (ALE) : le jeu reste jouable
  * au clavier en attendant.
@@ -32,6 +36,8 @@
 
 #include "Chat.h"
 #include "ChatCommand.h"
+#include "Creature.h"
+#include "MotionMaster.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellInfo.h"
@@ -52,6 +58,13 @@ public:
             { "summon",  HandleSummonCommand,  SEC_PLAYER, Console::No },
             { "dismiss", HandleDismissCommand, SEC_PLAYER, Console::No },
             { "info",    HandleInfoCommand,    SEC_PLAYER, Console::No },
+            { "attack",  HandleAttackCommand,  SEC_PLAYER, Console::No },
+            { "follow",  HandleFollowCommand,  SEC_PLAYER, Console::No },
+            { "stay",    HandleStayCommand,    SEC_PLAYER, Console::No },
+            { "passive",    HandlePassiveCommand,    SEC_PLAYER, Console::No },
+            { "defensive",  HandleDefensiveCommand,  SEC_PLAYER, Console::No },
+            { "aggressive", HandleAggressiveCommand, SEC_PLAYER, Console::No },
+            { "debug",      HandleDebugCommand,      SEC_GAMEMASTER, Console::No },
         };
 
         static ChatCommandTable commandTable =
@@ -126,10 +139,89 @@ public:
         uint32 stateText = TEXT_STATE_DISMISSED;
         if (state.summoned)
             stateText = GetCompanion(player) ? TEXT_STATE_OUT : TEXT_STATE_WAITING;
+        uint32 const commandText = state.command == ORDER_STAY ? TEXT_CMD_STAY : TEXT_CMD_FOLLOW;
+        uint32 reactText = TEXT_REACT_DEFENSIVE;
+        if (state.react == REACT_PASSIVE)
+            reactText = TEXT_REACT_PASSIVE;
+        else if (state.react == REACT_AGGRESSIVE)
+            reactText = TEXT_REACT_AGGRESSIVE;
 
-        std::string const* stateString = handler->GetModuleString(MODULE, stateText);
-        Say(handler, TEXT_INFO, SpellName(player, state.mountSpell), stateString ? *stateString : "");
+        Say(handler, TEXT_INFO_FULL, SpellName(player, state.mountSpell), String(handler, stateText),
+            String(handler, commandText), String(handler, reactText));
         return true;
+    }
+
+    static bool HandleAttackCommand(ChatHandler* handler)
+    {
+        OrderAttack(handler->GetPlayer(), handler->getSelectedUnit());
+        return true;
+    }
+
+    static bool HandleFollowCommand(ChatHandler* handler)
+    {
+        SetCommand(handler->GetPlayer(), ORDER_FOLLOW);
+        return true;
+    }
+
+    static bool HandleStayCommand(ChatHandler* handler)
+    {
+        SetCommand(handler->GetPlayer(), ORDER_STAY);
+        return true;
+    }
+
+    static bool HandlePassiveCommand(ChatHandler* handler)
+    {
+        SetReact(handler->GetPlayer(), REACT_PASSIVE);
+        return true;
+    }
+
+    static bool HandleDefensiveCommand(ChatHandler* handler)
+    {
+        SetReact(handler->GetPlayer(), REACT_DEFENSIVE);
+        return true;
+    }
+
+    static bool HandleAggressiveCommand(ChatHandler* handler)
+    {
+        SetReact(handler->GetPlayer(), REACT_AGGRESSIVE);
+        return true;
+    }
+
+    // POUR LES TESTS : ce que le serveur sait de la bete, en clair (non traduit).
+    static bool HandleDebugCommand(ChatHandler* handler)
+    {
+        Player* player = handler->GetPlayer();
+        State const& state = GetState(player);
+        handler->PSendSysMessage("companion: spell {} summoned {} order {} react {} attackTarget {} reviveTimer {}",
+            state.mountSpell, state.summoned, uint32(state.command), uint32(state.react),
+            state.attackTarget.ToString(), state.reviveTimer);
+
+        Creature* companion = GetCompanion(player);
+        if (!companion)
+        {
+            handler->SendSysMessage("companion: not out");
+            return true;
+        }
+
+        Unit* victim = companion->GetVictim();
+        handler->PSendSysMessage("companion: {} level {} hp {}/{} display {} dist {:.1f} motion {} combat {} victim {}",
+            companion->GetGUID().ToString(), companion->GetLevel(), companion->GetHealth(), companion->GetMaxHealth(),
+            companion->GetDisplayId(), companion->GetDistance(player),
+            uint32(companion->GetMotionMaster()->GetCurrentMovementGeneratorType()), companion->IsInCombat(),
+            victim ? victim->GetName() + " " + victim->GetGUID().ToString() : std::string("none"));
+
+        Unit* nearest = companion->SelectNearestTarget(AGGRESSIVE_RANGE);
+        handler->PSendSysMessage("companion: script {} evade {} nearest hostile {} at {:.1f}",
+            companion->GetScriptName(), companion->IsInEvadeMode(),
+            nearest ? nearest->GetName() : std::string("none"), nearest ? companion->GetDistance(nearest) : 0.0f);
+        return true;
+    }
+
+private:
+    static std::string String(ChatHandler* handler, uint32 id)
+    {
+        std::string const* text = handler->GetModuleString(MODULE, id);
+        return text ? *text : "";
     }
 };
 

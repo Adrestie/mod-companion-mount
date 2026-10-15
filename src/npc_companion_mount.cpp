@@ -18,9 +18,17 @@
 /*
  * mod-companion-mount — CE QUE FAIT LA BETE.
  *
- * Elle ne cherche pas la bagarre : elle ne frappe que ce que son maitre
- * frappe, ce qui frappe son maitre, ou ce qui la frappe -- un familier en
- * mode DEFENSIF. Trop loin du maitre, elle lache sa proie et revient.
+ * Elle obeit comme un familier, aux memes ordres :
+ *   SUIVRE / RESTER   elle marche a cote du maitre, ou garde sa place ;
+ *   PASSIVE           elle ne frappe que ce qu'on lui dit d'attaquer ;
+ *   DEFENSIVE         elle frappe ce que son maitre frappe, ce qui frappe son
+ *                     maitre, ou ce qui la frappe (attitude par defaut) ;
+ *   AGRESSIVE         elle va en plus chercher tout ennemi a 20 metres ;
+ *   ATTAQUER          la cible du maitre, quelle que soit l'attitude.
+ * Trop loin du maitre, elle lache sa proie et revient (la laisse).
+ *
+ * Les ordres vivent dans l'etat du maitre (CompanionMount::State) : la bete
+ * meurt, rentre, ressort, ils restent. L'IA les relit a chaque decision.
  *
  * LE CLIC DROIT : la creature porte UNIT_NPC_FLAG_SPELLCLICK et une ligne de
  * npc_spellclick_spells, ce qui montre le curseur et fait envoyer le clic par
@@ -32,6 +40,7 @@
 
 #include "Creature.h"
 #include "MotionMaster.h"
+#include "ObjectAccessor.h"
 #include "PetDefines.h"
 #include "Player.h"
 #include "ScriptMgr.h"
@@ -47,12 +56,14 @@ struct npc_companion_mount : public ScriptedAI
     void InitializeAI() override
     {
         ScriptedAI::InitializeAI();
-        // DEFENSIF : rien sur un simple regard (voir MoveInLineOfSight).
+        // Le coeur ne choisit rien pour elle : tout passe par SelectTarget.
         me->SetReactState(REACT_DEFENSIVE);
-        _assistTimer = 0;
+        _decideTimer = 0;
+        _hasStayPos = false;
     }
 
-    // Elle ne s'en prend a personne parce qu'elle l'a vu passer.
+    // Elle ne s'en prend a personne parce qu'elle l'a vu passer : meme
+    // agressive, c'est SelectTarget qui decide, a sa cadence.
     void MoveInLineOfSight(Unit* /*who*/) override { }
 
     bool BeforeSpellClick(Unit* clicker) override
@@ -68,25 +79,56 @@ struct npc_companion_mount : public ScriptedAI
             OnCompanionDied(owner);
     }
 
+    void DoAction(int32 action) override
+    {
+        Player* owner = GetOwnerPlayer();
+        if (!owner)
+            return;
+        State& state = GetState(owner);
+
+        switch (action)
+        {
+            case ACTION_ATTACK:
+                if (Unit* target = ObjectAccessor::GetUnit(*me, state.attackTarget))
+                    AttackStart(target);
+                break;
+            case ACTION_ORDERS_CHANGED:
+                // RESTER : ici meme. Un nouvel ordre, ou passive : elle lache
+                // tout et rejoint son poste.
+                if (state.command == ORDER_STAY)
+                {
+                    _stayPos = me->GetPosition();
+                    _hasStayPos = true;
+                }
+                if (state.command == ORDER_STAY || state.react == REACT_PASSIVE || !me->GetVictim())
+                    ReturnToPost(owner, state);
+                break;
+            default:
+                break;
+        }
+    }
+
     void UpdateAI(uint32 diff) override
     {
         Player* owner = GetOwnerPlayer();
         if (!owner)
             return;
+        State& state = GetState(owner);
 
-        _assistTimer += diff;
-        if (_assistTimer >= 500)
+        _decideTimer += diff;
+        if (_decideTimer >= 500)
         {
-            _assistTimer = 0;
+            _decideTimer = 0;
 
             // LA LAISSE : trop loin du maitre, elle revient.
             if (me->GetVictim() && !me->IsWithinDistInMap(owner, GetConfig().leashDistance))
             {
-                ReturnToOwner();
+                state.attackTarget.Clear();
+                ReturnToPost(owner, state);
                 return;
             }
 
-            Unit* target = SelectAssistTarget(owner);
+            Unit* target = SelectTarget(owner, state);
             if (target && target != me->GetVictim())
                 AttackStart(target);
         }
@@ -95,13 +137,15 @@ struct npc_companion_mount : public ScriptedAI
         {
             if (!victim->IsAlive() || !me->IsValidAttackTarget(victim))
             {
-                ReturnToOwner();
+                if (victim->GetGUID() == state.attackTarget)
+                    state.attackTarget.Clear();
+                ReturnToPost(owner, state);
                 return;
             }
             DoMeleeAttackIfReady();
         }
-        else if (me->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
-            ReturnToOwner();
+        else
+            KeepPost(owner, state);
     }
 
 private:
@@ -111,55 +155,104 @@ private:
         return owner ? owner->ToPlayer() : nullptr;
     }
 
-    bool CanAssistAgainst(Unit* target) const
+    bool CanFight(Unit* target) const
     {
         return target && target->IsAlive() && me->IsValidAttackTarget(target)
             && target->IsWithinDistInMap(me, GetConfig().leashDistance);
     }
 
-    // QUI FRAPPER : la cible du maitre d'abord, puis qui l'attaque, puis qui
-    // l'attaque elle. Elle garde sa proie tant que le maitre n'en change pas.
-    Unit* SelectAssistTarget(Player* owner) const
+    // QUI FRAPPER. L'ordre d'attaque d'abord ; puis, selon l'attitude, la
+    // cible du maitre, qui l'attaque, qui l'attaque elle, et pour l'agressive
+    // l'ennemi le plus proche.
+    Unit* SelectTarget(Player* owner, State& state) const
     {
-        if (!owner->IsInCombat() && !me->IsInCombat())
+        if (state.attackTarget)
+        {
+            Unit* ordered = ObjectAccessor::GetUnit(*me, state.attackTarget);
+            if (CanFight(ordered))
+                return ordered;
+            state.attackTarget.Clear();
+        }
+
+        if (state.react == REACT_PASSIVE)
             return nullptr;
 
-        if (Unit* victim = owner->GetVictim())
-            if (CanAssistAgainst(victim))
-                return victim;
+        if (owner->IsInCombat() || me->IsInCombat())
+        {
+            if (Unit* victim = owner->GetVictim())
+                if (CanFight(victim))
+                    return victim;
 
-        // Un lanceur de sorts ne frappe pas au corps a corps : sa cible est
-        // celle qu'il a selectionnee, si elle se bat contre lui.
-        if (Unit* selected = owner->GetSelectedUnit())
-            if (selected->IsInCombatWith(owner) && CanAssistAgainst(selected))
-                return selected;
+            // Un lanceur de sorts ne frappe pas au corps a corps : sa cible est
+            // celle qu'il a selectionnee, si elle se bat contre lui.
+            if (Unit* selected = owner->GetSelectedUnit())
+                if (selected->IsInCombatWith(owner) && CanFight(selected))
+                    return selected;
 
-        if (Unit* current = me->GetVictim())
-            if (CanAssistAgainst(current))
-                return current;
+            if (Unit* current = me->GetVictim())
+                if (CanFight(current))
+                    return current;
 
-        if (Unit* attacker = owner->getAttackerForHelper())
-            if (CanAssistAgainst(attacker))
-                return attacker;
+            if (Unit* attacker = owner->getAttackerForHelper())
+                if (CanFight(attacker))
+                    return attacker;
 
-        if (Unit* attacker = me->getAttackerForHelper())
-            if (CanAssistAgainst(attacker))
-                return attacker;
+            if (Unit* attacker = me->getAttackerForHelper())
+                if (CanFight(attacker))
+                    return attacker;
+        }
+
+        if (state.react == REACT_AGGRESSIVE && !me->GetVictim())
+            if (Unit* enemy = me->SelectNearestTarget(AGGRESSIVE_RANGE))
+                if (CanFight(enemy))
+                    return enemy;
 
         return nullptr;
     }
 
-    void ReturnToOwner()
+    void ReturnToPost(Player* owner, State const& state)
     {
-        Player* owner = GetOwnerPlayer();
         me->AttackStop();
         me->CombatStop(true);
         me->GetMotionMaster()->Clear(false);
-        if (owner)
+        if (state.command == ORDER_STAY)
+        {
+            if (!_hasStayPos)
+            {
+                _stayPos = me->GetPosition();
+                _hasStayPos = true;
+            }
+            me->GetMotionMaster()->MovePoint(0, _stayPos);
+        }
+        else
             me->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, FOLLOW_ANGLE, MOTION_SLOT_ACTIVE);
     }
 
-    uint32 _assistTimer = 0;
+    // Sans proie : a son poste. Rester, c'est revenir a sa place si un combat
+    // l'en a ecartee ; suivre, c'est suivre.
+    void KeepPost(Player* owner, State const& state)
+    {
+        MovementGeneratorType const motion = me->GetMotionMaster()->GetCurrentMovementGeneratorType();
+        if (state.command == ORDER_STAY)
+        {
+            if (!_hasStayPos)
+            {
+                _stayPos = me->GetPosition();
+                _hasStayPos = true;
+            }
+            if (motion != POINT_MOTION_TYPE && me->GetExactDist(&_stayPos) > 2.0f)
+                ReturnToPost(owner, state);
+        }
+        else if (motion != FOLLOW_MOTION_TYPE)
+        {
+            _hasStayPos = false;
+            ReturnToPost(owner, state);
+        }
+    }
+
+    uint32 _decideTimer = 0;
+    bool _hasStayPos = false;
+    Position _stayPos;
 };
 
 void AddSC_npc_companion_mount()
