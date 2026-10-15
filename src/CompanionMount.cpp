@@ -177,6 +177,7 @@ namespace CompanionMount
             summon->SetNativeDisplayId(model.CreatureDisplayID);
 
             ApplyStats(summon, EffectiveLevel(player, state));
+            ApplyName(summon, state);
 
             if (summon->HasUnitTypeMask(UNIT_MASK_MINION))
                 static_cast<Minion*>(summon)->SetFollowAngle(FOLLOW_ANGLE);

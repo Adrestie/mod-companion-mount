@@ -93,6 +93,9 @@ namespace CompanionMount
         TEXT_LEVEL           = 23,
         TEXT_LEVEL_MAX       = 24,
         TEXT_LEVEL_UP        = 25,
+        TEXT_RENAMED         = 26,
+        TEXT_UNNAMED         = 27,
+        TEXT_NAME            = 28,
     };
 
     // LES ORDRES, comme ceux de la barre du familier.
@@ -182,6 +185,7 @@ namespace CompanionMount
         uint32 xp = 0;
         uint64 poolSeen = 0;
         uint64 pool = 0;
+        std::string name;             // vide : le nom du modele
     };
 
     Config const& GetConfig();
@@ -218,6 +222,10 @@ namespace CompanionMount
     void SaveMount(Player* player, State const& state);
     void AddXP(Player* player, State& state, uint32 amount);
     void GiveKillXP(Player* owner, Creature* victim);
+
+    // LE NOM (CompanionName.cpp).
+    void ApplyName(Creature* companion, State const& state);
+    bool Rename(Player* player, std::string name);
 
     // Le corps atteint, et ceux que mod-aoe-loot y joindrait pour le joueur.
     std::vector<Creature*> FindAreaCorpses(Player* player, Creature* companion, Creature* reached);

@@ -83,9 +83,11 @@ namespace CompanionMount
     {
         if (!state.mountSpell)
             return;
+        std::string name = state.name;
+        CharacterDatabase.EscapeString(name);
         CharacterDatabase.Execute(
-            "REPLACE INTO `mod_companion_mount_mount` (`guid`, `mount_spell`, `level`, `xp`, `pool_seen`) VALUES ({}, {}, {}, {}, {})",
-            player->GetGUID().GetCounter(), state.mountSpell, uint32(state.level), state.xp, state.poolSeen);
+            "REPLACE INTO `mod_companion_mount_mount` (`guid`, `mount_spell`, `level`, `xp`, `pool_seen`, `name`) VALUES ({}, {}, {}, {}, {}, '{}')",
+            player->GetGUID().GetCounter(), state.mountSpell, uint32(state.level), state.xp, state.poolSeen, name);
     }
 
     void AddXP(Player* player, State& state, uint32 amount)
@@ -119,15 +121,17 @@ namespace CompanionMount
         state.level = uint8(std::clamp<uint32>(GetConfig().levelStart, 1, 255));
         state.xp = 0;
         state.poolSeen = 0;
+        state.name.clear();
 
         if (QueryResult result = CharacterDatabase.Query(
-                "SELECT `level`, `xp`, `pool_seen` FROM `mod_companion_mount_mount` WHERE `guid` = {} AND `mount_spell` = {}",
+                "SELECT `level`, `xp`, `pool_seen`, `name` FROM `mod_companion_mount_mount` WHERE `guid` = {} AND `mount_spell` = {}",
                 player->GetGUID().GetCounter(), state.mountSpell))
         {
             Field* fields = result->Fetch();
             state.level = std::max<uint8>(1, fields[0].Get<uint8>());
             state.xp = fields[1].Get<uint32>();
             state.poolSeen = fields[2].Get<uint64>();
+            state.name = fields[3].Get<std::string>();
         }
 
         // CE QUE LES AUTRES ONT GAGNE PENDANT QU'ELLE ETAIT A L'ECURIE.

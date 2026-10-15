@@ -26,6 +26,7 @@
  * .companion attack          (SEC_PLAYER)  attaque la cible du joueur
  * .companion follow|stay     (SEC_PLAYER)  suivre le joueur, ou rester sur place
  * .companion passive|defensive|aggressive  (SEC_PLAYER)  son attitude
+ * .companion rename [nom]    (SEC_PLAYER)  nomme la monture choisie, sans nom : le retire
  * .companion debug           (SEC_GAMEMASTER)  la bete vue du serveur : PV, cible, mouvement
  *
  * Elles sont le chemin que prendra l'interface (ALE) : le jeu reste jouable
@@ -67,6 +68,7 @@ public:
             { "passive",    HandlePassiveCommand,    SEC_PLAYER, Console::No },
             { "defensive",  HandleDefensiveCommand,  SEC_PLAYER, Console::No },
             { "aggressive", HandleAggressiveCommand, SEC_PLAYER, Console::No },
+            { "rename",     HandleRenameCommand,     SEC_PLAYER, Console::No },
             { "debug",      HandleDebugCommand,      SEC_GAMEMASTER, Console::No },
         };
 
@@ -149,6 +151,8 @@ public:
         else if (state.react == REACT_AGGRESSIVE)
             reactText = TEXT_REACT_AGGRESSIVE;
 
+        if (!state.name.empty())
+            Say(handler, TEXT_NAME, state.name);
         Say(handler, TEXT_INFO_FULL, SpellName(player, state.mountSpell), String(handler, stateText),
             String(handler, commandText), String(handler, reactText));
 
@@ -157,6 +161,12 @@ public:
             Say(handler, TEXT_LEVEL, uint32(level), state.xp, NextLevelXP(level));
         else
             Say(handler, TEXT_LEVEL_MAX, uint32(level));
+        return true;
+    }
+
+    static bool HandleRenameCommand(ChatHandler* handler, Optional<Tail> name)
+    {
+        Rename(handler->GetPlayer(), name ? std::string(*name) : std::string());
         return true;
     }
 

@@ -75,6 +75,17 @@ RegisterPlayerEvent(PLAYER_EVENT_ON_COMMAND, function(_, player, command)
     end
 end)
 
+-- The rename window: the name goes to `.companion rename`, which checks it
+-- as a pet's name. Only printable characters, and no more than a name holds.
+function Handlers.Rename(player, name)
+    if type(name) ~= "string" then
+        return
+    end
+    name = name:gsub("[%c|]", ""):sub(1, 48)
+    player:RunCommand("companion rename " .. name)
+    AIO.Handle(player, "CompanionMount", "State", State(player))
+end
+
 function Handlers.Order(player, order)
     if type(order) ~= "string" or not ORDERS[order] then
         return

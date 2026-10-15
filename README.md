@@ -79,6 +79,15 @@ AzerothCore Mount mod
 - Réglages : `CompanionMount.Level.Enable`, `Start` (1), `CapToOwner` (1), `XpNeedRate` (0.05),
   `XpKillRate` (1.0), `SharedPercent` (10).
 
+## Jalon 5 : le renommage
+
+- `.companion rename <nom>` (ou le bouton Renommer de la barre) nomme la monture choisie ; chaque
+  monture garde son nom, en base. Sans nom, elle reprend celui de toutes les montures-compagnons.
+- Le nom suit les règles des noms de familiers (12 lettres au plus, un seul alphabet, noms
+  réservés et grossiers refusés) ; un refus s'affiche avec le message du jeu.
+- Il s'affiche au-dessus d'elle par le chemin des noms de familiers (numéro de familier et
+  demande de nom), puisque toutes partagent le même modèle de créature.
+
 ## Identifiants provisoires
 
 La tranche 91 (`91000-91999`) est libre dans `ID_RANGES.md` mais **pas encore attribuée** :
@@ -88,7 +97,7 @@ il sert à la ligne de `npc_spellclick_spells`). À changer dans `src/CompanionM
 
 ## Ce qui vient ensuite
 
-Talents DPS / Tank / Heal, inventaire, renommage — interface par
+Talents DPS / Tank / Heal, inventaire — interface par
 patch client et addon.
 
 # Installation (développement)

@@ -64,6 +64,10 @@ local L = {
     passiveTip    = FR and "N'attaque que sur ordre." or "Attacks only when told to.",
     moveTip    = FR and "Maj + glisser : déplacer la barre" or "Shift + drag: move the bar",
     level      = FR and "Niv. %d" or "Lv %d",
+    rename     = FR and "Renommer" or "Rename",
+    renameTip  = FR and "Donne un nom à la monture choisie (vide : retire le nom)."
+                     or "Names the chosen mount (empty: removes the name).",
+    renameAsk  = FR and "Nouveau nom de votre monture-compagnon :" or "New name of your companion mount:",
 }
 
 -- ---------------------------------------------------------------------------
@@ -96,6 +100,27 @@ local BUTTONS = {
       lit = function() return state.react == REACT_DEFENSIVE end },
     { order = "passive",    text = L.passive,    tip = L.passiveTip,    icon = PET_PASSIVE_TEXTURE,
       lit = function() return state.react == REACT_PASSIVE end },
+    { order = "rename",     text = L.rename,     tip = L.renameTip,     icon = "Interface\\Icons\\INV_Scroll_11",
+      popup = "COMPANIONMOUNT_RENAME" },
+}
+
+StaticPopupDialogs["COMPANIONMOUNT_RENAME"] = {
+    text = L.renameAsk,
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    hasEditBox = 1,
+    maxLetters = 12,
+    OnAccept = function(self)
+        AIO.Handle("CompanionMount", "Rename", self.editBox:GetText() or "")
+    end,
+    EditBoxOnEnterPressed = function(self)
+        AIO.Handle("CompanionMount", "Rename", self:GetText() or "")
+        self:GetParent():Hide()
+    end,
+    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
 }
 
 local bar = CreateFrame("Frame", "CompanionMountBar", UIParent)
@@ -144,6 +169,11 @@ for i, def in ipairs(BUTTONS) do
     b.def = def
 
     b:SetScript("OnClick", function(self)
+        if self.def.popup then
+            self:SetChecked(false)
+            StaticPopup_Show(self.def.popup)
+            return
+        end
         AIO.Handle("CompanionMount", "Order", self.def.order)
         -- The server answers with the state; until then, the lit button is
         -- the one that was lit.
