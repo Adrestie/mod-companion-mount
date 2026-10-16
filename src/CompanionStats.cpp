@@ -31,6 +31,7 @@
 #include "Creature.h"
 #include "DatabaseEnv.h"
 #include "Player.h"
+#include "SpellMgr.h"
 
 namespace CompanionMount
 {
@@ -56,15 +57,20 @@ namespace CompanionMount
             parry = companion->GetUnitParryChance();
         }
 
+        // La vue 3D montre la creature du sort de monture, au modele de la bete
+        // quand elle est dehors.
+        uint32 const creature = GetMountCreatureEntry(sSpellMgr->GetSpellInfo(state.mountSpell));
+        uint32 const display = companion ? companion->GetDisplayId() : 0;
+
         int32 const tree = TalentTree(state);
         std::string name = state.name;
         CharacterDatabase.EscapeString(name);
         CharacterDatabase.DirectExecute(
-            "REPLACE INTO `mod_companion_mount_snapshot` (`guid`, `mount_spell`, `name`, `kind`, `level`, `xp`, `xp_next`, "
+            "REPLACE INTO `mod_companion_mount_snapshot` (`guid`, `mount_spell`, `name`, `kind`, `creature`, `display`, `level`, `xp`, `xp_next`, "
             "`out`, `health`, `max_health`, `armor`, `attack_power`, `min_damage`, `max_damage`, `attack_time`, "
             "`crit`, `dodge`, `parry`, `tree`, `points_spent`, `points_total`, `command_state`, `react_state`) "
-            "VALUES ({}, {}, '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {:.2f}, {:.2f}, {:.2f}, {}, {}, {}, {}, {})",
-            player->GetGUID().GetCounter(), state.mountSpell, name, uint32(MountKind(state.mountSpell)), uint32(level),
+            "VALUES ({}, {}, '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {:.2f}, {:.2f}, {:.2f}, {}, {}, {}, {}, {})",
+            player->GetGUID().GetCounter(), state.mountSpell, name, uint32(MountKind(state.mountSpell)), creature, display, uint32(level),
             state.xp, NextLevelXP(level), companion ? 1 : 0, health, maxHealth, armor, attackPower, minDamage, maxDamage,
             attackTime, crit, dodge, parry, tree < 0 ? 255 : tree, TalentPointsSpent(state), TalentPoints(level),
             uint32(state.command), uint32(state.react));

@@ -281,7 +281,7 @@ end
 -- ---------------------------------------------------------------------------
 
 local SHEET_COLUMNS = {
-    "mount_spell", "name", "kind", "level", "xp", "xp_next", "out", "health", "max_health", "armor",
+    "mount_spell", "name", "kind", "creature", "display", "level", "xp", "xp_next", "out", "health", "max_health", "armor",
     "attack_power", "min_damage", "max_damage", "attack_time", "crit", "dodge", "parry", "tree",
     "points_spent", "points_total", "command_state", "react_state",
 }

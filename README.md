@@ -39,12 +39,15 @@ AzerothCore Mount mod
 ## Jalon 2 : les ordres, comme un familier
 
 - **La fiche de la monture** (envoyée au client par AIO, rien à installer en plus d'AIO_Client) :
-  portrait, nom, type, arbre, niveau et barre d'expérience, caractéristiques (PV, armure, puissance
-  d'attaque, dégâts, vitesse, critique, esquive, parade, points de talent), ordres (Appeler,
-  Renvoyer, Attaquer, Renommer, Suivre, Rester, Agressive, Défensive, Passive) et accès aux talents
-  et aux sacoches. Avec Forever UI, c'est un onglet de la fenêtre Progression (comme Attriboost et
-  Item Upgrade, même code commun) ; sans, une fenêtre ouverte par un bouton au bord de la minimap.
-  `/companion` ou `/compagnon` l'ouvre aussi.
+  la monture en 3D (on la fait tourner en glissant), son nom, son type, son arbre, son niveau et sa
+  barre d'expérience, ses caractéristiques (PV, armure, puissance d'attaque, dégâts, vitesse,
+  critique, esquive, parade, points de talent), et trois boutons : Renommer, Sacoches (une icône
+  qu'on peut glisser dans une barre d'action : elle devient la macro `/compagnon sacoches`) et
+  Talents. Avec Forever UI, c'est un onglet de la fenêtre Progression (comme Attriboost et Item
+  Upgrade, même code commun) ; sans, une fenêtre ouverte par un bouton au bord de la minimap.
+  `/compagnon` ouvre la fiche, `/compagnon sacoches` les sacoches, `/compagnon talents` les talents.
+- Les ordres (attaquer, suivre, rester, attitudes) se donnent au clavier : `.companion attack`,
+  `follow`, `stay`, `passive`, `defensive`, `aggressive`.
 - **Mêmes ordres au clavier** : `.companion attack | follow | stay | passive | defensive | aggressive`.
   Passive : n'attaque que sur ordre. Défensive (défaut) : votre cible, ce qui vous attaque, ce qui
   l'attaque. Agressive : en plus, tout ennemi à 20 m. Rester : garde sa place et y revient après un

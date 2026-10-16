@@ -98,29 +98,11 @@ local state = { mount = 0, summoned = false, command = COMMAND_FOLLOW, react = R
 local hidden = false
 
 -- ---------------------------------------------------------------------------
--- The orders (buttons of the sheet)
+-- The rename popup
 -- ---------------------------------------------------------------------------
 
 local OSEP = string.char(92)
 local function OPath(...) return table.concat({ ... }, OSEP) end
-
-local BUTTONS = {
-    { order = "summon",     text = L.summon,     tip = L.summonTip,     icon = OPath("Interface", "Icons", "Ability_Mount_RidingHorse") },
-    { order = "dismiss",    text = L.dismiss,    tip = L.dismissTip,    icon = OPath("Interface", "Icons", "Spell_Nature_SpiritWolf") },
-    { order = "attack",     text = L.attack,     tip = L.attackTip,     icon = PET_ATTACK_TEXTURE, needsOut = true },
-    { order = "rename",     text = L.rename,     tip = L.renameTip,     icon = OPath("Interface", "Icons", "INV_Scroll_11"),
-      popup = "COMPANIONMOUNT_RENAME" },
-    { order = "follow",     text = L.follow,     tip = L.followTip,     icon = PET_FOLLOW_TEXTURE, needsOut = true,
-      lit = function() return state.command == COMMAND_FOLLOW end },
-    { order = "stay",       text = L.stay,       tip = L.stayTip,       icon = PET_WAIT_TEXTURE, needsOut = true,
-      lit = function() return state.command == COMMAND_STAY end },
-    { order = "aggressive", text = L.aggressive, tip = L.aggressiveTip, icon = PET_AGGRESSIVE_TEXTURE,
-      lit = function() return state.react == REACT_AGGRESSIVE end },
-    { order = "defensive",  text = L.defensive,  tip = L.defensiveTip,  icon = PET_DEFENSIVE_TEXTURE,
-      lit = function() return state.react == REACT_DEFENSIVE end },
-    { order = "passive",    text = L.passive,    tip = L.passiveTip,    icon = PET_PASSIVE_TEXTURE,
-      lit = function() return state.react == REACT_PASSIVE end },
-}
 
 StaticPopupDialogs["COMPANIONMOUNT_RENAME"] = {
     text = L.renameAsk,
@@ -1489,38 +1471,64 @@ local SL = {
     stats      = FR and "Caractéristiques" or "Statistics",
     progression = "Progression",
     mmTip      = FR and "Clic : la fiche de votre monture-compagnon." or "Click: the sheet of your companion mount.",
+    bagDrag    = FR and "Clic : ouvre les sacoches. Glissez l'icône dans une barre d'action pour l'y garder."
+                     or "Click: opens the saddlebags. Drag the icon to an action bar to keep it there.",
 }
 
 local function Percent(v) return string.format("%.2f %%", tonumber(v) or 0) end
 
--- The content, in any frame: the Progression page or the window.
+-- The content, in any frame: the Progression page or the window. On the left
+-- the mount in 3D (drag to turn it); on the right who it is, its level and
+-- its numbers; below, its name, its saddlebags (a button that can be dragged
+-- to an action bar) and its talents.
 function UI.Build(parent)
     local root = CreateFrame("Frame", nil, parent)
     root:SetPoint("TOPLEFT", parent, "TOPLEFT", 24, -40)
     root:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -24, 20)
     UI.root = root
 
-    -- Who it is.
-    local icon = root:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(52, 52)
-    icon:SetPoint("TOPLEFT", 0, 0)
-    UI.icon = icon
-    local frameTex = root:CreateTexture(nil, "OVERLAY")
-    frameTex:SetTexture(OPath("Interface", "Buttons", "UI-Quickslot2"))
-    frameTex:SetSize(88, 88)
-    frameTex:SetPoint("CENTER", icon, "CENTER", 0, -1)
+    -- THE 3D VIEW: the creature the mount spell shows, turned by dragging.
+    local view = CreateFrame("Frame", nil, root)
+    view:SetSize(280, 330)
+    view:SetPoint("TOPLEFT", 0, 0)
+    view:SetBackdrop({
+        bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
+        edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
+        tile = true, tileSize = 16, edgeSize = 14,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    view:SetBackdropColor(0, 0, 0, 0.75)
+    local model = CreateFrame("PlayerModel", nil, view)
+    model:SetPoint("TOPLEFT", 6, -6)
+    model:SetPoint("BOTTOMRIGHT", -6, 6)
+    model.rotation = 0.6
+    model:EnableMouse(true)
+    model:SetScript("OnMouseDown", function(self) self.turning = GetCursorPosition() end)
+    model:SetScript("OnMouseUp", function(self) self.turning = nil end)
+    model:SetScript("OnUpdate", function(self)
+        if self.turning then
+            local x = GetCursorPosition()
+            self.rotation = self.rotation + (x - self.turning) / 80
+            self.turning = x
+            self:SetRotation(self.rotation)
+        end
+    end)
+    UI.model = model
 
-    UI.name = root:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    UI.name:SetPoint("TOPLEFT", icon, "TOPRIGHT", 14, -2)
-    UI.subtitle = root:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    UI.subtitle:SetPoint("TOPLEFT", UI.name, "BOTTOMLEFT", 0, -4)
-    UI.status = root:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    -- WHO IT IS, its level and experience.
+    local info = CreateFrame("Frame", nil, root)
+    info:SetPoint("TOPLEFT", view, "TOPRIGHT", 24, 0)
+    info:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 60)
+    UI.name = info:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    UI.name:SetPoint("TOPLEFT", 0, -2)
+    UI.subtitle = info:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    UI.subtitle:SetPoint("TOPLEFT", UI.name, "BOTTOMLEFT", 0, -6)
+    UI.status = info:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     UI.status:SetPoint("TOPLEFT", UI.subtitle, "BOTTOMLEFT", 0, -4)
 
-    -- Its level and experience: the pet's purple bar.
-    UI.levelText = root:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    UI.levelText:SetPoint("TOPLEFT", icon, "BOTTOMLEFT", 0, -18)
-    local xp = CreateFrame("StatusBar", nil, root)
+    UI.levelText = info:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    UI.levelText:SetPoint("TOPLEFT", UI.status, "BOTTOMLEFT", 0, -14)
+    local xp = CreateFrame("StatusBar", nil, info)
     xp:SetSize(290, 14)
     xp:SetPoint("TOPLEFT", UI.levelText, "BOTTOMLEFT", 0, -6)
     xp:SetStatusBarTexture(OPath("Interface", "TargetingFrame", "UI-StatusBar"))
@@ -1536,75 +1544,65 @@ function UI.Build(parent)
     UI.xpText:SetPoint("CENTER")
     UI.xp = xp
 
-    -- Its numbers, label left, value right.
-    local statsTitle = root:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    -- ITS NUMBERS, label left, value right.
+    local statsTitle = info:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     statsTitle:SetPoint("TOPLEFT", xp, "BOTTOMLEFT", 0, -18)
     statsTitle:SetText(SL.stats)
     local labels = { "health", "armor", "power", "damage", "speed", "crit", "dodge", "parry", "points" }
     for i, key in ipairs(labels) do
-        local label = root:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        local label = info:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         label:SetPoint("TOPLEFT", statsTitle, "BOTTOMLEFT", 6, -8 - (i - 1) * 18)
         label:SetText(SL[key])
-        local value = root:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        local value = info:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         value:SetPoint("RIGHT", label, "LEFT", 284, 0)
         value:SetJustifyH("RIGHT")
         UI.rows[key] = value
-        local line = root:CreateTexture(nil, "BACKGROUND")
+        local line = info:CreateTexture(nil, "BACKGROUND")
         line:SetTexture(1, 1, 1, (i % 2 == 0) and 0.04 or 0.08)
         line:SetPoint("TOPLEFT", label, "TOPLEFT", -6, 3)
         line:SetSize(290, 18)
     end
 
-    -- Its orders, on the right.
-    local ordersTitle = root:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    ordersTitle:SetPoint("TOPLEFT", root, "TOPLEFT", 340, -88)
-    ordersTitle:SetText(SL.orders)
-    for i, def in ipairs(BUTTONS) do
-        local b = CreateFrame("CheckButton", nil, root)
-        b:SetSize(36, 36)
-        local row, col = math.floor((i - 1) / 4), (i - 1) % 4
-        b:SetPoint("TOPLEFT", ordersTitle, "BOTTOMLEFT", col * 46, -10 - row * 46)
-        b.icon = b:CreateTexture(nil, "ARTWORK")
-        b.icon:SetAllPoints()
-        b.icon:SetTexture(def.icon)
-        local border = b:CreateTexture(nil, "OVERLAY")
-        border:SetTexture(OPath("Interface", "Buttons", "UI-Quickslot2"))
-        border:SetSize(62, 62)
-        border:SetPoint("CENTER", 0, -1)
-        b:SetHighlightTexture(OPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
-        b:SetCheckedTexture(OPath("Interface", "Buttons", "CheckButtonHilight"))
-        b:SetPushedTexture(OPath("Interface", "Buttons", "UI-Quickslot-Depress"))
-        b.def = def
-        b:SetScript("OnClick", function(self)
-            if self.def.popup then
-                self:SetChecked(false)
-                StaticPopup_Show(self.def.popup)
-                return
-            end
-            AIO.Handle("CompanionMount", "Order", self.def.order)
-            self:SetChecked(self.def.lit and self.def.lit() or false)
-        end)
-        b:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine(self.def.text, 1, 1, 1)
-            GameTooltip:AddLine(self.def.tip, nil, nil, nil, true)
-            GameTooltip:Show()
-        end)
-        b:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        UI.orders[i] = b
-    end
+    -- BELOW: its name, its saddlebags, its talents.
+    local rename = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
+    rename:SetSize(130, 26)
+    rename:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", 0, 4)
+    rename:SetText(L.rename)
+    rename:SetScript("OnClick", function() StaticPopup_Show("COMPANIONMOUNT_RENAME") end)
 
-    -- The doors to its talents and saddlebags.
+    -- The saddlebags: an icon that opens them, and that can be dragged to an
+    -- action bar (it becomes the macro /compagnon sacoches).
+    local bag = CreateFrame("Button", "CompanionMountSheetBagButton", root)
+    bag:SetSize(36, 36)
+    bag:SetPoint("LEFT", rename, "RIGHT", 24, 0)
+    local bagIcon = bag:CreateTexture(nil, "ARTWORK")
+    bagIcon:SetAllPoints()
+    bagIcon:SetTexture(OPath("Interface", "Icons", "INV_Misc_Bag_08"))
+    local bagBorder = bag:CreateTexture(nil, "OVERLAY")
+    bagBorder:SetTexture(OPath("Interface", "Buttons", "UI-Quickslot2"))
+    bagBorder:SetSize(62, 62)
+    bagBorder:SetPoint("CENTER", 0, -1)
+    bag:SetHighlightTexture(OPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
+    bag:SetPushedTexture(OPath("Interface", "Buttons", "UI-Quickslot-Depress"))
+    bag:RegisterForDrag("LeftButton")
+    bag:SetScript("OnClick", function() CompanionMount_ToggleBag() end)
+    bag:SetScript("OnDragStart", function() UI.PickupBagMacro() end)
+    bag:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(L.bag, 1, 1, 1)
+        GameTooltip:AddLine(SL.bagDrag, nil, nil, nil, true)
+        GameTooltip:Show()
+    end)
+    bag:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    local bagLabel = root:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    bagLabel:SetPoint("LEFT", bag, "RIGHT", 8, 0)
+    bagLabel:SetText(L.bag)
+
     local talents = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
     talents:SetSize(130, 26)
-    talents:SetPoint("TOPLEFT", ordersTitle, "BOTTOMLEFT", 0, -160)
+    talents:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 4)
     talents:SetText(L.talents)
     talents:SetScript("OnClick", function() CompanionMount_ToggleTalents() end)
-    local bag = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
-    bag:SetSize(130, 26)
-    bag:SetPoint("LEFT", talents, "RIGHT", 10, 0)
-    bag:SetText(L.bag)
-    bag:SetScript("OnClick", function() CompanionMount_ToggleBag() end)
 
     -- While it is shown, the numbers follow the fight.
     local elapsed = 0
@@ -1620,6 +1618,28 @@ function UI.Build(parent)
     return root
 end
 
+-- The saddlebags on an action bar: a macro of the player's own, made once.
+function UI.PickupBagMacro()
+    if InCombatLockdown() then return end
+    local name = L.bag
+    local index = GetMacroIndexByName(name)
+    if index == 0 then
+        local icon = 1
+        for i = 1, GetNumMacroIcons() do
+            local texture = GetMacroIconInfo(i)
+            if texture and texture:lower():find("inv_misc_bag_08", 1, true) then
+                icon = i
+                break
+            end
+        end
+        local ok, created = pcall(CreateMacro, name, icon, "/compagnon sacoches", 1)
+        index = ok and created or 0
+    end
+    if index and index > 0 then
+        PickupMacro(index)
+    end
+end
+
 function UI.Request()
     AIO.Handle("CompanionMount", "SheetOpen")
 end
@@ -1628,8 +1648,21 @@ function UI.Refresh()
     if not UI.root then return end
     local s = UI.sheet
     local mount = tonumber(s.mount_spell) or 0
-    local name, _, spellIcon = GetSpellInfo(mount)
-    UI.icon:SetTexture(spellIcon or UI.MM_ICONE)
+    local name = GetSpellInfo(mount)
+
+    -- The 3D view: the beast's own model when it is out, else the mount's.
+    local display, creature = tonumber(s.display) or 0, tonumber(s.creature) or 0
+    if display ~= UI.shownDisplay or creature ~= UI.shownCreature then
+        UI.shownDisplay, UI.shownCreature = display, creature
+        UI.model:ClearModel()
+        if display > 0 and UI.model.SetDisplayInfo then
+            UI.model:SetDisplayInfo(display)
+        elseif creature > 0 then
+            UI.model:SetCreature(creature)
+        end
+        UI.model:SetRotation(UI.model.rotation)
+    end
+
     if mount == 0 then
         UI.name:SetText(L.title)
         UI.subtitle:SetText(SL.noMount)
@@ -1648,7 +1681,7 @@ function UI.Refresh()
     UI.xp:SetValue(tonumber(s.xp) or 0)
     if level == 0 then
         UI.xpText:SetText("")
-    elseif nextXp > 0 and (tonumber(s.points_total) or 0) >= 0 and level < (UnitLevel("player") or level) then
+    elseif level < (UnitLevel("player") or level) then
         UI.xpText:SetText(string.format(SL.xp, tonumber(s.xp) or 0, nextXp))
     else
         UI.xpText:SetText(SL.xpMax)
@@ -1664,12 +1697,6 @@ function UI.Refresh()
     UI.rows.dodge:SetText(out and Percent(s.dodge) or "-")
     UI.rows.parry:SetText(out and Percent(s.parry) or "-")
     UI.rows.points:SetText((s.points_spent or 0) .. " / " .. (s.points_total or 0))
-
-    for _, b in ipairs(UI.orders) do
-        local usable = not b.def.needsOut or state.summoned
-        b:SetChecked(b.def.lit and b.def.lit() or false)
-        b.icon:SetDesaturated(not usable)
-    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -1795,6 +1822,15 @@ end
 
 SLASH_COMPANIONMOUNT1 = "/companion"
 SLASH_COMPANIONMOUNT2 = "/compagnon"
-SlashCmdList["COMPANIONMOUNT"] = function() CompanionMount_Toggle() end
+SlashCmdList["COMPANIONMOUNT"] = function(msg)
+    msg = (msg or ""):lower():match("^%s*(%S*)")
+    if msg == "sacoches" or msg == "bag" then
+        CompanionMount_ToggleBag()
+    elseif msg == "talents" then
+        CompanionMount_ToggleTalents()
+    else
+        CompanionMount_Toggle()
+    end
+end
 
 AIO.Handle("CompanionMount", "Hello")

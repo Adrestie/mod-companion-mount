@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS `mod_companion_mount_snapshot` (
   `mount_spell` INT UNSIGNED NOT NULL DEFAULT 0,
   `name` VARCHAR(24) NOT NULL DEFAULT '',
   `kind` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `creature` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'the creature the mount spell shows, for the 3D view',
+  `display` INT UNSIGNED NOT NULL DEFAULT 0,
   `level` TINYINT UNSIGNED NOT NULL DEFAULT 0,
   `xp` INT UNSIGNED NOT NULL DEFAULT 0,
   `xp_next` INT UNSIGNED NOT NULL DEFAULT 0,
