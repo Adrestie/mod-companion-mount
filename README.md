@@ -92,8 +92,11 @@ AzerothCore Mount mod
 
 ## Jalon 6 : les sacoches
 
-- Une seule paire de sacoches par personnage, la même sur toutes ses montures (16 places, réglable).
-  Bouton Sacoches de la barre : on y glisse un objet de ses sacs, un clic sur une place le reprend.
+- Une seule paire de sacoches par personnage, la même sur toutes ses montures (50 places, réglable),
+  aux emplacements de la taille et de l'espacement des sacs (sprites de Forever UI s'il est installé).
+  Fenêtre ouverte : clic droit sur un objet des sacs pour le ranger, clic droit dans les sacoches pour
+  le reprendre.
+  Bouton Sacoches de la barre : on peut aussi y glisser un objet de ses sacs.
   `.companion bag`, `.companion bag put <sac> <place>`, `.companion bag take <place>` au clavier.
 - L'objet reste un objet : comme une pièce jointe de courrier, il quitte l'inventaire du joueur
   mais garde sa ligne d'`item_instance` (enchantements, gemmes, durabilité, liaison). Refusés :

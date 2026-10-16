@@ -245,11 +245,33 @@ end
 
 -- ---------------------------------------------------------------------------
 -- The saddlebags window
+--
+-- Slots of the size and spacing of the bags' (37 px, 5 apart, as
+-- ContainerFrameItemButtonTemplate and ForeverUI's bags), ten to a row. With
+-- ForeverUI installed, its sprites: the empty slot of its bags and the frame
+-- tinted by quality; otherwise the game's own slot.
+--
+-- Right click moves an item: in the player's bags, into the saddlebags (while
+-- the window is open); in the saddlebags, back into the bags. An item dropped
+-- on the window goes in too.
 -- ---------------------------------------------------------------------------
 
-local BAG_COLUMNS, BAG_SIZE = 4, 37
+local SEP = string.char(92)   -- a backslash, built so no escape can go wrong
+local function Path(...) return table.concat({ ... }, SEP) end
+
+local SLOT, GAP, COLUMNS = 37, 5, 10
+local EMPTY_SLOT = Path("Interface", "Buttons", "UI-EmptySlot-Disabled")
+local HOVER = Path("Interface", "Buttons", "ButtonHilight-Square")
+local QUALITY_FRAME = Path("Interface", "ForeverUI", "common", "whiteiconframe")
+local FRAME_GRAY = 0.39       -- ForeverUI frames every slot in this gray
+local TINTED_QUALITY = 2      -- and tints it by quality from uncommon on
+
+local function Forever()
+    return type(ForeverUI) == "table" and type(ForeverUI.SetAtlas) == "function"
+end
+
 local bagItems = {}
-local bagSlots = 16
+local bagSlots = 50
 
 -- The last item taken from the player's bags: the window needs its bag and
 -- slot, the cursor only says what it holds.
@@ -268,8 +290,8 @@ bagFrame:SetScript("OnDragStop", function(self)
     if LibWindow then LibWindow.SavePosition(self) end
 end)
 bagFrame:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    bgFile = Path("Interface", "DialogFrame", "UI-DialogBox-Background"),
+    edgeFile = Path("Interface", "DialogFrame", "UI-DialogBox-Border"),
     tile = true, tileSize = 32, edgeSize = 24,
     insets = { left = 6, right = 6, top = 6, bottom = 6 },
 })
@@ -285,11 +307,15 @@ close:SetPoint("TOPRIGHT", -2, -2)
 
 local bagButtons = {}
 
+local function Deposit(bag, slot)
+    AIO.Handle("CompanionMount", "BagPut", bag, slot)
+end
+
 -- An item of the player's bags dropped on the window: sent with its bag and
 -- slot, while the container still shows it locked under the cursor.
 local function DropOn()
     if CursorHasItem() and picked and select(3, GetContainerItemInfo(picked.bag, picked.slot)) then
-        AIO.Handle("CompanionMount", "BagPut", picked.bag, picked.slot)
+        Deposit(picked.bag, picked.slot)
         ClearCursor()
         picked = nil
         return true
@@ -301,21 +327,26 @@ local function BagButton(i)
     local b = bagButtons[i]
     if b then return b end
     b = CreateFrame("Button", "CompanionMountBagButton" .. i, bagFrame)
-    b:SetSize(BAG_SIZE, BAG_SIZE)
-    local row, col = math.floor((i - 1) / BAG_COLUMNS), (i - 1) % BAG_COLUMNS
-    b:SetPoint("TOPLEFT", bagFrame, "TOPLEFT", 14 + col * (BAG_SIZE + 4), -34 - row * (BAG_SIZE + 4))
-    b:SetNormalTexture("Interface\\Buttons\\UI-EmptySlot-Disabled")
-    b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    b:SetSize(SLOT, SLOT)
+    local row, col = math.floor((i - 1) / COLUMNS), (i - 1) % COLUMNS
+    b:SetPoint("TOPLEFT", bagFrame, "TOPLEFT", 16 + col * (SLOT + GAP), -36 - row * (SLOT + GAP))
+
+    -- Layers, bottom to top: the empty slot, the item, its frame, the count.
+    b.slotArt = b:CreateTexture(nil, "BACKGROUND")
+    b.slotArt:SetAllPoints()
     b.icon = b:CreateTexture(nil, "ARTWORK")
-    b.icon:SetPoint("TOPLEFT", 2, -2)
-    b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    b.icon:SetAllPoints()
+    b.frame = b:CreateTexture(nil, "OVERLAY")
+    b.frame:SetAllPoints()
     b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
     b.count:SetPoint("BOTTOMRIGHT", -3, 3)
+    b:SetHighlightTexture(HOVER, "ADD")
+
     b.place = i
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    b:SetScript("OnClick", function(self)
+    b:SetScript("OnClick", function(self, button)
         if DropOn() then return end
-        if bagItems[self.place] then
+        if button == "RightButton" and bagItems[self.place] then
             AIO.Handle("CompanionMount", "BagTake", self.place)
         end
     end)
@@ -333,19 +364,63 @@ local function BagButton(i)
     return b
 end
 
+local function SkinSlot(b, item)
+    local forever = Forever()
+    if forever then
+        -- ForeverUI: its empty-slot sprite, and every slot framed in gray, in
+        -- the quality color from uncommon on.
+        ForeverUI.SetAtlas(b.slotArt, "bags-item-slot64", true)
+        b.slotArt:SetAllPoints()
+        b.frame:SetTexture(QUALITY_FRAME)
+        local quality = item and select(3, GetItemInfo(item.entry))
+        if quality and quality >= TINTED_QUALITY then
+            local r, g, bl = GetItemQualityColor(quality)
+            b.frame:SetVertexColor(r, g, bl)
+        else
+            b.frame:SetVertexColor(FRAME_GRAY, FRAME_GRAY, FRAME_GRAY)
+        end
+        b.frame:Show()
+    else
+        b.slotArt:SetTexture(EMPTY_SLOT)
+        b.slotArt:SetTexCoord(0, 1, 0, 1)
+        b.frame:Hide()
+    end
+end
+
 local function RefreshBag()
-    local rows = math.ceil(bagSlots / BAG_COLUMNS)
-    bagFrame:SetSize(28 + BAG_COLUMNS * (BAG_SIZE + 4) - 4, 48 + rows * (BAG_SIZE + 4))
+    local rows = math.ceil(bagSlots / COLUMNS)
+    bagFrame:SetSize(32 + COLUMNS * SLOT + (COLUMNS - 1) * GAP, 52 + rows * SLOT + (rows - 1) * GAP)
     for i = 1, math.max(bagSlots, #bagButtons) do
         local b = BagButton(i)
         local item = bagItems[i]
         if i > bagSlots then
             b:Hide()
         else
-            b:Show()
+            SkinSlot(b, item)
             b.icon:SetTexture(item and GetItemIcon(item.entry) or nil)
             b.count:SetText(item and item.count > 1 and item.count or "")
+            b:Show()
         end
+    end
+end
+
+-- RIGHT CLICK IN THE PLAYER'S BAGS while the saddlebags are open: into the
+-- saddlebags, as the bank does with its own window. Installed the first time
+-- the window opens, so a player who never opens it keeps the game's own click.
+local hooked = false
+local function HookBags()
+    if hooked then return end
+    hooked = true
+    local original = ContainerFrameItemButton_OnClick
+    ContainerFrameItemButton_OnClick = function(self, button, ...)
+        if button == "RightButton" and bagFrame:IsShown() and not IsModifierKeyDown() and not CursorHasItem() then
+            local bag, slot = self:GetParent():GetID(), self:GetID()
+            if GetContainerItemInfo(bag, slot) then
+                Deposit(bag, slot)
+                return
+            end
+        end
+        return original(self, button, ...)
     end
 end
 
@@ -353,6 +428,7 @@ function CompanionMount_ToggleBag()
     if bagFrame:IsShown() then
         bagFrame:Hide()
     else
+        HookBags()
         AIO.Handle("CompanionMount", "BagOpen")
         RefreshBag()
         bagFrame:Show()

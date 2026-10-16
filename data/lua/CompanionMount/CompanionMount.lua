@@ -106,7 +106,7 @@ end
 -- here only the client's numbering is translated, and the contents read back.
 -- ---------------------------------------------------------------------------
 
-local BAG_SLOTS = 16   -- CompanionMount.Bag.Slots
+local BAG_SLOTS = 50   -- CompanionMount.Bag.Slots
 
 local function Bag(player)
     local items = {}

@@ -241,7 +241,7 @@ namespace CompanionMount
         sConfig.levelXpNeedRate = std::max(0.001f, sConfigMgr->GetOption<float>("CompanionMount.Level.XpNeedRate", 0.05f));
         sConfig.levelXpKillRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.Level.XpKillRate", 1.0f));
         sConfig.levelSharedPercent = std::min<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Level.SharedPercent", 10), 100);
-        sConfig.bagSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Bag.Slots", 16), 1, 98);
+        sConfig.bagSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Bag.Slots", 50), 1, 98);
         sConfig.bagRequiresOut = sConfigMgr->GetOption<bool>("CompanionMount.Bag.RequiresOut", true);
         sConfig.talentFirstLevel = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Talent.FirstLevel", 20), 1, 255);
         sConfig.talentLevelsPerPoint = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("CompanionMount.Talent.LevelsPerPoint", 4));

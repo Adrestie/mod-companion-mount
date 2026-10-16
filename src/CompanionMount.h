@@ -193,7 +193,7 @@ namespace CompanionMount
         uint32 levelSharedPercent = 10;  // ce que recoivent les autres montures
 
         // LES SACOCHES (CompanionBag.cpp).
-        uint32 bagSlots = 16;
+        uint32 bagSlots = 50;
         bool bagRequiresOut = true;      // il faut que la bete soit la
 
         // LES TALENTS (CompanionTalent.cpp).

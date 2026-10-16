@@ -173,9 +173,9 @@ CompanionMount.Level.SharedPercent = 10
 #
 #    CompanionMount.Bag.Slots
 #        Description: Places in the saddlebags of each mount.
-#        Default:     16
+#        Default:     50
 
-CompanionMount.Bag.Slots = 16
+CompanionMount.Bag.Slots = 50
 
 #
 #    CompanionMount.Bag.RequiresOut
