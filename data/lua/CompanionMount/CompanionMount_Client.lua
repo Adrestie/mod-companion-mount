@@ -550,12 +550,13 @@ local TREES = {
 local T_ART_SCALE = 1.15
 local T_ART_W, T_ART_H = math.floor(300 * T_ART_SCALE), math.floor(331 * T_ART_SCALE)
 -- The buttons (TalentFrame's INITIAL_TALENT_OFFSET and steps): 63 between
--- columns as the game, centred; 58 between rows, the first under the points line.
-local T_STEP, T_ROW, T_BUTTON = 63, 58, 37
+-- columns as the game, centred; 54 between rows, the first under the points
+-- line, the last above the footer.
+local T_STEP, T_ROW, T_BUTTON = 63, 54, 37
 local T_X, T_Y = math.floor((T_ART_W - 3 * T_STEP - T_BUTTON) / 2), 42
--- The art fills the window inside its border (6 px); the footer has its own
--- strip under it.
-local T_INSET_X, T_INSET_Y, T_FOOTER = 6, 6, 40
+-- The art fills the window inside its border (6 px); the footer (points,
+-- Reset) lies on its bottom, as in the game's window.
+local T_INSET_X, T_INSET_Y, T_FOOTER = 6, 6, 0
 local GREEN, YELLOW, GRAY = { 0.1, 1, 0.1 }, { 1, 0.82, 0 }, { 0.5, 0.5, 0.5 }
 
 local talentData = { talents = {}, ranks = {}, points = 0, keys = {} }
