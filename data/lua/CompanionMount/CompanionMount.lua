@@ -220,8 +220,8 @@ end
 
 local function Talents(player)
     local guid = player:GetGUIDLow()
-    local data = { talents = Catalogue(), ranks = {}, points = 0, key = 0, level = 0 }
-    if not HasCharTable("mod_companion_mount_talent_rank") or not HasWorldTable("mod_companion_mount_kind") then
+    local data = { talents = Catalogue(), ranks = {}, points = 0, keys = {}, level = 0 }
+    if not HasCharTable("mod_companion_mount_talent_rank") or not HasWorldTable("mod_companion_mount_key_spell") then
         return data
     end
     local q = CharDBQuery(string.format(
@@ -242,10 +242,16 @@ local function Talents(player)
             data.ranks[r:GetUInt32(0)] = r:GetUInt8(1)
         until not r:NextRow()
     end
+    -- The key spell of each tree, for this kind of mount (a horse if unknown).
+    local kq = WorldDBQuery(string.format("SELECT kind FROM mod_companion_mount_kind WHERE mount_spell = %d", mount))
+    local kind = kq and kq:GetUInt8(0) or 1
     local k = WorldDBQuery(string.format(
-        "SELECT s.key_spell FROM mod_companion_mount_kind_spell s "
-        .. "JOIN mod_companion_mount_kind k ON k.kind = s.kind WHERE k.mount_spell = %d", mount))
-    data.key = k and k:GetUInt32(0) or 61685
+        "SELECT tree, key_spell FROM mod_companion_mount_key_spell WHERE kind = %d", kind))
+    if k then
+        repeat
+            data.keys[k:GetUInt8(0)] = k:GetUInt32(1)
+        until not k:NextRow()
+    end
     return data
 end
 

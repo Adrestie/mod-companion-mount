@@ -49,7 +49,8 @@
       "tables": [
         "mod_companion_mount_talent",
         "mod_companion_mount_kind",
-        "mod_companion_mount_kind_spell"
+        "mod_companion_mount_kind_spell",
+        "mod_companion_mount_key_spell"
       ],
       "rows": [
         {

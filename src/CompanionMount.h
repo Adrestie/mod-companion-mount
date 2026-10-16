@@ -283,7 +283,7 @@ namespace CompanionMount
     // LES TALENTS (CompanionTalent.cpp).
     void LoadTalentCatalogue();
     uint8 MountKind(uint32 mountSpell);
-    uint32 KeySpell(uint32 mountSpell);
+    uint32 KeySpell(uint32 mountSpell, uint8 tree);
     uint32 SpellRankForLevel(uint32 spellId, uint8 level);
     uint32 TalentPoints(uint8 level);
     uint32 TalentPointsSpent(State const& state);

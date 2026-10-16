@@ -476,7 +476,7 @@ local T_ART_W, T_ART_H = 320, 384      -- the four pieces of a tree's art
 local T_INSET_X, T_INSET_Y = 14, 40    -- where the art sits in the window
 local GREEN, YELLOW, GRAY = { 0.1, 1, 0.1 }, { 1, 0.82, 0 }, { 0.5, 0.5, 0.5 }
 
-local talentData = { talents = {}, ranks = {}, points = 0, key = 0 }
+local talentData = { talents = {}, ranks = {}, points = 0, keys = {} }
 local shownTree = 1
 
 local function TForever()
@@ -690,7 +690,7 @@ function CompanionMount_RefreshTalents()
             end
 
             b.talent, b.rankValue, b.maxRank, b.reason = t, rank, max, reason
-            b.spell = t.key and talentData.key or t.ranks[math.max(1, math.min(rank + 1, max))]
+            b.spell = t.key and (talentData.keys or {})[t.tree] or t.ranks[math.max(1, math.min(rank + 1, max))]
             local _, _, icon = GetSpellInfo(b.spell or 0)
             b.icon:SetTexture(icon or TPath("Interface", "Icons", "INV_Misc_QuestionMark"))
             Paint(b, state)

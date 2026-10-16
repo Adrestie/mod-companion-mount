@@ -23,7 +23,8 @@
  * des talents de classe sans masque de classe pour les passifs, des sorts de
  * PNJ ou a rangs pour les actifs. Chacun se termine par le SORT CLE, qui
  * depend du type de la monture (cheval : Pietinement, kodo : Choc martial...). Le catalogue est en base (mod_companion_mount_talent,
- * mod_companion_mount_kind, mod_companion_mount_kind_spell).
+ * mod_companion_mount_kind, mod_companion_mount_key_spell : un sort cle par
+ * type de monture ET par arbre -- une attaque, une defense, un soin).
  *
  * LES REGLES, celles du familier : un point au niveau 20 puis un tous les
  * quatre niveaux (16 au niveau 80) ; une rangee demande 3 points de plus que
@@ -72,7 +73,12 @@ namespace CompanionMount
 
         std::unordered_map<uint32, TalentEntry> sTalents;
         std::unordered_map<uint32, uint8> sMountKind;        // sort de monture -> type
-        std::unordered_map<uint8, KindSpell> sKindSpell;     // type -> sort cle
+        std::unordered_map<uint16, KindSpell> sKindSpell;    // type x arbre -> sort cle
+
+        uint16 KindTree(uint8 kind, uint8 tree)
+        {
+            return uint16(kind) << 8 | tree;
+        }
         std::set<uint32> sPassiveSpells;                      // tout ce que ApplyTalents pose
 
         TalentEntry const* FindTalent(uint32 id)
@@ -143,12 +149,13 @@ namespace CompanionMount
                 sMountKind[result->Fetch()[0].Get<uint32>()] = result->Fetch()[1].Get<uint8>();
             while (result->NextRow());
 
-        if (QueryResult result = WorldDatabase.Query("SELECT `kind`, `key_spell`, `use` FROM `mod_companion_mount_kind_spell`"))
+        if (QueryResult result = WorldDatabase.Query("SELECT `kind`, `tree`, `key_spell`, `use` FROM `mod_companion_mount_key_spell`"))
             do
             {
                 Field* fields = result->Fetch();
-                if (sSpellMgr->GetSpellInfo(fields[1].Get<uint32>()))
-                    sKindSpell[fields[0].Get<uint8>()] = { fields[1].Get<uint32>(), fields[2].Get<uint8>() };
+                if (sSpellMgr->GetSpellInfo(fields[2].Get<uint32>()))
+                    sKindSpell[KindTree(fields[0].Get<uint8>(), fields[1].Get<uint8>())] =
+                        { fields[2].Get<uint32>(), fields[3].Get<uint8>() };
             } while (result->NextRow());
 
         LOG_INFO("module", "CompanionMount: {} talent(s), {} mount kind(s), {} key spell(s) loaded.",
@@ -161,9 +168,9 @@ namespace CompanionMount
         return itr == sMountKind.end() ? 1 : itr->second;   // inconnue : un cheval
     }
 
-    uint32 KeySpell(uint32 mountSpell)
+    uint32 KeySpell(uint32 mountSpell, uint8 tree)
     {
-        auto itr = sKindSpell.find(MountKind(mountSpell));
+        auto itr = sKindSpell.find(KindTree(MountKind(mountSpell), tree));
         return itr == sKindSpell.end() ? 0 : itr->second.spell;
     }
 
@@ -237,7 +244,7 @@ namespace CompanionMount
 
             if (talent->key)
             {
-                auto itr = sKindSpell.find(MountKind(state.mountSpell));
+                auto itr = sKindSpell.find(KindTree(MountKind(state.mountSpell), talent->tree));
                 if (itr != sKindSpell.end())
                     state.actives.push_back({ SpellRankForLevel(itr->second.spell, level), itr->second.use, talent->cooldown });
                 continue;
@@ -295,7 +302,7 @@ namespace CompanionMount
             return false;
         }
 
-        if (talent->key && !KeySpell(state.mountSpell))
+        if (talent->key && !KeySpell(state.mountSpell, talent->tree))
         {
             Say(player, TEXT_TALENT_NO_KEY);
             return false;
@@ -345,7 +352,7 @@ namespace CompanionMount
             TalentEntry const* talent = FindTalent(id);
             if (!talent || !rank)
                 continue;
-            uint32 const spell = talent->key ? KeySpell(state.mountSpell) : talent->ranks[0];
+            uint32 const spell = talent->key ? KeySpell(state.mountSpell, talent->tree) : talent->ranks[0];
             SpellInfo const* info = sSpellMgr->GetSpellInfo(spell);
             char const* name = info ? info->SpellName[locale] : nullptr;
             if (!name || !*name)

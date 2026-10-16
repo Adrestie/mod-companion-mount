@@ -114,9 +114,10 @@ AzerothCore Mount mod
 - Un seul arbre par monture, choisi par son premier point ; 1 point au niveau 20 puis 1 tous les 4
   niveaux (16 au niveau 80), 3 points par rangée.
 - En haut de chaque arbre, le **sort clé**, selon le type de la monture (classé d'après le modèle de
-  sa créature) : cheval Piétinement, mort-vivant Drain de vie, loup Cri de guerre, félin Rossée,
-  raptor Enrager, bête lourde Choc martial, ours Rugissement intimidant, oiseau Cri démoralisant,
-  dragon Souffle de feu, bête ailée Frappe des ailes, insecte Fracasser armure, machine Renversement.
+  sa créature) et selon l'arbre : une attaque en Fureur, une défense en Rempart, un soin en
+  Bienveillance (cheval : Piétinement / Intervention / Lumière sacrée ; kodo : Choc martial / Coup de
+  tonnerre / Prière de soins…, table `mod_companion_mount_key_spell`). Et un **ultime** par arbre :
+  Héroïsme (Fureur), Cri de défi (Rempart), Tranquillité (Bienveillance).
 - Fenêtre Talents (bouton de la barre), à l'image de celle du jeu. `.companion talent`,
   `.companion talent learn <id>`, `.companion talent reset`, `.companion setlevel <n>` (MJ).
 
