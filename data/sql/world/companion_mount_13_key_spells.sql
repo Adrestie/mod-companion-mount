@@ -6,7 +6,7 @@
 -- 1 its victim, 2 itself in combat, 3 itself under half health, 4 its master in combat,
 -- 5 its master under 80 % health. Ranked spells take the rank the mount's level allows.
 --
--- The ultimates: Heroism tops Fury (1014), Challenging Shout tops Rampart (1114), as
+-- The ultimates: Bladestorm tops Fury (1014), Challenging Shout tops Rampart (1114), as
 -- Tranquility tops Benevolence (1213).
 --
 -- Replayable: the table is created once, the rows written again.
@@ -63,5 +63,5 @@ INSERT INTO `mod_companion_mount_key_spell` (`kind`, `tree`, `key_spell`, `use`,
 -- THE ULTIMATES, top left of Fury and Rampart.
 DELETE FROM `mod_companion_mount_talent` WHERE `id` IN (1014, 1114);
 INSERT INTO `mod_companion_mount_talent` (`id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `spell_4`, `spell_5`, `use`, `cooldown`) VALUES
-(1014, 0, 5, 0, 32182, 0, 0, 0, 0, 2, 0),   -- Heroism: +30 % haste for the party
+(1014, 0, 5, 0, 46924, 0, 0, 0, 0, 1, 0),   -- Bladestorm: a whirlwind of blows for 6 s, the mount cannot be stopped
 (1114, 1, 5, 0, 1161, 0, 0, 0, 0, 2, 0);    -- Challenging Shout: every enemy around attacks the mount

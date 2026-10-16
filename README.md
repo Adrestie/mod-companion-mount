@@ -117,7 +117,7 @@ AzerothCore Mount mod
   sa créature) et selon l'arbre : une attaque en Fureur, une défense en Rempart, un soin en
   Bienveillance (cheval : Piétinement / Intervention / Lumière sacrée ; kodo : Choc martial / Coup de
   tonnerre / Prière de soins…, table `mod_companion_mount_key_spell`). Et un **ultime** par arbre :
-  Héroïsme (Fureur), Cri de défi (Rempart), Tranquillité (Bienveillance).
+  Tempête de lames (Fureur), Cri de défi (Rempart), Tranquillité (Bienveillance).
 - Fenêtre Talents (bouton de la barre), à l'image de celle du jeu. `.companion talent`,
   `.companion talent learn <id>`, `.companion talent reset`, `.companion setlevel <n>` (MJ).
 
