@@ -545,9 +545,13 @@ local TREES = {
     { name = L.treeHeal, art = "DruidRestoration" },
 }
 -- TalentFrame: INITIAL_TALENT_OFFSET_X/Y and the step between two buttons.
-local T_X, T_Y, T_STEP, T_BUTTON = 35, 20, 63, 37
+-- Six rows must fit the art (384 high): 58 between rows, the first under the
+-- points line; 63 between columns, as the game.
+local T_X, T_Y, T_STEP, T_ROW, T_BUTTON = 35, 42, 63, 58, 37
 local T_ART_W, T_ART_H = 320, 384      -- the four pieces of a tree's art
-local T_INSET_X, T_INSET_Y = 14, 40    -- where the art sits in the window
+-- The art fills the window inside its border (6 px); the footer has its own
+-- strip under it.
+local T_INSET_X, T_INSET_Y, T_FOOTER = 6, 6, 40
 local GREEN, YELLOW, GRAY = { 0.1, 1, 0.1 }, { 1, 0.82, 0 }, { 0.5, 0.5, 0.5 }
 
 local talentData = { talents = {}, ranks = {}, points = 0, keys = {} }
@@ -558,7 +562,7 @@ local function TForever()
 end
 
 local talentFrame = CreateFrame("Frame", "CompanionMountTalentFrame", UIParent)
-talentFrame:SetSize(T_ART_W + 2 * T_INSET_X, T_ART_H + T_INSET_Y + 54)
+talentFrame:SetSize(T_ART_W + 2 * T_INSET_X, T_ART_H + 2 * T_INSET_Y + T_FOOTER)
 talentFrame:SetPoint("CENTER", UIParent, "CENTER", -250, 0)
 talentFrame:SetMovable(true)
 talentFrame:EnableMouse(true)
@@ -600,8 +604,10 @@ local pieces = {
     { "BottomLeft", 256, 128, "TOPLEFT", 0, -256 },
     { "BottomRight", 64, 128, "TOPLEFT", 256, -256 },
 }
+-- On the window itself, under its header and texts (a child frame would
+-- cover them); the frame `art` only places them.
 for _, p in ipairs(pieces) do
-    local t = art:CreateTexture(nil, "BACKGROUND")
+    local t = talentFrame:CreateTexture(nil, "BACKGROUND")
     t:SetSize(p[2], p[3])
     t:SetPoint(p[4], art, "TOPLEFT", p[5], p[6])
     p.texture = t
@@ -609,15 +615,15 @@ end
 
 -- The points left, big, under the title.
 talentFrame.available = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-talentFrame.available:SetPoint("TOP", 0, -24)
+talentFrame.available:SetPoint("TOP", art, "TOP", 0, -16)
 
 -- The footer: the points, the tree chosen, the reset.
 local footer = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-footer:SetPoint("BOTTOMLEFT", 20, 22)
+footer:SetPoint("BOTTOMLEFT", 16, 18)
 
 local reset = PanelButton(talentFrame, 100, 22)
 reset:SetSize(110, 22)
-reset:SetPoint("BOTTOMRIGHT", -16, 16)
+reset:SetPoint("BOTTOMRIGHT", -12, 12)
 reset:SetText(L.reset)
 reset:SetScript("OnClick", function() AIO.Handle("CompanionMount", "TalentReset") end)
 
@@ -649,7 +655,7 @@ local function TalentCell(tier, col)
     if b then return b end
     b = CreateFrame("Button", nil, art)
     b:SetSize(T_BUTTON, T_BUTTON)
-    b:SetPoint("TOPLEFT", art, "TOPLEFT", T_X + col * T_STEP, -(T_Y + tier * T_STEP))
+    b:SetPoint("TOPLEFT", art, "TOPLEFT", T_X + col * T_STEP, -(T_Y + tier * T_ROW))
 
     -- TalentButtonTemplate: the slot, the icon, the frame, the rank in its border.
     b.slot = b:CreateTexture(nil, "BACKGROUND")
@@ -2087,7 +2093,6 @@ local function RefreshGambits()
             row.condition:SetAlpha(dim and 0.6 or 1)
         end
     end
-    gambitStatus:SetText(gambitData.custom and G.customList or G.defaultList)
     gambitPresets:SetText(gambitData.preset and string.format(G.presetShown, gambitData.preset) or G.presets)
 end
 
