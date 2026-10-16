@@ -247,6 +247,59 @@ namespace CompanionMount
         return -1;
     }
 
+    uint32 FirstRank(uint32 spellId)
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+        return info ? info->GetFirstRankSpell()->Id : spellId;
+    }
+
+    // LE LANCEMENT AUTOMATIQUE, sort par sort, comme les techniques d'un
+    // familier : la table garde ceux que le joueur a coupes (par monture).
+    void LoadAutocast(Player* player, State& state)
+    {
+        state.autocastOff.clear();
+        if (QueryResult result = CharacterDatabase.Query(
+                "SELECT `spell` FROM `mod_companion_mount_autocast` WHERE `guid` = {} AND `mount_spell` = {}",
+                player->GetGUID().GetCounter(), state.mountSpell))
+            do
+                state.autocastOff.insert(result->Fetch()[0].Get<uint32>());
+            while (result->NextRow());
+    }
+
+    bool ToggleAutocast(Player* player, uint32 spellId)
+    {
+        State& state = GetState(player);
+        uint32 const first = FirstRank(spellId);
+        if (!state.mountSpell || !first)
+            return false;
+        if (state.autocastOff.erase(first))
+            CharacterDatabase.DirectExecute(
+                "DELETE FROM `mod_companion_mount_autocast` WHERE `guid` = {} AND `mount_spell` = {} AND `spell` = {}",
+                player->GetGUID().GetCounter(), state.mountSpell, first);
+        else
+        {
+            state.autocastOff.insert(first);
+            CharacterDatabase.DirectExecute(
+                "REPLACE INTO `mod_companion_mount_autocast` (`guid`, `mount_spell`, `spell`) VALUES ({}, {}, {})",
+                player->GetGUID().GetCounter(), state.mountSpell, first);
+        }
+        return true;
+    }
+
+    // A LA MAIN : un sort qu'elle connait, lance a son prochain tour.
+    bool RequestCast(Player* player, uint32 spellId)
+    {
+        State& state = GetState(player);
+        uint32 const first = FirstRank(spellId);
+        for (ActiveSpell const& active : state.actives)
+            if (FirstRank(active.spell) == first)
+            {
+                state.castRequest = first;
+                return true;
+            }
+        return false;
+    }
+
     void LoadTalentRanks(Player* player, State& state)
     {
         state.talentRanks.clear();
@@ -412,5 +465,6 @@ namespace CompanionMount
     void DeleteTalents(ObjectGuid::LowType guid)
     {
         CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_talent_rank` WHERE `guid` = {}", guid);
+        CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_autocast` WHERE `guid` = {}", guid);
     }
 }

@@ -262,69 +262,105 @@ private:
     // LES SORTS DES TALENTS, chacun selon son usage, quand son temps de
     // recharge est passe. Le cout (focalisation d'un familier, mana) est
     // ignore : la bete n'a ni l'un ni l'autre.
-    void CastTalents(Player* owner, State const& state, Unit* victim, uint32 diff)
+    void CastTalents(Player* owner, State& state, Unit* victim, uint32 diff)
     {
         _talentTimer += diff;
         for (auto& [spell, ready] : _cooldowns)
             ready = ready > diff ? ready - diff : 0;
-        if (_talentTimer < 1000 || me->HasUnitState(UNIT_STATE_CASTING))
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        // LANCE A LA MAIN (la barre, .companion cast) : tout de suite, sur sa
+        // cible naturelle, sans les conditions de l'automatique ; un sort en
+        // recharge attend.
+        if (uint32 const wanted = state.castRequest)
+        {
+            state.castRequest = 0;
+            for (ActiveSpell const& active : state.actives)
+                if (FirstRank(active.spell) == wanted && !_cooldowns[active.spell])
+                    if (TryCast(active, TalentTarget(active, owner, victim, true), false))
+                        return;
+        }
+
+        if (_talentTimer < 1000)
             return;
         _talentTimer = 0;
 
-        bool const fighting = victim || me->IsInCombat();
         for (ActiveSpell const& active : state.actives)
         {
-            if (_cooldowns[active.spell])
+            // Le joueur a coupe son lancement automatique (clic droit sur la barre).
+            if (_cooldowns[active.spell] || state.autocastOff.count(FirstRank(active.spell)))
                 continue;
-            SpellInfo const* info = sSpellMgr->GetSpellInfo(active.spell);
-            if (!info)
-                continue;
-
-            Unit* target = nullptr;
-            switch (active.use)
-            {
-                case TALENT_USE_VICTIM:
-                    if (victim && me->IsWithinDistInMap(victim, std::max(info->GetMaxRange(false), 5.0f)))
-                        target = victim;
-                    break;
-                case TALENT_USE_SELF:
-                    if (fighting && !me->HasAura(info->Id))   // une aura deja posee n'est pas relancee
-                        target = me;
-                    break;
-                case TALENT_USE_SELF_HEAL:
-                    if (me->HealthBelowPct(50))
-                        target = me;
-                    break;
-                case TALENT_USE_OWNER:
-                    if (owner->IsInCombat() && me->IsWithinDistInMap(owner, 30.0f))
-                        target = owner;
-                    break;
-                case TALENT_USE_OWNER_HEAL:
-                    if (owner->IsAlive() && owner->HealthBelowPct(80) && me->IsWithinDistInMap(owner, 40.0f))
-                        target = owner;
-                    break;
-                default:
-                    break;
-            }
-            if (!target)
-                continue;
-
-            // Ni mana ni rage, ni forme ni posture : une bete n'en a pas.
-            TriggerCastFlags const flags = TriggerCastFlags(TRIGGERED_IGNORE_POWER_AND_REAGENT_COST | TRIGGERED_IGNORE_GCD
-                | TRIGGERED_IGNORE_SHAPESHIFT);
-            SpellCastResult const result = me->CastSpell(target, info, flags);
-            if (result == SPELL_CAST_OK)
-            {
-                ++active.casts;
-                uint32 cooldown = active.cooldown;
-                if (!cooldown)
-                    cooldown = std::max<uint32>({ info->RecoveryTime, info->CategoryRecoveryTime, 6000 });
-                _cooldowns[active.spell] = cooldown;
+            if (TryCast(active, TalentTarget(active, owner, victim, false), true))
                 return;   // un sort par tour
-            }
-            active.lastRefusal = int32(result);
-            _cooldowns[active.spell] = 3000;   // refuse (portee, cible) : on reessaie plus tard
         }
+    }
+
+    // SUR QUI. Automatique : selon son usage et l'instant (PV, combat).
+    // A la main : la cible naturelle du sort, sans condition.
+    Unit* TalentTarget(ActiveSpell const& active, Player* owner, Unit* victim, bool byHand) const
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(active.spell);
+        if (!info)
+            return nullptr;
+
+        bool const fighting = victim || me->IsInCombat();
+        switch (active.use)
+        {
+            case TALENT_USE_VICTIM:
+            {
+                Unit* target = victim;
+                if (!target && byHand)
+                    if (Unit* selected = owner->GetSelectedUnit())
+                        if (me->IsValidAttackTarget(selected))
+                            target = selected;
+                if (target && me->IsWithinDistInMap(target, std::max(info->GetMaxRange(false), 5.0f)))
+                    return target;
+                return nullptr;
+            }
+            case TALENT_USE_SELF:
+                // une aura deja posee n'est pas relancee
+                return (byHand || (fighting && !me->HasAura(info->Id))) ? me : nullptr;
+            case TALENT_USE_SELF_HEAL:
+                return (byHand || me->HealthBelowPct(50)) ? me : nullptr;
+            case TALENT_USE_OWNER:
+                if ((byHand || owner->IsInCombat()) && me->IsWithinDistInMap(owner, 30.0f))
+                    return owner;
+                return nullptr;
+            case TALENT_USE_OWNER_HEAL:
+                if (owner->IsAlive() && (byHand || owner->HealthBelowPct(80)) && me->IsWithinDistInMap(owner, 40.0f))
+                    return owner;
+                return nullptr;
+            default:
+                return nullptr;
+        }
+    }
+
+    // Lance le sort ; reussi, sa recharge commence. Refuse en automatique, il
+    // attend 3 s (portee, cible) avant d'etre retente.
+    bool TryCast(ActiveSpell const& active, Unit* target, bool automatic)
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(active.spell);
+        if (!info || !target)
+            return false;
+
+        // Ni mana ni rage, ni forme ni posture : une bete n'en a pas.
+        TriggerCastFlags const flags = TriggerCastFlags(TRIGGERED_IGNORE_POWER_AND_REAGENT_COST | TRIGGERED_IGNORE_GCD
+            | TRIGGERED_IGNORE_SHAPESHIFT);
+        SpellCastResult const result = me->CastSpell(target, info, flags);
+        if (result == SPELL_CAST_OK)
+        {
+            ++active.casts;
+            uint32 cooldown = active.cooldown;
+            if (!cooldown)
+                cooldown = std::max<uint32>({ info->RecoveryTime, info->CategoryRecoveryTime, 6000 });
+            _cooldowns[active.spell] = cooldown;
+            return true;
+        }
+        active.lastRefusal = int32(result);
+        if (automatic)
+            _cooldowns[active.spell] = 3000;
+        return false;
     }
 
     // AU CORPS : arrivee, elle fouille (pour son maitre) et revient.

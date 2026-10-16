@@ -62,6 +62,9 @@ local ORDERS = {
     passive = true, defensive = true, aggressive = true,
 }
 
+-- The spells the mount learned, for the bar (defined with the talents below).
+local Spells
+
 local function State(player)
     local q = CharDBQuery(string.format(
         "SELECT c.mount_spell, c.summoned, c.command_state, c.react_state, m.level "
@@ -69,9 +72,10 @@ local function State(player)
         .. "LEFT JOIN mod_companion_mount_mount m ON m.guid = c.guid AND m.mount_spell = c.mount_spell "
         .. "WHERE c.guid = %d", player:GetGUIDLow()))
     if not q then
-        return { mount = 0, summoned = false, command = 0, react = 1, level = 0 }
+        return { mount = 0, summoned = false, command = 0, react = 1, level = 0, spells = {} }
     end
     return {
+        spells = Spells(player),
         mount = q:GetUInt32(0),
         summoned = q:GetUInt8(1) ~= 0,
         command = q:GetUInt8(2),
@@ -281,6 +285,64 @@ local function SendTalents(player)
     AIO.Handle(player, "CompanionMount", "Talents", Talents(player))
 end
 
+-- THE SPELL BAR: the spells the mount learned (its active talents and its key
+-- spell), at the rank it casts, in the order of the trees; `auto` is false
+-- for those whose automatic casting the player cut.
+Spells = function(player)
+    local data = Talents(player)
+    local off = {}
+    if HasCharTable("mod_companion_mount_autocast") and HasWorldTable("mod_companion_mount_rank_level") then
+        local q = CharDBQuery(string.format(
+            "SELECT a.`spell` FROM `mod_companion_mount_autocast` a "
+            .. "JOIN `mod_companion_mount_character` c ON c.`guid` = a.`guid` AND c.`mount_spell` = a.`mount_spell` "
+            .. "WHERE a.`guid` = %d", player:GetGUIDLow()))
+        if q then
+            repeat
+                local first = q:GetUInt32(0)
+                off[first] = true
+                local r = WorldDBQuery(string.format(
+                    "SELECT `spell` FROM `mod_companion_mount_rank_level` WHERE `first_spell` = %d", first))
+                if r then
+                    repeat off[r:GetUInt32(0)] = true until not r:NextRow()
+                end
+            until not q:NextRow()
+        end
+    end
+
+    local learned = {}
+    for _, t in ipairs(data.talents) do
+        local rank = data.ranks[t.id] or 0
+        if rank > 0 and (t.key or t.active) then
+            local spell = t.key and data.keys[t.tree] or t.ranks[math.min(rank, #t.ranks)]
+            if spell then
+                learned[#learned + 1] = { spell = spell, order = t.tree * 100 + t.tier * 10 + t.col }
+            end
+        end
+    end
+    table.sort(learned, function(a, b) return a.order < b.order end)
+
+    local spells = {}
+    for _, l in ipairs(learned) do
+        spells[#spells + 1] = { spell = l.spell, auto = not off[l.spell] }
+    end
+    return spells
+end
+
+-- A click on a spell of the bar: cast by hand. A right click: its automatic
+-- casting cut, or given back.
+function Handlers.Cast(player, spell)
+    spell = tonumber(spell)
+    if not spell then return end
+    player:RunCommand(string.format("companion cast %d", spell))
+end
+
+function Handlers.Autocast(player, spell)
+    spell = tonumber(spell)
+    if not spell then return end
+    player:RunCommand(string.format("companion autocast %d", spell))
+    AIO.Handle(player, "CompanionMount", "State", State(player))
+end
+
 function Handlers.TalentOpen(player)
     SendTalents(player)
 end
@@ -290,11 +352,13 @@ function Handlers.TalentLearn(player, id)
     if not id then return end
     player:RunCommand(string.format("companion talent learn %d", id))
     SendTalents(player)
+    AIO.Handle(player, "CompanionMount", "State", State(player))
 end
 
 function Handlers.TalentReset(player)
     player:RunCommand("companion talent reset")
     SendTalents(player)
+    AIO.Handle(player, "CompanionMount", "State", State(player))
 end
 
 -- ---------------------------------------------------------------------------

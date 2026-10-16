@@ -65,6 +65,10 @@ local L = {
     passiveTip    = FR and "N'attaque que sur ordre." or "Attacks only when told to.",
     level      = FR and "Niv. %d" or "Lv %d",
     moveTip    = FR and "Maj + glisser : déplacer la barre" or "Shift + drag: move the bar",
+    autoOn     = FR and "Lancement automatique : activé" or "Autocast: on",
+    autoOff    = FR and "Lancement automatique : désactivé" or "Autocast: off",
+    spellTip   = FR and "Clic gauche : lancer. Clic droit : lancement automatique ou non."
+                     or "Left click: cast. Right click: autocast on or off.",
     rename     = FR and "Renommer" or "Rename",
     renameTip  = FR and "Donne un nom à la monture choisie (vide : retire le nom)."
                      or "Names the chosen mount (empty: removes the name).",
@@ -1817,10 +1821,12 @@ end
 -- ---------------------------------------------------------------------------
 -- THE BAR: the orders, as the pet bar beside the pet's own -- call, send
 -- back, attack, follow, stay, and the three stances, with the pet bar's
--- icons. The active order and stance are lit. Nothing is decided here: every
--- button goes to the server, which runs the module's command as the player
--- and sends the state back. The sheet keeps the rest (rename, saddlebags,
--- talents).
+-- icons -- then the spells the mount learned. The active order and stance are
+-- lit. A spell: left click casts it, right click turns its automatic casting
+-- off or on, as a hunter's pet abilities (the same golden shine). Nothing is
+-- decided here: every button goes to the server, which runs the module's
+-- command as the player and sends the state back. The sheet keeps the rest
+-- (rename, saddlebags, talents).
 --
 -- Shift + drag moves the bar (kept per character); /compagnon barre shows or
 -- hides it.
@@ -1909,6 +1915,86 @@ end
 local barLevel = barButtons[1]:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
 barLevel:SetPoint("BOTTOMRIGHT", barButtons[1], "BOTTOMRIGHT", -1, 2)
 
+-- The spells, after the orders and a gap; made as the mount learns them.
+local SPELL_GAP = 10
+local AUTOCASTABLE = OPath("Interface", "Buttons", "UI-AutoCastableOverlay")
+local spellButtons = {}
+
+local function SpellButton(i)
+    if spellButtons[i] then return spellButtons[i] end
+    local b = CreateFrame("Button", "CompanionMountBarSpell" .. i, bar)
+    b:SetSize(BAR_SIZE, BAR_SIZE)
+    b:SetPoint("LEFT", bar, "LEFT",
+        BAR_GAP + #BAR_BUTTONS * (BAR_SIZE + BAR_GAP) + SPELL_GAP + (i - 1) * (BAR_SIZE + BAR_GAP), 0)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetAllPoints()
+    b:SetHighlightTexture(OPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
+    b:SetPushedTexture(OPath("Interface", "Buttons", "UI-Quickslot-Depress"))
+    -- The corners of a spell that can cast itself, as on the pet bar.
+    b.autocastable = b:CreateTexture(nil, "OVERLAY")
+    b.autocastable:SetTexture(AUTOCASTABLE)
+    b.autocastable:SetSize(BAR_SIZE * 2 - 2, BAR_SIZE * 2 - 2)
+    b.autocastable:SetPoint("CENTER")
+    -- The golden shine while it casts itself (the pet bar's, when the client has it).
+    local ok, shine = pcall(CreateFrame, "Frame", "CompanionMountBarSpell" .. i .. "Shine", b, "AutoCastShineTemplate")
+    if ok and shine and AutoCastShine_AutoCastStart then
+        shine:SetAllPoints()
+        b.shine = shine
+    end
+    b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    b:RegisterForDrag("LeftButton")
+    b:SetScript("OnDragStart", BarStartMove)
+    b:SetScript("OnDragStop", BarStopMove)
+    b:SetScript("OnClick", function(self, mouse)
+        if not self.spell then return end
+        if mouse == "RightButton" then
+            AIO.Handle("CompanionMount", "Autocast", self.spell)
+        else
+            AIO.Handle("CompanionMount", "Cast", self.spell)
+        end
+    end)
+    b:SetScript("OnEnter", function(self)
+        if not self.spell then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetHyperlink("spell:" .. self.spell)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(self.auto and L.autoOn or L.autoOff, 1, 0.82, 0)
+        GameTooltip:AddLine(L.spellTip, 0.5, 0.5, 0.5, true)
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    spellButtons[i] = b
+    return b
+end
+
+local function RefreshSpells()
+    local spells = type(state.spells) == "table" and state.spells or {}
+    for i, entry in ipairs(spells) do
+        local b = SpellButton(i)
+        b.spell = tonumber(entry.spell)
+        b.auto = entry.auto and true or false
+        b.icon:SetTexture(select(3, GetSpellInfo(b.spell)) or OPath("Interface", "Icons", "INV_Misc_QuestionMark"))
+        local usable = state.summoned
+        b.icon:SetDesaturated(not usable)
+        local shade = usable and 1 or 0.6
+        b.icon:SetVertexColor(shade, shade, shade)
+        if b.shine then
+            if b.auto then AutoCastShine_AutoCastStart(b.shine) else AutoCastShine_AutoCastStop(b.shine) end
+        end
+        b:Show()
+    end
+    for i = #spells + 1, #spellButtons do
+        spellButtons[i].spell = nil
+        if spellButtons[i].shine then AutoCastShine_AutoCastStop(spellButtons[i].shine) end
+        spellButtons[i]:Hide()
+    end
+    local width = #BAR_BUTTONS * (BAR_SIZE + BAR_GAP) + BAR_GAP
+    if #spells > 0 then
+        width = width + SPELL_GAP + #spells * (BAR_SIZE + BAR_GAP)
+    end
+    bar:SetWidth(width)
+end
+
 local barHidden = false
 local function RefreshBar()
     -- The call button wears the face of the chosen mount.
@@ -1922,6 +2008,7 @@ local function RefreshBar()
         local shade = usable and 1 or 0.6
         b.icon:SetVertexColor(shade, shade, shade)
     end
+    RefreshSpells()
     if barHidden or (state.mount or 0) == 0 then bar:Hide() else bar:Show() end
 end
 

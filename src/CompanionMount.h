@@ -42,6 +42,7 @@
 #include "SharedDefines.h"
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -246,6 +247,8 @@ namespace CompanionMount
         // LES TALENTS de la monture choisie, et ce que son IA en lance.
         std::map<uint32, uint8> talentRanks;
         std::vector<ActiveSpell> actives;
+        std::set<uint32> autocastOff;   // premiers rangs dont le lancement automatique est coupe
+        uint32 castRequest = 0;         // premier rang a lancer a la main, au prochain tour de l'IA
     };
 
     Config const& GetConfig();
@@ -303,6 +306,10 @@ namespace CompanionMount
     void ResetTalents(Player* player);
     void ListTalents(ChatHandler* handler, Player* player);
     void DeleteTalents(ObjectGuid::LowType guid);
+    uint32 FirstRank(uint32 spellId);
+    void LoadAutocast(Player* player, State& state);
+    bool ToggleAutocast(Player* player, uint32 spellId);
+    bool RequestCast(Player* player, uint32 spellId);
 
     // LA FICHE pour l'interface (CompanionStats.cpp).
     void WriteSnapshot(Player* player);

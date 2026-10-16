@@ -94,6 +94,8 @@ public:
             { "defensive",  HandleDefensiveCommand,  SEC_PLAYER, Console::No },
             { "aggressive", HandleAggressiveCommand, SEC_PLAYER, Console::No },
             { "rename",     HandleRenameCommand,     SEC_PLAYER, Console::No },
+            { "cast",       HandleCastCommand,       SEC_PLAYER, Console::No },
+            { "autocast",   HandleAutocastCommand,   SEC_PLAYER, Console::No },
             { "snapshot",   HandleSnapshotCommand,   SEC_PLAYER, Console::No },
             { "setlevel",   HandleSetLevelCommand,   SEC_GAMEMASTER, Console::No },
             { "reload",     HandleReloadCommand,     SEC_ADMINISTRATOR, Console::Yes },
@@ -237,6 +239,26 @@ public:
     {
         LoadTalentCatalogue();
         handler->SendSysMessage("CompanionMount: talents reloaded.");
+        return true;
+    }
+
+    // LA BARRE DE SORTS : lancer un sort de la monture, couper ou rendre son
+    // lancement automatique (n'importe quel rang du sort).
+    static bool HandleCastCommand(ChatHandler* handler, uint32 spellId)
+    {
+        Player* player = handler->GetPlayer();
+        if (!GetCompanion(player))
+        {
+            Say(handler, TEXT_NOT_OUT);
+            return true;
+        }
+        RequestCast(player, spellId);
+        return true;
+    }
+
+    static bool HandleAutocastCommand(ChatHandler* handler, uint32 spellId)
+    {
+        ToggleAutocast(handler->GetPlayer(), spellId);
         return true;
     }
 
