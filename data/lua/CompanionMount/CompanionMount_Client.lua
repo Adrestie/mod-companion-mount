@@ -679,11 +679,16 @@ local function TalentCell(tier, col)
     b.frame:SetPoint("CENTER", 0, -1)
     b:SetHighlightTexture(TPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
     b:SetPushedTexture(TPath("Interface", "Buttons", "UI-Quickslot-Depress"))
-    b.rankBorder = b:CreateTexture(nil, "OVERLAY")
+    -- The rank, on a frame of its own above every button (it overhangs the
+    -- corner, where the next icons would cover it).
+    local counter = CreateFrame("Frame", nil, b)
+    counter:SetAllPoints(b)
+    counter:SetFrameLevel(b:GetFrameLevel() + 10)
+    b.rankBorder = counter:CreateTexture(nil, "OVERLAY")
     b.rankBorder:SetTexture(TPath("Interface", "TalentFrame", "TalentFrame-RankBorder"))
     b.rankBorder:SetSize(32, 32)
     b.rankBorder:SetPoint("CENTER", b, "BOTTOMRIGHT", 0, 0)
-    b.rank = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    b.rank = counter:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     b.rank:SetPoint("CENTER", b.rankBorder, "CENTER", 0, 0)
 
     b:SetScript("OnClick", function(self)
