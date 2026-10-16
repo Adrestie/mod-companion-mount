@@ -83,6 +83,7 @@ local L = {
     otherTree  = FR and "La monture a déjà choisi un autre arbre : réinitialisez ses talents pour changer."
                      or "The mount already chose another tree: reset its talents to change.",
     needPoints = FR and "Demande %d points dans cet arbre." or "Requires %d points in this tree.",
+    inTree     = FR and "%s : %d" or "%s: %d",
     available  = FR and "Points de talent disponibles : |cff00ff00%d|r  (monture niveau %d)"
                      or "Talent points available: |cff00ff00%d|r  (mount level %d)",
     bagTip     = FR and "Ouvre les sacoches de la monture : glissez-y un objet de vos sacs, cliquez sur un objet pour le reprendre."
@@ -547,8 +548,10 @@ function CompanionMount_RefreshTalents()
     end
     local left = math.max(0, (talentData.points or 0) - spent)
     talentFrame.available:SetText(string.format(L.available, left, talentData.level or 0))
-    footer:SetText(string.format(L.points, spent, talentData.points or 0,
-        chosen and TREES[chosen + 1].name or L.noTree))
+    -- One tree per mount: the tree chosen; any tree: the points of this one.
+    local where = talentData.oneTree and (chosen and TREES[chosen + 1].name or L.noTree)
+        or string.format(L.inTree, tree.name, inTree)
+    footer:SetText(string.format(L.points, spent, talentData.points or 0, where))
 
     for _, b in pairs(cells) do b:Hide() end
     for _, t in ipairs(talentData.talents) do
@@ -558,7 +561,7 @@ function CompanionMount_RefreshTalents()
             local max = t.key and 1 or #t.ranks
             local perTier = tonumber(talentData.perTier) or 5
             local reached = inTree >= t.tier * perTier
-            local otherTree = chosen ~= nil and chosen ~= t.tree
+            local otherTree = talentData.oneTree and chosen ~= nil and chosen ~= t.tree
 
             local state, reason
             if rank >= max then

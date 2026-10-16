@@ -219,8 +219,9 @@ CompanionMount.Talent.PointsPerTier = 5
 #
 #    CompanionMount.Talent.OneTree
 #        Description: A mount learns in one tree only (DPS, Tank or Heal),
-#                     chosen by its first point; a reset frees it.
-#        Default:     1 - (Enabled)
-#                     0 - (Disabled)
+#                     chosen by its first point; a reset frees it. Off, its
+#                     points go in any tree.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
 
-CompanionMount.Talent.OneTree = 1
+CompanionMount.Talent.OneTree = 0

@@ -201,7 +201,7 @@ namespace CompanionMount
         uint32 talentFirstLevel = 4;
         uint32 talentLevelsPerPoint = 2;
         uint32 talentPointsPerTier = 5;
-        bool talentOneTree = true;       // un seul arbre par monture
+        bool talentOneTree = false;      // un seul arbre par monture (option)
     };
 
     // CE QUE LE JOUEUR A CHOISI, et ou en est sa monture.
