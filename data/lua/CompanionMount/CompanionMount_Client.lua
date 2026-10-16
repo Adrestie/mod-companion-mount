@@ -1670,17 +1670,40 @@ end
 local barLevel = barButtons[1]:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
 barLevel:SetPoint("BOTTOMRIGHT", barButtons[1], "BOTTOMRIGHT", -1, 2)
 
--- The spells, after the orders and a gap; made as the mount learns them.
-local SPELL_GAP = 10
+-- THE SPELL BAR: the spells the mount learned, on a bar of their own, above
+-- the orders by default (Shift + drag moves it, kept per character); its
+-- buttons are made as the mount learns them.
 local AUTOCASTABLE = OPath("Interface", "Buttons", "UI-AutoCastableOverlay")
 local spellButtons = {}
 
+local spellBar = CreateFrame("Frame", "CompanionMountSpellBar", UIParent)
+spellBar:SetSize(BAR_SIZE + 2 * BAR_GAP, BAR_SIZE + 2 * BAR_GAP)
+spellBar:SetPoint("BOTTOM", bar, "TOP", 0, 4)
+spellBar:SetMovable(true)
+spellBar:SetClampedToScreen(true)
+spellBar:EnableMouse(true)
+spellBar:RegisterForDrag("LeftButton")
+spellBar:SetBackdrop(bar:GetBackdrop())
+spellBar:SetBackdropColor(0, 0, 0, 0.6)
+spellBar:Hide()
+
+local function SpellBarStartMove()
+    if IsShiftKeyDown() then spellBar:StartMoving() end
+end
+
+local function SpellBarStopMove()
+    spellBar:StopMovingOrSizing()
+    if LibWindow then LibWindow.SavePosition(spellBar) end
+end
+
+spellBar:SetScript("OnDragStart", SpellBarStartMove)
+spellBar:SetScript("OnDragStop", SpellBarStopMove)
+
 local function SpellButton(i)
     if spellButtons[i] then return spellButtons[i] end
-    local b = CreateFrame("Button", "CompanionMountBarSpell" .. i, bar)
+    local b = CreateFrame("Button", "CompanionMountBarSpell" .. i, spellBar)
     b:SetSize(BAR_SIZE, BAR_SIZE)
-    b:SetPoint("LEFT", bar, "LEFT",
-        BAR_GAP + #BAR_BUTTONS * (BAR_SIZE + BAR_GAP) + SPELL_GAP + (i - 1) * (BAR_SIZE + BAR_GAP), 0)
+    b:SetPoint("LEFT", spellBar, "LEFT", BAR_GAP + (i - 1) * (BAR_SIZE + BAR_GAP), 0)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetAllPoints()
     b:SetHighlightTexture(OPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
@@ -1698,8 +1721,8 @@ local function SpellButton(i)
     end
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:RegisterForDrag("LeftButton")
-    b:SetScript("OnDragStart", BarStartMove)
-    b:SetScript("OnDragStop", BarStopMove)
+    b:SetScript("OnDragStart", SpellBarStartMove)
+    b:SetScript("OnDragStop", SpellBarStopMove)
     b:SetScript("OnClick", function(self, mouse)
         if not self.spell then return end
         if mouse == "RightButton" then
@@ -1747,11 +1770,8 @@ local function RefreshSpells()
         if spellButtons[i].shine then AutoCastShine_AutoCastStop(spellButtons[i].shine) end
         spellButtons[i]:Hide()
     end
-    local width = #BAR_BUTTONS * (BAR_SIZE + BAR_GAP) + BAR_GAP
-    if #spells > 0 then
-        width = width + SPELL_GAP + #spells * (BAR_SIZE + BAR_GAP)
-    end
-    bar:SetWidth(width)
+    spellBar:SetWidth(BAR_GAP + math.max(#spells, 1) * (BAR_SIZE + BAR_GAP))
+    spellBar.count = #spells
 end
 
 local barHidden = false
@@ -1777,7 +1797,13 @@ local function RefreshBar()
     end
     RefreshSpells()
     if RefreshSpellEnergy then RefreshSpellEnergy() end
-    if barHidden or (state.mount or 0) == 0 or InGroupInstance() then bar:Hide() else bar:Show() end
+    if barHidden or (state.mount or 0) == 0 or InGroupInstance() then
+        bar:Hide()
+        spellBar:Hide()
+    else
+        bar:Show()
+        if (spellBar.count or 0) > 0 then spellBar:Show() else spellBar:Hide() end
+    end
 end
 
 -- Entering or leaving a dungeon, a raid or a battleground: the bar follows.
@@ -1787,6 +1813,7 @@ barWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 barWatch:SetScript("OnEvent", function() RefreshBar() end)
 
 AIO.SavePosition(bar, true)
+AIO.SavePosition(spellBar, true)
 
 -- ---------------------------------------------------------------------------
 -- THE PORTRAIT: the game shows none for a guardian. Its name, its level, its

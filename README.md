@@ -49,7 +49,7 @@ AzerothCore Mount mod
 - **La barre des ordres**, comme celle du familier : Appeler, Renvoyer, Attaquer, Suivre, Rester et
   les trois attitudes (ordre et attitude actifs allumés). Maj + glisser la déplace, `/compagnon barre`
   la masque ou la remontre.
-- **Ses sorts** suivent sur la barre : les talents actifs appris et le sort clé, au rang qu'elle lance.
+- **Ses sorts** ont leur propre barre (au-dessus de celle des ordres, Maj + glisser la déplace) : les talents actifs appris et le sort clé, au rang qu'elle lance.
   Clic gauche : elle le lance tout de suite, sur sa cible habituelle. Clic droit : son lancement
   automatique se coupe ou revient, comme les techniques du familier du chasseur (même halo doré),
   gardé par monture. Au clavier : `.companion cast <sort>`, `.companion autocast <sort>`.
