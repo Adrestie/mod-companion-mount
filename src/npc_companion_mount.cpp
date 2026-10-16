@@ -288,7 +288,7 @@ private:
                         target = victim;
                     break;
                 case TALENT_USE_SELF:
-                    if (fighting)
+                    if (fighting && !me->HasAura(info->Id))   // une aura deja posee n'est pas relancee
                         target = me;
                     break;
                 case TALENT_USE_SELF_HEAL:
