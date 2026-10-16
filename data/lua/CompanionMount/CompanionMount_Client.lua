@@ -349,6 +349,9 @@ function Handlers.Bag(_, items, slots)
     RefreshBag()
 end
 
+-- A size BEFORE LibWindow reads the position: a frame without one has no
+-- edges (GetLeft() is nil) and LibWindow.SavePosition fails on it.
+RefreshBag()
 AIO.SavePosition(bagFrame, true)
 
 -- ---------------------------------------------------------------------------

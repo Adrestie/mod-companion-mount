@@ -82,7 +82,7 @@ CompanionMount.LeashDistance = 40
 CompanionMount.ClickDistance = 10
 
 #
-#    CompanionMount.Loot.Enable
+#    CompanionMount.AutoLoot.Enable
 #        Description: Out of combat, while it follows, the companion mount
 #                     walks to the corpses its master may loot and loots them
 #                     for him, as if he did: same rights, same rolls, the loot
@@ -91,15 +91,15 @@ CompanionMount.ClickDistance = 10
 #        Default:     1 - (Enabled)
 #                     0 - (Disabled)
 
-CompanionMount.Loot.Enable = 1
+CompanionMount.AutoLoot.Enable = 1
 
 #
-#    CompanionMount.Loot.Range
+#    CompanionMount.AutoLoot.Range
 #        Description: Yards around the master within which the companion
 #                     mount looks for corpses to loot.
 #        Default:     30
 
-CompanionMount.Loot.Range = 30
+CompanionMount.AutoLoot.Range = 30
 
 #
 #    CompanionMount.KillsRewardOwner

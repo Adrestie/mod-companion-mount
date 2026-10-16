@@ -225,8 +225,12 @@ namespace CompanionMount
         sConfig.damageRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.DamageRate", 1.0f));
         sConfig.leashDistance = std::max(10.0f, sConfigMgr->GetOption<float>("CompanionMount.LeashDistance", 40.0f));
         sConfig.clickDistance = std::max(2.0f, sConfigMgr->GetOption<float>("CompanionMount.ClickDistance", 10.0f));
-        sConfig.lootEnabled = sConfigMgr->GetOption<bool>("CompanionMount.Loot.Enable", true);
-        sConfig.lootRange = std::max(5.0f, sConfigMgr->GetOption<float>("CompanionMount.Loot.Range", 30.0f));
+        // « AutoLoot » et non « Loot » : DynamicLoot lit toute cle <Module>.Loot.<nom>
+        // comme une ligne de butin pour lui. Les anciennes cles restent lues.
+        sConfig.lootEnabled = sConfigMgr->GetOption<bool>("CompanionMount.AutoLoot.Enable",
+            sConfigMgr->GetOption<bool>("CompanionMount.Loot.Enable", true, false), false);
+        sConfig.lootRange = std::max(5.0f, sConfigMgr->GetOption<float>("CompanionMount.AutoLoot.Range",
+            sConfigMgr->GetOption<float>("CompanionMount.Loot.Range", 30.0f, false), false));
         sConfig.killsRewardOwner = sConfigMgr->GetOption<bool>("CompanionMount.KillsRewardOwner", true);
         sConfig.levelEnabled = sConfigMgr->GetOption<bool>("CompanionMount.Level.Enable", true);
         sConfig.levelStart = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Level.Start", 1), 1, 255);
