@@ -53,6 +53,7 @@
 #include "TemporarySummon.h"
 
 #include <algorithm>
+#include <set>
 #include <unordered_map>
 
 using namespace CompanionMount;
@@ -138,6 +139,14 @@ struct npc_companion_mount : public ScriptedAI
         if (!owner)
             return;
         State& state = GetState(owner);
+
+        // LE PORTRAIT : PV et energie, envoyes quand ils changent.
+        state.frameTimer += diff;
+        if (state.frameTimer >= 250)
+        {
+            state.frameTimer = 0;
+            SendFrame(owner, state, me);
+        }
 
         _decideTimer += diff;
         if (_decideTimer >= 500)
@@ -284,6 +293,8 @@ private:
                 // Le refus s'affiche comme celui d'un sort du joueur (texte rouge).
                 if (_cooldowns[active.spell])
                     Refuse(owner, active, SPELL_FAILED_NOT_READY);
+                else if (EnergyCost(active) && me->GetPower(POWER_ENERGY) < EnergyCost(active))
+                    Refuse(owner, active, SPELL_FAILED_NO_POWER);
                 else if (Unit* target = TalentTarget(active, owner, victim, true))
                 {
                     if (TryCast(active, target, false))
@@ -300,13 +311,123 @@ private:
             return;
         _talentTimer = 0;
 
+        // LES GAMBITS d'abord, de haut en bas ; une action par tour.
+        std::set<uint32> inGambits;
+        if (RunGambits(owner, state, inGambits))
+            return;
+
+        // EN DERNIER RECOURS, les sorts en lancement automatique qu'aucun
+        // gambit ne nomme, selon leur usage (l'IA d'avant les gambits).
         for (ActiveSpell const& active : state.actives)
         {
             // Le joueur a coupe son lancement automatique (clic droit sur la barre).
-            if (_cooldowns[active.spell] || state.autocastOff.count(FirstRank(active.spell)))
+            if (_cooldowns[active.spell] || state.autocastOff.count(active.first) || inGambits.count(active.first))
                 continue;
             if (TryCast(active, TalentTarget(active, owner, victim, false), true))
                 return;   // un sort par tour
+        }
+    }
+
+    // LES GAMBITS : la premiere regle active, dans les emplacements ouverts,
+    // dont la condition designe quelqu'un et dont l'action est possible
+    // (sort pret, assez d'energie, cible a portee). Passive, la bete ne
+    // s'en prend a personne de son chef, gambit ou pas.
+    bool RunGambits(Player* owner, State& state, std::set<uint32>& inGambits)
+    {
+        uint32 const slots = std::min<uint32>(GambitSlots(me->GetLevel()), uint32(state.gambits.size()));
+        for (uint32 i = 0; i < slots; ++i)
+            if (state.gambits[i].enabled && state.gambits[i].action > 0)
+                inGambits.insert(uint32(state.gambits[i].action));
+
+        bool const passive = state.react == REACT_PASSIVE;
+        for (uint32 i = 0; i < slots; ++i)
+        {
+            Gambit const gambit = state.gambits[i];
+            if (!gambit.enabled)
+                continue;
+            Unit* subject = GambitSubject(me, owner, gambit.condition);
+            if (!subject)
+                continue;
+
+            if (gambit.action == GAMBIT_ACTION_ATTACK)
+            {
+                Unit* foe = HostileOf(subject, owner);
+                if (passive || !foe || foe == me->GetVictim() || !CanFight(foe))
+                    continue;
+                AttackStart(foe);
+                return true;
+            }
+            if (gambit.action == GAMBIT_ACTION_RETURN)
+            {
+                if (!me->GetVictim() && me->IsWithinDistInMap(owner, PET_FOLLOW_DIST * 3.0f))
+                    continue;
+                state.attackTarget.Clear();
+                ReturnToPost(owner, state);
+                return true;
+            }
+
+            for (ActiveSpell const& active : state.actives)
+            {
+                if (active.first != uint32(gambit.action))
+                    continue;
+                if (!_cooldowns[active.spell] && !(passive && active.use == TALENT_USE_VICTIM))
+                    if (TryCast(active, GambitTarget(active, subject, owner), false))
+                        return true;
+                break;
+            }
+        }
+        return false;
+    }
+
+    // Son aura (soin sur la duree, bouclier, cri) est encore sur la cible :
+    // l'energie ne se depense pas a la reposer.
+    bool AlreadyOn(Unit* target, SpellInfo const* info) const
+    {
+        return info->HasAnyAura() && target->HasAura(info->Id, me->GetGUID());
+    }
+
+    // L'ennemi que designe le sujet d'une condition : lui-meme s'il est
+    // ennemi, sinon celui qui s'en prend a lui, sinon la cible de la bete.
+    Unit* HostileOf(Unit* subject, Player* owner) const
+    {
+        if (subject != me && subject != owner && me->IsValidAttackTarget(subject))
+            return subject;
+        if (Unit* attacker = subject->getAttackerForHelper())
+            if (me->IsValidAttackTarget(attacker))
+                return attacker;
+        Unit* victim = me->GetVictim();
+        return victim && me->IsValidAttackTarget(victim) ? victim : nullptr;
+    }
+
+    // Sur qui joue le sort d'un gambit : un sort offensif sur l'ennemi
+    // designe, un sort sur soi sur la bete, un soin ou une aide sur l'allie
+    // designe (le maitre si le sujet est un ennemi).
+    Unit* GambitTarget(ActiveSpell const& active, Unit* subject, Player* owner) const
+    {
+        SpellInfo const* info = sSpellMgr->GetSpellInfo(active.spell);
+        if (!info)
+            return nullptr;
+        switch (active.use)
+        {
+            case TALENT_USE_VICTIM:
+            {
+                Unit* foe = HostileOf(subject, owner);
+                return foe && me->IsWithinDistInMap(foe, std::max(info->GetMaxRange(false), 5.0f)) ? foe : nullptr;
+            }
+            case TALENT_USE_SELF:
+            case TALENT_USE_SELF_HEAL:
+                return AlreadyOn(me, info) ? nullptr : me;
+            case TALENT_USE_OWNER:
+            case TALENT_USE_OWNER_HEAL:
+            {
+                Unit* ally = (subject != me && me->IsValidAttackTarget(subject)) ? owner : subject;
+                if (!ally->IsAlive() || AlreadyOn(ally, info)
+                    || !me->IsWithinDistInMap(ally, std::max(info->GetMaxRange(true), 30.0f)))
+                    return nullptr;
+                return ally;
+            }
+            default:
+                return nullptr;
         }
     }
 
@@ -338,11 +459,12 @@ private:
             case TALENT_USE_SELF_HEAL:
                 return (byHand || me->HealthBelowPct(50)) ? me : nullptr;
             case TALENT_USE_OWNER:
-                if ((byHand || owner->IsInCombat()) && me->IsWithinDistInMap(owner, 30.0f))
+                if ((byHand || (owner->IsInCombat() && !AlreadyOn(owner, info))) && me->IsWithinDistInMap(owner, 30.0f))
                     return owner;
                 return nullptr;
             case TALENT_USE_OWNER_HEAL:
-                if (owner->IsAlive() && (byHand || owner->HealthBelowPct(80)) && me->IsWithinDistInMap(owner, 40.0f))
+                if (owner->IsAlive() && (byHand || (owner->HealthBelowPct(80) && !AlreadyOn(owner, info)))
+                    && me->IsWithinDistInMap(owner, 40.0f))
                     return owner;
                 return nullptr;
             default:
@@ -364,16 +486,30 @@ private:
         if (!info || !target)
             return false;
 
-        // Ni mana ni rage, ni forme ni posture : une bete n'en a pas.
+        // L'ENERGIE : son cout, selon la classe du sort ; sans assez, il attend
+        // qu'elle remonte (pas de penalite de 3 s).
+        uint32 const cost = EnergyCost(active);
+        if (cost && me->GetPower(POWER_ENERGY) < cost)
+        {
+            active.lastRefusal = int32(SPELL_FAILED_NO_POWER);
+            return false;
+        }
+
+        // Ni mana ni rage, ni forme ni posture : une bete n'en a que l'energie.
         TriggerCastFlags const flags = TriggerCastFlags(TRIGGERED_IGNORE_POWER_AND_REAGENT_COST | TRIGGERED_IGNORE_GCD
             | TRIGGERED_IGNORE_SHAPESHIFT);
         SpellCastResult const result = me->CastSpell(target, info, flags);
         if (result == SPELL_CAST_OK)
         {
             ++active.casts;
+            if (cost)
+                me->ModifyPower(POWER_ENERGY, -int32(cost));
+            // La recharge : celle du talent, sinon celle du sort. Sans energie,
+            // 6 s au moins entre deux lancers (l'IA d'avant).
             uint32 cooldown = active.cooldown;
             if (!cooldown)
-                cooldown = std::max<uint32>({ info->RecoveryTime, info->CategoryRecoveryTime, 6000 });
+                cooldown = std::max<uint32>({ info->RecoveryTime, info->CategoryRecoveryTime,
+                    GetConfig().energyEnabled ? 0u : 6000u });
             _cooldowns[active.spell] = cooldown;
             return true;
         }

@@ -142,6 +142,7 @@ namespace CompanionMount
         SaveMount(player, state);
         LoadTalentRanks(player, state);
         LoadAutocast(player, state);
+        LoadGambits(player, state);
     }
 
     void GiveKillXP(Player* owner, Creature* victim)

@@ -63,6 +63,7 @@ namespace CompanionMount
             std::vector<uint32> ranks;   // un sort par rang ; vide : le talent cle
             uint8 use = TALENT_USE_PASSIVE;
             uint32 cooldown = 0;
+            uint8 energy = ENERGY_QUICK;   // sa classe de cout en energie
             bool key = false;
         };
 
@@ -152,7 +153,7 @@ namespace CompanionMount
         sPassiveSpells.clear();
 
         if (QueryResult result = WorldDatabase.Query(
-                "SELECT `id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `spell_4`, `spell_5`, `use`, `cooldown` "
+                "SELECT `id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `spell_4`, `spell_5`, `use`, `cooldown`, `energy` "
                 "FROM `mod_companion_mount_talent`"))
         {
             do
@@ -169,6 +170,7 @@ namespace CompanionMount
                             talent.ranks.push_back(spell);
                 talent.use = fields[9].Get<uint8>();
                 talent.cooldown = fields[10].Get<uint32>();
+                talent.energy = std::min<uint8>(fields[11].Get<uint8>(), MAX_ENERGY_CLASS - 1);
                 talent.key = !fields[4].Get<uint32>();
                 if (talent.tree > 2 || (!talent.key && talent.ranks.empty()))
                     continue;
@@ -347,7 +349,16 @@ namespace CompanionMount
             {
                 auto itr = sKindSpell.find(KindTree(MountKind(state.mountSpell), talent->tree));
                 if (itr != sKindSpell.end())
-                    state.actives.push_back({ SpellRankForLevel(itr->second.spell, level), itr->second.use, talent->cooldown });
+                {
+                    uint32 const spell = SpellRankForLevel(itr->second.spell, level);
+                    ActiveSpell active;
+                    active.spell = spell;
+                    active.use = itr->second.use;
+                    active.cooldown = talent->cooldown;
+                    active.energyClass = ENERGY_KEY;
+                    active.first = FirstRank(spell);
+                    state.actives.push_back(active);
+                }
                 continue;
             }
 
@@ -355,9 +366,19 @@ namespace CompanionMount
             if (talent->use == TALENT_USE_PASSIVE)
                 companion->AddAura(spell, companion);
             else if (talent->use != TALENT_USE_NONE)
-                state.actives.push_back({ SpellRankForLevel(spell, level), talent->use, talent->cooldown });
+            {
+                ActiveSpell active;
+                active.spell = SpellRankForLevel(spell, level);
+                active.use = talent->use;
+                active.cooldown = talent->cooldown;
+                active.energyClass = talent->energy;
+                active.first = FirstRank(active.spell);
+                state.actives.push_back(active);
+            }
         }
-        (void)player;
+
+        // La liste de gambits par defaut suit les sorts appris.
+        RefreshDefaultGambits(player, state);
     }
 
     bool LearnTalent(Player* player, uint32 talentId)
@@ -466,5 +487,6 @@ namespace CompanionMount
     {
         CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_talent_rank` WHERE `guid` = {}", guid);
         CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_autocast` WHERE `guid` = {}", guid);
+        DeleteGambits(guid);
     }
 }

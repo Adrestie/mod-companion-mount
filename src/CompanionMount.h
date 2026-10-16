@@ -132,16 +132,65 @@ namespace CompanionMount
         TALENT_USE_NONE       = 6,   // pas utilise
     };
 
+    // CE QU'UN SORT COUTE EN ENERGIE (mod_companion_mount_talent.energy) ;
+    // les montants sont dans la conf (CompanionMount.Energy.Cost.*).
+    enum EnergyClass : uint8
+    {
+        ENERGY_QUICK     = 0,   // attaque ou soin rapide
+        ENERGY_STRONG    = 1,   // soin ou attaque forte, sort de zone
+        ENERGY_DEFENSIVE = 2,   // sort defensif ou de controle
+        ENERGY_KEY       = 3,   // le sort cle de la monture
+        ENERGY_ULTIMATE  = 4,   // l'ultime, avec sa recharge propre
+        MAX_ENERGY_CLASS = 5,
+    };
+
     // Un sort que l'IA lance : le rang que son niveau permet.
     struct ActiveSpell
     {
         uint32 spell = 0;
         uint8 use = TALENT_USE_VICTIM;
         uint32 cooldown = 0;   // ms ; 0 : celui du sort
+        uint8 energyClass = ENERGY_QUICK;
+        uint32 first = 0;      // son premier rang : ce que la barre et les gambits nomment
         // Pour .companion debug : lancers reussis, et le dernier refus du core.
         mutable uint32 casts = 0;
         mutable int32 lastRefusal = -1;
     };
+
+    // LES GAMBITS (comme FFXII) : cible + condition -> action, lus de haut en
+    // bas ; la premiere regle vraie et possible est jouee. Les codes sont
+    // partages avec l'interface (CompanionMount_Client.lua).
+    enum GambitCondition : uint16
+    {
+        // Toi (le maitre)
+        GAMBIT_OWNER_HP_30 = 1, GAMBIT_OWNER_HP_50 = 2, GAMBIT_OWNER_HP_70 = 3, GAMBIT_OWNER_HP_90 = 4,
+        GAMBIT_OWNER_ATTACKED = 5, GAMBIT_OWNER_POISON = 6, GAMBIT_OWNER_DISEASE = 7,
+        GAMBIT_OWNER_MAGIC = 8, GAMBIT_OWNER_CURSE = 9,
+        // Le compagnon
+        GAMBIT_SELF_HP_30 = 10, GAMBIT_SELF_HP_50 = 11, GAMBIT_SELF_HP_70 = 12,
+        GAMBIT_SELF_ENERGY_40 = 13, GAMBIT_SELF_ENERGY_60 = 14, GAMBIT_SELF_ENERGY_80 = 15,
+        // Ennemi
+        GAMBIT_FOE_YOUR_TARGET = 20, GAMBIT_FOE_ITS_TARGET = 21, GAMBIT_FOE_NEAREST = 22,
+        GAMBIT_FOE_ATTACKING_YOU = 23, GAMBIT_FOE_HP_20 = 24, GAMBIT_FOE_HP_35 = 25, GAMBIT_FOE_HP_50 = 26,
+        GAMBIT_FOE_HP_90_UP = 27, GAMBIT_FOE_CASTING = 28, GAMBIT_FOE_ELITE = 29,
+        // Groupe
+        GAMBIT_GROUP_ONE_50 = 30, GAMBIT_GROUP_THREE_70 = 31,
+        // Combat
+        GAMBIT_FIGHT_2 = 40, GAMBIT_FIGHT_3 = 41, GAMBIT_FIGHT_5 = 42, GAMBIT_ALWAYS = 43,
+    };
+
+    // L'action d'un gambit : un sort (son premier rang), ou un ordre.
+    constexpr int32 GAMBIT_ACTION_ATTACK = -1;   // Attaquer
+    constexpr int32 GAMBIT_ACTION_RETURN = -2;   // Revenir pres de toi
+
+    struct Gambit
+    {
+        bool enabled = true;
+        uint16 condition = GAMBIT_ALWAYS;
+        int32 action = GAMBIT_ACTION_ATTACK;
+    };
+
+    constexpr uint32 MAX_GAMBITS = 12;
 
     // LES ORDRES, comme ceux de la barre du familier.
     enum Order : uint8
@@ -211,6 +260,15 @@ namespace CompanionMount
         uint32 talentLevelsPerPoint = 2;
         uint32 talentPointsPerTier = 5;
         bool talentOneTree = false;      // un seul arbre par monture (option)
+
+        // L'ENERGIE (100, +10 par seconde comme le voleur) et ce que coute un sort.
+        bool energyEnabled = true;
+        uint32 energyMax = 100;
+        uint32 energyCost[MAX_ENERGY_CLASS] = { 25, 40, 50, 60, 80 };
+
+        // LES GAMBITS : 3 emplacements au niveau 1, 12 au niveau 80.
+        uint32 gambitFirstSlots = 3;
+        uint32 gambitMaxSlots = MAX_GAMBITS;
     };
 
     // CE QUE LE JOUEUR A CHOISI, et ou en est sa monture.
@@ -249,6 +307,15 @@ namespace CompanionMount
         std::vector<ActiveSpell> actives;
         std::set<uint32> autocastOff;   // premiers rangs dont le lancement automatique est coupe
         uint32 castRequest = 0;         // premier rang a lancer a la main, au prochain tour de l'IA
+
+        // LES GAMBITS de la monture choisie : ceux du joueur, ou ceux par
+        // defaut (tires de ses sorts) tant qu'il n'y a pas touche.
+        std::vector<Gambit> gambits;
+        bool gambitsCustom = false;
+
+        // Le dernier etat du portrait envoye au client (rien n'est renvoye s'il n'a pas change).
+        std::string frameSent;
+        uint32 frameTimer = 0;
     };
 
     Config const& GetConfig();
@@ -310,6 +377,21 @@ namespace CompanionMount
     void LoadAutocast(Player* player, State& state);
     bool ToggleAutocast(Player* player, uint32 spellId);
     bool RequestCast(Player* player, uint32 spellId);
+
+    // L'ENERGIE ET LES GAMBITS (CompanionGambit.cpp).
+    uint32 EnergyCost(ActiveSpell const& active);
+    uint32 GambitSlots(uint8 level);
+    uint8 GambitSlotLevel(uint32 slot);
+    bool IsGambitCondition(uint32 condition);
+    void LoadGambits(Player* player, State& state);
+    void RefreshDefaultGambits(Player* player, State& state);
+    bool SaveGambits(Player* player, std::vector<Gambit> const& gambits);
+    void ResetGambits(Player* player);
+    void DeleteGambits(ObjectGuid::LowType guid);
+    // Le sujet d'une condition (celui qu'elle designe) s'il la remplit, sinon nullptr.
+    Unit* GambitSubject(Creature* companion, Player* owner, uint16 condition);
+    // LE PORTRAIT : nom, niveau, PV et energie, envoyes au client quand ils changent.
+    void SendFrame(Player* player, State& state, Creature* companion, bool force = false);
 
     // LA FICHE pour l'interface (CompanionStats.cpp).
     void WriteSnapshot(Player* player);

@@ -43,6 +43,8 @@
  */
 
 #include "CompanionMount.h"
+#include "StringConvert.h"
+#include "Tokenize.h"
 
 #include "Chat.h"
 #include "ChatCommand.h"
@@ -80,8 +82,17 @@ public:
             { "",      HandleTalentCommand,      SEC_PLAYER, Console::No },
         };
 
+        static ChatCommandTable gambitTable =
+        {
+            { "save",  HandleGambitSaveCommand,  SEC_PLAYER, Console::No },
+            { "reset", HandleGambitResetCommand, SEC_PLAYER, Console::No },
+            { "",      HandleGambitCommand,      SEC_PLAYER, Console::No },
+        };
+
         static ChatCommandTable companionTable =
         {
+            { "gambit",  gambitTable },
+            { "frame",   HandleFrameCommand,   SEC_PLAYER, Console::No },
             { "talent",  talentTable },
             { "bag",     bagTable },
             { "summon",  HandleSummonCommand,  SEC_PLAYER, Console::No },
@@ -259,6 +270,59 @@ public:
     static bool HandleAutocastCommand(ChatHandler* handler, uint32 spellId)
     {
         ToggleAutocast(handler->GetPlayer(), spellId);
+        return true;
+    }
+
+    // LES GAMBITS. Sans argument : la liste, au clavier. « save » : la liste
+    // entiere, « actif:condition:action » separes par des virgules (ce
+    // qu'envoie la fenetre Gambits) ; « reset » : la liste par defaut.
+    static bool HandleGambitCommand(ChatHandler* handler)
+    {
+        Player* player = handler->GetPlayer();
+        State const& state = GetState(player);
+        uint32 const slots = GambitSlots(EffectiveLevel(player, state));
+        handler->PSendSysMessage("Gambits ({}/{}){}", slots, uint32(MAX_GAMBITS), state.gambitsCustom ? "" : " - default");
+        for (size_t i = 0; i < state.gambits.size(); ++i)
+        {
+            Gambit const& gambit = state.gambits[i];
+            std::string action = gambit.action == GAMBIT_ACTION_ATTACK ? "attack"
+                : gambit.action == GAMBIT_ACTION_RETURN ? "return" : SpellName(player, uint32(gambit.action));
+            handler->PSendSysMessage("{}. [{}] {} -> {}{}", uint32(i + 1), gambit.enabled ? "x" : " ",
+                uint32(gambit.condition), action, i < slots ? "" : " (locked)");
+        }
+        return true;
+    }
+
+    static bool HandleGambitSaveCommand(ChatHandler* handler, Tail list)
+    {
+        std::vector<Gambit> gambits;
+        for (std::string_view entry : Acore::Tokenize(list, ',', false))
+        {
+            std::vector<std::string_view> parts = Acore::Tokenize(entry, ':', false);
+            if (parts.size() != 3)
+                return true;
+            Optional<uint32> enabled = Acore::StringTo<uint32>(parts[0]);
+            Optional<uint32> condition = Acore::StringTo<uint32>(parts[1]);
+            Optional<int32> action = Acore::StringTo<int32>(parts[2]);
+            if (!enabled || !condition || !action)
+                return true;
+            gambits.push_back({ *enabled != 0, uint16(*condition), *action });
+        }
+        SaveGambits(handler->GetPlayer(), gambits);
+        return true;
+    }
+
+    static bool HandleGambitResetCommand(ChatHandler* handler)
+    {
+        ResetGambits(handler->GetPlayer());
+        return true;
+    }
+
+    // Le portrait renvoye tel quel (l'interface le demande en arrivant).
+    static bool HandleFrameCommand(ChatHandler* handler)
+    {
+        Player* player = handler->GetPlayer();
+        SendFrame(player, GetState(player), GetCompanion(player), true);
         return true;
     }
 

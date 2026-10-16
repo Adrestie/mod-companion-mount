@@ -73,6 +73,15 @@ namespace CompanionMount
 
             companion->UpdateAllStats();
             companion->SetFullHealth();
+
+            // L'ENERGIE, comme le voleur : le coeur la rend (+20 toutes les 2 s)
+            // a une creature qui appartient a un joueur. La barre jaune vient avec.
+            if (sConfig.energyEnabled)
+            {
+                companion->setPowerType(POWER_ENERGY);
+                companion->SetMaxPower(POWER_ENERGY, sConfig.energyMax);
+                companion->SetPower(POWER_ENERGY, sConfig.energyMax);
+            }
         }
 
         // LA PART DU MAITRE dans la puissance d'attaque de la bete (comme celle du
@@ -271,6 +280,14 @@ namespace CompanionMount
         sConfig.talentLevelsPerPoint = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("CompanionMount.Talent.LevelsPerPoint", 2));
         sConfig.talentPointsPerTier = sConfigMgr->GetOption<uint32>("CompanionMount.Talent.PointsPerTier", 5);
         sConfig.talentOneTree = sConfigMgr->GetOption<bool>("CompanionMount.Talent.OneTree", false);
+        sConfig.energyEnabled = sConfigMgr->GetOption<bool>("CompanionMount.Energy.Enable", true);
+        sConfig.energyMax = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Energy.Max", 100), 10, 1000);
+        char const* const costKeys[MAX_ENERGY_CLASS] = { "Quick", "Strong", "Defensive", "Key", "Ultimate" };
+        uint32 const costDefaults[MAX_ENERGY_CLASS] = { 25, 40, 50, 60, 80 };
+        for (uint8 i = 0; i < MAX_ENERGY_CLASS; ++i)
+            sConfig.energyCost[i] = sConfigMgr->GetOption<uint32>(std::string("CompanionMount.Energy.Cost.") + costKeys[i], costDefaults[i]);
+        sConfig.gambitMaxSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Gambit.MaxSlots", MAX_GAMBITS), 1, MAX_GAMBITS);
+        sConfig.gambitFirstSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Gambit.FirstSlots", 3), 1, sConfig.gambitMaxSlots);
     }
 
     State& GetState(Player* player)
@@ -459,6 +476,8 @@ namespace CompanionMount
 
         Creature* companion = GetCompanion(player);
         bool const canBeOut = CanBeOut(player, state);
+        if (!companion)
+            SendFrame(player, state, nullptr);
 
         if (companion && !canBeOut)
             Despawn(state, companion);
