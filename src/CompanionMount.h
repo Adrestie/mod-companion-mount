@@ -295,6 +295,9 @@ namespace CompanionMount
     void ListTalents(ChatHandler* handler, Player* player);
     void DeleteTalents(ObjectGuid::LowType guid);
 
+    // LA FICHE pour l'interface (CompanionStats.cpp).
+    void WriteSnapshot(Player* player);
+
     // LE NOM (CompanionName.cpp).
     void ApplyName(Creature* companion, State const& state);
     bool Rename(Player* player, std::string name);

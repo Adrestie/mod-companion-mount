@@ -300,6 +300,7 @@ namespace CompanionMount
         // Le personnage s'en va : ses montures aussi, et ce qu'elles portaient.
         BagDeleteAll(guid);
         DeleteTalents(guid);
+        CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_snapshot` WHERE `guid` = {}", guid);
         CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_mount` WHERE `guid` = {}", guid);
         CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_character` WHERE `guid` = {}", guid);
     }

@@ -30,7 +30,8 @@
         "mod_companion_mount_character",
         "mod_companion_mount_mount",
         "mod_companion_mount_bag",
-        "mod_companion_mount_talent_rank"
+        "mod_companion_mount_talent_rank",
+        "mod_companion_mount_snapshot"
       ],
       "kept_on_update": [
         "mod_companion_mount_character",

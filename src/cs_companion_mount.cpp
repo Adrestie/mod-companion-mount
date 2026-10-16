@@ -34,6 +34,7 @@
  * .companion talent learn <id>       (SEC_PLAYER)  un rang de plus
  * .companion talent reset    (SEC_PLAYER)  rend tous les points
  * .companion setlevel <n>    (SEC_GAMEMASTER)  le niveau de la monture choisie, pour les tests
+ * .companion snapshot        (SEC_PLAYER)  ecrit la fiche de la monture, pour la fenetre (muet)
  * .companion debug           (SEC_GAMEMASTER)  la bete vue du serveur : PV, cible, mouvement
  *
  * Elles sont le chemin que prendra l'interface (ALE) : le jeu reste jouable
@@ -92,6 +93,7 @@ public:
             { "defensive",  HandleDefensiveCommand,  SEC_PLAYER, Console::No },
             { "aggressive", HandleAggressiveCommand, SEC_PLAYER, Console::No },
             { "rename",     HandleRenameCommand,     SEC_PLAYER, Console::No },
+            { "snapshot",   HandleSnapshotCommand,   SEC_PLAYER, Console::No },
             { "setlevel",   HandleSetLevelCommand,   SEC_GAMEMASTER, Console::No },
             { "debug",      HandleDebugCommand,      SEC_GAMEMASTER, Console::No },
         };
@@ -222,6 +224,12 @@ public:
     {
         if (place >= 1)
             BagWithdraw(handler->GetPlayer(), place - 1);
+        return true;
+    }
+
+    static bool HandleSnapshotCommand(ChatHandler* handler)
+    {
+        WriteSnapshot(handler->GetPlayer());
         return true;
     }
 
