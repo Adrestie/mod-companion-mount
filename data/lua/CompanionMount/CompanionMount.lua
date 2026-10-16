@@ -29,6 +29,21 @@ local AIO = require("AIO")
 
 local Handlers = AIO.AddHandlers("CompanionMount", {})
 
+-- A TABLE THE SERVER DOES NOT HAVE YET STOPS IT: AzerothCore aborts on MySQL
+-- error 1146 ("your database structure is not up to date"). These scripts may
+-- be reloaded (.reload ale) ahead of the binary and the SQL that create the
+-- module's newer tables: every such table is asked for first.
+local known = {}
+local function HasTable(query, name)
+    if known[name] then return true end
+    local q = query(string.format(
+        "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s'", name))
+    known[name] = q ~= nil
+    return known[name]
+end
+local function HasCharTable(name) return HasTable(CharDBQuery, name) end
+local function HasWorldTable(name) return HasTable(WorldDBQuery, name) end
+
 -- The orders the bar may give: the subcommands of `.companion`, nothing else.
 local ORDERS = {
     summon = true, dismiss = true, attack = true,
@@ -95,6 +110,9 @@ local BAG_SLOTS = 16   -- CompanionMount.Bag.Slots
 
 local function Bag(player)
     local items = {}
+    if not HasCharTable("mod_companion_mount_bag") then
+        return items
+    end
     local q = CharDBQuery(string.format(
         "SELECT ci.slot, ii.itemEntry, ii.count, ii.enchantments, ii.randomPropertyId "
         .. "FROM mod_companion_mount_bag ci "
@@ -168,6 +186,9 @@ end
 local catalogue
 local function Catalogue()
     if catalogue then return catalogue end
+    if not HasWorldTable("mod_companion_mount_talent") then
+        return {}
+    end
     catalogue = {}
     local q = WorldDBQuery("SELECT id, tree, tier, col, spell_1, spell_2, spell_3 FROM mod_companion_mount_talent")
     if q then
@@ -189,6 +210,9 @@ end
 local function Talents(player)
     local guid = player:GetGUIDLow()
     local data = { talents = Catalogue(), ranks = {}, points = 0, key = 0, level = 0 }
+    if not HasCharTable("mod_companion_mount_talent_rank") or not HasWorldTable("mod_companion_mount_kind") then
+        return data
+    end
     local q = CharDBQuery(string.format(
         "SELECT c.mount_spell, IFNULL(m.level, 1) FROM mod_companion_mount_character c "
         .. "LEFT JOIN mod_companion_mount_mount m ON m.guid = c.guid AND m.mount_spell = c.mount_spell "
