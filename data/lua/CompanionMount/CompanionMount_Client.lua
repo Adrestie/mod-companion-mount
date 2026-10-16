@@ -1996,6 +1996,13 @@ local function RefreshSpells()
 end
 
 local barHidden = false
+
+-- No bar in a dungeon, a raid, a battleground or an arena.
+local function InGroupInstance()
+    local inside, kind = IsInInstance()
+    return inside and (kind == "party" or kind == "raid" or kind == "pvp" or kind == "arena")
+end
+
 local function RefreshBar()
     -- The call button wears the face of the chosen mount.
     local icon = (state.mount or 0) ~= 0 and select(3, GetSpellInfo(state.mount))
@@ -2009,8 +2016,14 @@ local function RefreshBar()
         b.icon:SetVertexColor(shade, shade, shade)
     end
     RefreshSpells()
-    if barHidden or (state.mount or 0) == 0 then bar:Hide() else bar:Show() end
+    if barHidden or (state.mount or 0) == 0 or InGroupInstance() then bar:Hide() else bar:Show() end
 end
+
+-- Entering or leaving a dungeon, a raid or a battleground: the bar follows.
+local barWatch = CreateFrame("Frame")
+barWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
+barWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+barWatch:SetScript("OnEvent", function() RefreshBar() end)
 
 AIO.SavePosition(bar, true)
 
