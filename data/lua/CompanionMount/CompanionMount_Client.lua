@@ -1752,15 +1752,6 @@ function UI.Build(parent)
     talents:SetText(L.talents)
     talents:SetScript("OnClick", function() CompanionMount_ToggleTalents() end)
 
-    -- THE GAMBITS, on the right of the sheet (built with the rest of it).
-    if CompanionMount_AttachGambits then CompanionMount_AttachGambits(root) end
-    gambits:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine(G.gambits, 1, 1, 1)
-        GameTooltip:AddLine(G.gambitsTip, nil, nil, nil, true)
-        GameTooltip:Show()
-    end)
-    gambits:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- While it is shown, the numbers follow the fight (every 3 s: each
     -- request has the module write the sheet in the database).
@@ -1774,6 +1765,9 @@ function UI.Build(parent)
         end
     end)
     UI.Refresh()
+
+    -- THE GAMBITS, on the right of the sheet (after its scripts: it hooks OnShow).
+    if CompanionMount_AttachGambits then CompanionMount_AttachGambits(root) end
     return root
 end
 
