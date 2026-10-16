@@ -547,8 +547,13 @@ local TREES = {
 -- TalentFrame: INITIAL_TALENT_OFFSET_X/Y and the step between two buttons.
 -- Six rows must fit the art (384 high): 58 between rows, the first under the
 -- points line; 63 between columns, as the game.
-local T_X, T_Y, T_STEP, T_ROW, T_BUTTON = 35, 42, 63, 58, 37
-local T_ART_W, T_ART_H = 320, 384      -- the four pieces of a tree's art
+local T_STEP, T_ROW, T_BUTTON = 63, 58, 37
+local T_X, T_Y = math.floor((T_ART_W - 3 * T_STEP - T_BUTTON) / 2), 42
+-- The tree's art, as PlayerTalentFrame draws it: of its four pictures (256 +
+-- 64 wide, 256 + 128 high) only 256 + 44 by 256 + 75 is painted, the rest is
+-- empty. Drawn larger (T_ART_SCALE) so that six rows fit in it.
+local T_ART_SCALE = 1.15
+local T_ART_W, T_ART_H = math.floor(300 * T_ART_SCALE), math.floor(331 * T_ART_SCALE)
 -- The art fills the window inside its border (6 px); the footer has its own
 -- strip under it.
 local T_INSET_X, T_INSET_Y, T_FOOTER = 6, 6, 40
@@ -598,18 +603,21 @@ tclose:SetPoint("TOPRIGHT", -2, -2)
 local art = CreateFrame("Frame", nil, talentFrame)
 art:SetSize(T_ART_W, T_ART_H)
 art:SetPoint("TOPLEFT", T_INSET_X, -T_INSET_Y)
+-- { picture, width, height, u2, v2 } (the painted part, before T_ART_SCALE)
 local pieces = {
-    { "TopLeft", 256, 256, "TOPLEFT", 0, 0 },
-    { "TopRight", 64, 256, "TOPLEFT", 256, 0 },
-    { "BottomLeft", 256, 128, "TOPLEFT", 0, -256 },
-    { "BottomRight", 64, 128, "TOPLEFT", 256, -256 },
+    { "TopLeft", 256, 256, 1, 1 },
+    { "TopRight", 44, 256, 0.6875, 1 },
+    { "BottomLeft", 256, 75, 1, 0.5859375 },
+    { "BottomRight", 44, 75, 0.6875, 0.5859375 },
 }
 -- On the window itself, under its header and texts (a child frame would
 -- cover them); the frame `art` only places them.
-for _, p in ipairs(pieces) do
+for i, p in ipairs(pieces) do
     local t = talentFrame:CreateTexture(nil, "BACKGROUND")
-    t:SetSize(p[2], p[3])
-    t:SetPoint(p[4], art, "TOPLEFT", p[5], p[6])
+    t:SetSize(p[2] * T_ART_SCALE, p[3] * T_ART_SCALE)
+    local x = (i == 2 or i == 4) and 256 * T_ART_SCALE or 0
+    local y = (i >= 3) and -256 * T_ART_SCALE or 0
+    t:SetPoint("TOPLEFT", art, "TOPLEFT", x, y)
     p.texture = t
 end
 
@@ -733,6 +741,7 @@ function CompanionMount_RefreshTalents()
     local tree = TREES[shownTree]
     for _, p in ipairs(pieces) do
         p.texture:SetTexture(TPath("Interface", "TalentFrame", tree.art .. "-" .. p[1]))
+        p.texture:SetTexCoord(0, p[4], 0, p[5])
     end
     PanelTemplates_SetTab(talentFrame, shownTree)
     talentFrame.title:SetText(L.talents .. " - " .. tree.name)
