@@ -35,7 +35,7 @@ Un gambit est une règle : **cible + condition → action**. Le compagnon lit la
 | Le compagnon | PV < 30/50/70 %, énergie ≥ 40/60/80 |
 | Ennemi | Ta cible, sa cible, le plus proche, celui qui t'attaque, PV < 20/35/50 %, PV ≥ 90 %, en train d'incanter, élite ou boss |
 | Groupe | Un membre à PV < 50 %, au moins 3 membres à PV < 70 % |
-| Combat | 2/3/5 ennemis ou plus autour, toujours |
+| Combat | 2/3/5 ennemis ou plus autour, dès que prêt (« when ready ») |
 
 ### Actions
 - Tout sort appris par le compagnon (talents actifs, sort clé, ultime).

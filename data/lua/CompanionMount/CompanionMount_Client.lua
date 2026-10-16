@@ -119,7 +119,7 @@ local G_TEXTS = {
             [20] = "Your target", [21] = "Its target", [22] = "Nearest", [23] = "Attacking you", [24] = "HP < 20%",
             [25] = "HP < 35%", [26] = "HP < 50%", [27] = "HP >= 90%", [28] = "Casting", [29] = "Elite or boss",
             [30] = "A member HP < 50%", [31] = "3 members HP < 70%",
-            [40] = "2+ enemies around", [41] = "3+ enemies around", [42] = "5+ enemies around", [43] = "Always",
+            [40] = "2+ enemies around", [41] = "3+ enemies around", [42] = "5+ enemies around", [43] = "When ready",
         },
     },
     frFR = {
@@ -139,7 +139,7 @@ local G_TEXTS = {
             [20] = "Ta cible", [21] = "Sa cible", [22] = "Le plus proche", [23] = "Celui qui t'attaque", [24] = "PV < 20 %",
             [25] = "PV < 35 %", [26] = "PV < 50 %", [27] = "PV >= 90 %", [28] = "En train d'incanter", [29] = "Élite ou boss",
             [30] = "Un membre PV < 50 %", [31] = "3 membres PV < 70 %",
-            [40] = "2 ennemis ou plus autour", [41] = "3 ennemis ou plus autour", [42] = "5 ennemis ou plus autour", [43] = "Toujours",
+            [40] = "2 ennemis ou plus autour", [41] = "3 ennemis ou plus autour", [42] = "5 ennemis ou plus autour", [43] = "Dès que prêt",
         },
     },
     deDE = {
@@ -159,7 +159,7 @@ local G_TEXTS = {
             [20] = "Dein Ziel", [21] = "Sein Ziel", [22] = "Nächster", [23] = "Greift dich an", [24] = "GP < 20%",
             [25] = "GP < 35%", [26] = "GP < 50%", [27] = "GP >= 90%", [28] = "Wirkt einen Zauber", [29] = "Elite oder Boss",
             [30] = "Ein Mitglied GP < 50%", [31] = "3 Mitglieder GP < 70%",
-            [40] = "2+ Feinde in der Nähe", [41] = "3+ Feinde in der Nähe", [42] = "5+ Feinde in der Nähe", [43] = "Immer",
+            [40] = "2+ Feinde in der Nähe", [41] = "3+ Feinde in der Nähe", [42] = "5+ Feinde in der Nähe", [43] = "Sobald bereit",
         },
     },
     esES = {
@@ -179,7 +179,7 @@ local G_TEXTS = {
             [20] = "Tu objetivo", [21] = "Su objetivo", [22] = "El más cercano", [23] = "Quien te ataca", [24] = "Salud < 20%",
             [25] = "Salud < 35%", [26] = "Salud < 50%", [27] = "Salud >= 90%", [28] = "Lanzando un hechizo", [29] = "Élite o jefe",
             [30] = "Un miembro salud < 50%", [31] = "3 miembros salud < 70%",
-            [40] = "2+ enemigos cerca", [41] = "3+ enemigos cerca", [42] = "5+ enemigos cerca", [43] = "Siempre",
+            [40] = "2+ enemigos cerca", [41] = "3+ enemigos cerca", [42] = "5+ enemigos cerca", [43] = "Cuando esté listo",
         },
     },
     ruRU = {
@@ -199,7 +199,7 @@ local G_TEXTS = {
             [20] = "Твоя цель", [21] = "Его цель", [22] = "Ближайший", [23] = "Атакует тебя", [24] = "Здоровье < 20%",
             [25] = "Здоровье < 35%", [26] = "Здоровье < 50%", [27] = "Здоровье >= 90%", [28] = "Читает заклинание", [29] = "Элита или босс",
             [30] = "Участник: здоровье < 50%", [31] = "3 участника: здоровье < 70%",
-            [40] = "2+ врагов рядом", [41] = "3+ врагов рядом", [42] = "5+ врагов рядом", [43] = "Всегда",
+            [40] = "2+ врагов рядом", [41] = "3+ врагов рядом", [42] = "5+ врагов рядом", [43] = "Когда готово",
         },
     },
 }

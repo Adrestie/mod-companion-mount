@@ -150,7 +150,7 @@ Spécification : `docs/energie-gambits.md`.
   prêt, énergie, portée) est jouée. 3 emplacements au niveau 1, 10 au niveau 80. Conditions : toi
   (PV, attaqué, poison, maladie, magie, malédiction), le compagnon (PV, énergie), ennemi (ta cible,
   sa cible, le plus proche, celui qui t'attaque, PV, incante, élite ou boss), groupe (un membre
-  < 50 %, 3 membres < 70 %), combat (2/3/5 ennemis autour, toujours). Actions : ses sorts,
+  < 50 %, 3 membres < 70 %), combat (2/3/5 ennemis autour, dès que prêt). Actions : ses sorts,
   Attaquer, Revenir près de toi. Passive, elle ne s'en prend à personne, gambit ou pas.
 - La liste **par défaut** est tirée des sorts appris (ultime, secours, soins, purifications,
   provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
