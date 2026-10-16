@@ -64,6 +64,7 @@ local L = {
     passive       = FR and "Passive" or "Passive",
     passiveTip    = FR and "N'attaque que sur ordre." or "Attacks only when told to.",
     level      = FR and "Niv. %d" or "Lv %d",
+    sheet      = ({ frFR = "Fiche", deDE = "Werte", esES = "Ficha", esMX = "Ficha", ruRU = "Сведения" })[GetLocale()] or "Sheet",
     moveTip    = FR and "Maj + glisser : déplacer la barre" or "Shift + drag: move the bar",
     autoOn     = FR and "Lancement automatique : activé" or "Autocast: on",
     autoOff    = FR and "Lancement automatique : désactivé" or "Autocast: off",
@@ -1668,6 +1669,8 @@ function UI.Build(parent)
     local info = CreateFrame("Frame", nil, root)
     info:SetPoint("TOPLEFT", view, "TOPRIGHT", 24, 0)
     info:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 60)
+    -- The gambits take the place of these two (the Gambits button below).
+    UI.statPanes = { view, info }
     UI.name = info:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     UI.name:SetPoint("TOPLEFT", 0, -2)
     UI.subtitle = info:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -1758,6 +1761,7 @@ function UI.Build(parent)
     gambits:SetPoint("RIGHT", talents, "LEFT", -8, 0)
     gambits:SetText(G.gambits)
     gambits:SetScript("OnClick", function() CompanionMount_ToggleGambits() end)
+    UI.gambitsButton = gambits
     gambits:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine(G.gambits, 1, 1, 1)
@@ -2322,53 +2326,31 @@ unitFrame:Hide()
 AIO.SavePosition(unitFrame, true)
 
 -- ---------------------------------------------------------------------------
--- THE GAMBITS WINDOW: a rule per line -- on/off, target and condition, action,
--- up and down. The locked slots are grayed with the level they open at. Every
--- change sends the whole list; the server answers with it as it keeps it.
+-- THE GAMBITS, in the companion's sheet: the Gambits button swaps the 3D view
+-- and the figures for the rules -- a line each: on/off, target and condition,
+-- action, up and down. The locked slots are grayed with the level they open
+-- at. Every change sends the whole list; the server answers with it as it
+-- keeps it.
 -- ---------------------------------------------------------------------------
 
-local GAMBIT_ROW_HEIGHT = 32
+local GAMBIT_ROW_HEIGHT = 27
 local gambitData = { rows = {}, slots = 3, max = 12, unlock = {}, spells = {}, custom = false }
 local gambitRows = {}
 
-local gambitFrame = CreateFrame("Frame", "CompanionMountGambitFrame", UIParent)
-gambitFrame:SetSize(540, 120 + 12 * GAMBIT_ROW_HEIGHT)
-gambitFrame:SetPoint("CENTER")
-gambitFrame:SetMovable(true)
-gambitFrame:EnableMouse(true)
-gambitFrame:SetClampedToScreen(true)
-gambitFrame:RegisterForDrag("LeftButton")
-gambitFrame:SetScript("OnDragStart", gambitFrame.StartMoving)
-gambitFrame:SetScript("OnDragStop", function(self)
-    self:StopMovingOrSizing()
-    if LibWindow then LibWindow.SavePosition(self) end
-end)
-gambitFrame:SetBackdrop({
-    bgFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Background"),
-    edgeFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Border"),
-    tile = true, tileSize = 32, edgeSize = 32,
-    insets = { left = 11, right = 12, top = 12, bottom = 11 },
-})
-gambitFrame:SetFrameStrata("DIALOG")
+local gambitFrame = CreateFrame("Frame", "CompanionMountGambitPanel", UIParent)
 gambitFrame:Hide()
-tinsert(UISpecialFrames, "CompanionMountGambitFrame")
 
-local gambitTitle = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-gambitTitle:SetPoint("TOP", 0, -18)
-gambitTitle:SetText(G.gambits)
-local gambitClose = CreateFrame("Button", nil, gambitFrame, "UIPanelCloseButton")
-gambitClose:SetPoint("TOPRIGHT", -6, -6)
 local gambitHelp = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-gambitHelp:SetPoint("TOPLEFT", 24, -44)
-gambitHelp:SetPoint("RIGHT", -24, 0)
+gambitHelp:SetPoint("TOPLEFT", 0, 0)
+gambitHelp:SetPoint("RIGHT", 0, 0)
 gambitHelp:SetJustifyH("LEFT")
 gambitHelp:SetText(G.help)
 
 local gambitStatus = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-gambitStatus:SetPoint("BOTTOMLEFT", 24, 22)
+gambitStatus:SetPoint("BOTTOMLEFT", 0, 4)
 local gambitReset = CreateFrame("Button", nil, gambitFrame, "UIPanelButtonTemplate")
 gambitReset:SetSize(130, 22)
-gambitReset:SetPoint("BOTTOMRIGHT", -24, 18)
+gambitReset:SetPoint("BOTTOMRIGHT", 0, 0)
 gambitReset:SetText(G.reset)
 gambitReset:SetScript("OnClick", function() AIO.Handle("CompanionMount", "GambitReset") end)
 
@@ -2467,8 +2449,8 @@ end
 
 local function MakeGambitRow(i)
     local row = CreateFrame("Frame", nil, gambitFrame)
-    row:SetSize(500, GAMBIT_ROW_HEIGHT - 2)
-    row:SetPoint("TOPLEFT", 20, -70 - (i - 1) * GAMBIT_ROW_HEIGHT)
+    row:SetSize(560, GAMBIT_ROW_HEIGHT - 2)
+    row:SetPoint("TOPLEFT", 0, -20 - (i - 1) * GAMBIT_ROW_HEIGHT)
 
     row.number = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     row.number:SetPoint("LEFT", 0, 0)
@@ -2493,7 +2475,7 @@ local function MakeGambitRow(i)
     row.check:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     row.condition = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.condition:SetSize(230, 24)
+    row.condition:SetSize(250, 22)
     row.condition:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
     row.condition:SetScript("OnClick", function(self)
         EasyMenu(ConditionMenu(i), gambitMenu, self, 0, 0, "MENU")
@@ -2504,10 +2486,10 @@ local function MakeGambitRow(i)
     row.arrow:SetText(">")
 
     row.action = CreateFrame("Button", nil, row)
-    row.action:SetSize(160, 26)
+    row.action:SetSize(190, 24)
     row.action:SetPoint("LEFT", row.arrow, "RIGHT", 6, 0)
     row.action.icon = row.action:CreateTexture(nil, "ARTWORK")
-    row.action.icon:SetSize(24, 24)
+    row.action.icon:SetSize(22, 22)
     row.action.icon:SetPoint("LEFT")
     row.action.text = row.action:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.action.text:SetPoint("LEFT", row.action.icon, "RIGHT", 5, 0)
@@ -2581,14 +2563,40 @@ local function RefreshGambits()
     gambitStatus:SetText(gambitData.custom and G.customList or G.defaultList)
 end
 
-function CompanionMount_ToggleGambits()
-    if gambitFrame:IsShown() then
-        gambitFrame:Hide()
-    else
+-- The sheet shows the gambits, or its figures again. The sheet is built when
+-- it first opens (its window, or its tab in Progression): the panel joins it then.
+local function SheetShown()
+    return UI.root and UI.root:IsVisible()
+end
+
+local function ShowGambitPanel(show)
+    if not UI.root then return end
+    if gambitFrame:GetParent() ~= UI.root then
+        gambitFrame:SetParent(UI.root)
+        gambitFrame:ClearAllPoints()
+        gambitFrame:SetPoint("TOPLEFT", UI.root, "TOPLEFT", 0, 0)
+        gambitFrame:SetPoint("BOTTOMRIGHT", UI.root, "BOTTOMRIGHT", 0, 40)
+    end
+    for _, pane in ipairs(UI.statPanes or {}) do
+        if show then pane:Hide() else pane:Show() end
+    end
+    if UI.gambitsButton then UI.gambitsButton:SetText(show and L.sheet or G.gambits) end
+    if show then
         gambitFrame:Show()
         RefreshGambits()
         AIO.Handle("CompanionMount", "GambitOpen")
+    else
+        gambitFrame:Hide()
     end
+end
+
+function CompanionMount_ToggleGambits()
+    if not SheetShown() then
+        CompanionMount_Toggle()   -- the sheet opens on its gambits
+        ShowGambitPanel(true)
+        return
+    end
+    ShowGambitPanel(not gambitFrame:IsShown())
 end
 
 function Handlers.Gambits(_, data)
@@ -2599,8 +2607,6 @@ function Handlers.Gambits(_, data)
     if gambitFrame:IsShown() then RefreshGambits() end
 end
 
-gambitFrame:SetSize(540, 120 + 12 * GAMBIT_ROW_HEIGHT)
-AIO.SavePosition(gambitFrame, true)
 
 -- The spell bar: a spell the energy can not pay is dimmed blue, as the
 -- game dims a spell without mana.

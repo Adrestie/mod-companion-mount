@@ -156,7 +156,8 @@ Spécification : `docs/energie-gambits.md`.
   provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
   touche pas ; la sienne est gardée par monture. Réinitialiser y revient. Un sort en lancement
   automatique qu'aucun gambit ne nomme sert de dernier recours.
-- Fenêtre **Gambits** : bouton de la fiche ou `/compagnon gambits` ; case à cocher, menu cible et
+- **Gambits dans la fiche** : le bouton Gambits remplace la vue 3D et les chiffres par les règles (et
+  revient à la fiche), aussi `/compagnon gambits` ; case à cocher, menu cible et
   condition, action (icône du sort), flèches ; emplacements fermés grisés avec leur niveau. Textes en
   anglais, français, allemand, espagnol et russe. Au clavier : `.companion gambit [save|reset]`.
 
