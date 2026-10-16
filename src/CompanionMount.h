@@ -190,7 +190,7 @@ namespace CompanionMount
         int32 action = GAMBIT_ACTION_ATTACK;
     };
 
-    constexpr uint32 MAX_GAMBITS = 12;
+    constexpr uint32 MAX_GAMBITS = 12;   // plafond ; la conf en ouvre 10 par defaut
 
     // LES ORDRES, comme ceux de la barre du familier.
     enum Order : uint8
@@ -266,9 +266,9 @@ namespace CompanionMount
         uint32 energyMax = 100;
         uint32 energyCost[MAX_ENERGY_CLASS] = { 25, 40, 50, 60, 80 };
 
-        // LES GAMBITS : 3 emplacements au niveau 1, 12 au niveau 80.
+        // LES GAMBITS : 3 emplacements au niveau 1, 10 au niveau 80.
         uint32 gambitFirstSlots = 3;
-        uint32 gambitMaxSlots = MAX_GAMBITS;
+        uint32 gambitMaxSlots = 10;
     };
 
     // CE QUE LE JOUEUR A CHOISI, et ou en est sa monture.

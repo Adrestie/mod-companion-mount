@@ -286,7 +286,7 @@ namespace CompanionMount
         uint32 const costDefaults[MAX_ENERGY_CLASS] = { 25, 40, 50, 60, 80 };
         for (uint8 i = 0; i < MAX_ENERGY_CLASS; ++i)
             sConfig.energyCost[i] = sConfigMgr->GetOption<uint32>(std::string("CompanionMount.Energy.Cost.") + costKeys[i], costDefaults[i]);
-        sConfig.gambitMaxSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Gambit.MaxSlots", MAX_GAMBITS), 1, MAX_GAMBITS);
+        sConfig.gambitMaxSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Gambit.MaxSlots", 10), 1, MAX_GAMBITS);
         sConfig.gambitFirstSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Gambit.FirstSlots", 3), 1, sConfig.gambitMaxSlots);
     }
 

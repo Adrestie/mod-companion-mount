@@ -147,7 +147,7 @@ Spécification : `docs/energie-gambits.md`.
   de bleu, et son infobulle donne son coût.
 - **Les Gambits** (comme Final Fantasy XII) : des règles « cible + condition → action » lues de
   haut en bas ; à chaque tour, la première dont la condition est vraie et l'action possible (sort
-  prêt, énergie, portée) est jouée. 3 emplacements au niveau 1, 12 au niveau 80. Conditions : toi
+  prêt, énergie, portée) est jouée. 3 emplacements au niveau 1, 10 au niveau 80. Conditions : toi
   (PV, attaqué, poison, maladie, magie, malédiction), le compagnon (PV, énergie), ennemi (ta cible,
   sa cible, le plus proche, celui qui t'attaque, PV, incante, élite ou boss), groupe (un membre
   < 50 %, 3 membres < 70 %), combat (2/3/5 ennemis autour, toujours). Actions : ses sorts,
@@ -156,8 +156,8 @@ Spécification : `docs/energie-gambits.md`.
   provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
   touche pas ; la sienne est gardée par monture. Réinitialiser y revient. Un sort en lancement
   automatique qu'aucun gambit ne nomme sert de dernier recours.
-- **Gambits dans la fiche** : le bouton Gambits remplace la vue 3D et les chiffres par les règles (et
-  revient à la fiche), aussi `/compagnon gambits` ; case à cocher, menu cible et
+- **Gambits dans la fiche**, à droite des chiffres (la vue 3D est plus petite, la description de la
+  monture retirée) ; `/compagnon gambits` ouvre la fiche ; case à cocher, menu cible et
   condition, action (icône du sort), flèches ; emplacements fermés grisés avec leur niveau. Textes en
   anglais, français, allemand, espagnol et russe. Au clavier : `.companion gambit [save|reset]`.
 

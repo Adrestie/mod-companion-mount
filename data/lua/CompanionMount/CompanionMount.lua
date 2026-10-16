@@ -343,8 +343,8 @@ end
 -- save|reset`); here the list of the chosen mount is read for the window.
 -- ---------------------------------------------------------------------------
 
--- CompanionMount.Gambit.FirstSlots and MaxSlots (mirrored): 3 at level 1, 12 at 80.
-local GAMBIT_FIRST, GAMBIT_MAX = 3, 12
+-- CompanionMount.Gambit.FirstSlots and MaxSlots (mirrored): 3 at level 1, 10 at 80.
+local GAMBIT_FIRST, GAMBIT_MAX = 3, 10
 
 local function GambitSlots(level)
     level = math.max(1, math.min(level, 80))

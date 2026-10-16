@@ -26,7 +26,7 @@
  * LES GAMBITS (Final Fantasy XII) : une liste de regles « cible + condition
  * -> action » que l'IA lit de haut en bas a chaque tour ; elle joue la
  * premiere dont la condition est vraie et l'action possible. 3 emplacements
- * au niveau 1, 12 au niveau 80. Tant que le joueur n'y a pas touche, la liste
+ * au niveau 1, 10 au niveau 80 (reglable). Tant que le joueur n'y a pas touche, la liste
  * est celle par defaut, tiree des sorts appris (elle suit les talents) ; la
  * sienne est gardee par monture (mod_companion_mount_gambit).
  *
@@ -254,8 +254,9 @@ namespace CompanionMount
             std::stable_sort(rules.begin(), rules.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
 
             std::vector<Gambit> gambits;
+            uint32 const max = GetConfig().gambitMaxSlots;
             for (auto const& [priority, gambit] : rules)
-                if (gambits.size() < MAX_GAMBITS - 1)
+                if (gambits.size() + 1 < max)
                     gambits.push_back(gambit);
             gambits.push_back({ true, GAMBIT_FOE_YOUR_TARGET, GAMBIT_ACTION_ATTACK });
             return gambits;
@@ -289,7 +290,7 @@ namespace CompanionMount
         return std::min(config.energyCost[active.energyClass], config.energyMax);
     }
 
-    // 3 emplacements au niveau 1, le dernier au niveau 80, reguliers entre deux.
+    // 3 emplacements au niveau 1, le dernier (10e) au niveau 80, reguliers entre deux.
     uint32 GambitSlots(uint8 level)
     {
         Config const& config = GetConfig();
@@ -357,7 +358,7 @@ namespace CompanionMount
     bool SaveGambits(Player* player, std::vector<Gambit> const& gambits)
     {
         State& state = GetState(player);
-        if (!state.mountSpell || gambits.size() > MAX_GAMBITS)
+        if (!state.mountSpell || gambits.size() > GetConfig().gambitMaxSlots)
             return false;
         for (Gambit const& gambit : gambits)
             if (!IsGambitCondition(gambit.condition) || gambit.action == 0 || gambit.action < GAMBIT_ACTION_RETURN)

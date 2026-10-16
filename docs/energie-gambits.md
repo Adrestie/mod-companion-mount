@@ -23,7 +23,7 @@ Spécification validée par l'utilisateur le 2026-10-16. Tout se fait côté ser
 Un gambit est une règle : **cible + condition → action**. Le compagnon lit la liste de haut en bas. À chaque tour, il exécute la première règle dont la condition est vraie et dont l'action est possible (assez d'énergie, sort prêt, à portée). Sinon, il passe à la suivante.
 
 ### Emplacements
-- 12 emplacements, comme dans FFXII. Il y en a 3 au niveau 1, puis +1 tous les 9 niveaux, soit 12 au niveau 80.
+- 10 emplacements (12 dans FFXII ; ramené à 10 par l'utilisateur le 2026-10-16). Il y en a 3 au niveau 1, puis +1 tous les 11 niveaux environ, soit 10 au niveau 80.
 - Chaque règle s'active ou se coupe d'une case à cocher, et se déplace avec des flèches haut et bas.
 - Les gambits sont gardés pour chaque monture.
 
@@ -50,7 +50,7 @@ Un gambit est une règle : **cible + condition → action**. Le compagnon lit la
 - Un sort en lancement automatique sans gambit est lancé en dernier recours, quand aucune règle ne s'applique.
 
 ### Interface
-- Une fenêtre Gambits s'ouvre depuis un bouton de la fiche et avec `/compagnon gambits`.
+- Les gambits sont dans la fiche du compagnon, à droite de ses statistiques (décision de l'utilisateur) ; la vue 3D y est plus petite (le modèle garde sa taille) et la description de la monture est retirée. `/compagnon gambits` ouvre la fiche.
 - Chaque ligne contient : une case à cocher, un menu de cible et condition, un bouton d'action avec l'icône du sort, et des flèches.
 - Les emplacements verrouillés sont grisés, avec le niveau requis.
 - Toutes les chaînes dans les 5 langues (enUS, frFR, deDE, esES, ruRU).

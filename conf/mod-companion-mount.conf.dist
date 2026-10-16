@@ -276,7 +276,7 @@ CompanionMount.Energy.Cost.Ultimate = 80
 #        Description: Gambit slots (rules "target + condition -> action") at
 #                     level 1, and at level 80 (at most 12); the others open
 #                     regularly in between.
-#        Default:     3, 12
+#        Default:     3, 10
 
 CompanionMount.Gambit.FirstSlots = 3
-CompanionMount.Gambit.MaxSlots = 12
+CompanionMount.Gambit.MaxSlots = 10
