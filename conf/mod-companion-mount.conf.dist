@@ -68,10 +68,10 @@ CompanionMount.DamageRate = 1.0
 #    CompanionMount.AttackPowerOwnerShare
 #        Description: Share of its master's attack power the companion mount
 #                     adds to that of the creatures of its level (as a hunter
-#                     pet takes a share of its master's). 0.35 = 35 %.
-#        Default:     0.0
+#                     pet takes a share of its master's). 0.22 = 22 %.
+#        Default:     0.22
 
-CompanionMount.AttackPowerOwnerShare = 0.0
+CompanionMount.AttackPowerOwnerShare = 0.22
 
 #
 #    CompanionMount.LeashDistance
