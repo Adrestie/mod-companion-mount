@@ -1,10 +1,10 @@
 -- mod-companion-mount — the talents: texts and help.
 --
--- Ids 33-45 of `module_string` (Text enum of src/CompanionMount.h).
+-- Ids 33-46 of `module_string` (Text enum of src/CompanionMount.h).
 --
 -- Idempotent: the file may be replayed.
 
-DELETE FROM `module_string` WHERE `module` = 'mod-companion-mount' AND `id` BETWEEN 33 AND 45;
+DELETE FROM `module_string` WHERE `module` = 'mod-companion-mount' AND `id` BETWEEN 33 AND 46;
 INSERT INTO `module_string` (`module`, `id`, `string`) VALUES
 ('mod-companion-mount', 33, 'Talents: {}/{} points spent - {}.'),
 ('mod-companion-mount', 34, '  [{}] {} - rank {}/{}'),
@@ -18,9 +18,10 @@ INSERT INTO `module_string` (`module`, `id`, `string`) VALUES
 ('mod-companion-mount', 42, 'Tank tree'),
 ('mod-companion-mount', 43, 'Heal tree'),
 ('mod-companion-mount', 44, 'no tree chosen'),
-('mod-companion-mount', 45, 'This mount has no key spell.');
+('mod-companion-mount', 45, 'This mount has no key spell.'),
+('mod-companion-mount', 46, 'Your companion mount is now level {}.');
 
-DELETE FROM `module_string_locale` WHERE `module` = 'mod-companion-mount' AND `id` BETWEEN 33 AND 45;
+DELETE FROM `module_string_locale` WHERE `module` = 'mod-companion-mount' AND `id` BETWEEN 33 AND 46;
 INSERT INTO `module_string_locale` (`module`, `id`, `locale`, `string`) VALUES
 ('mod-companion-mount', 33, 'frFR', 'Talents : {}/{} points dépensés - {}.'),
 ('mod-companion-mount', 34, 'frFR', '  [{}] {} - rang {}/{}'),
@@ -34,10 +35,12 @@ INSERT INTO `module_string_locale` (`module`, `id`, `locale`, `string`) VALUES
 ('mod-companion-mount', 42, 'frFR', 'arbre Tank'),
 ('mod-companion-mount', 43, 'frFR', 'arbre Soin'),
 ('mod-companion-mount', 44, 'frFR', 'aucun arbre choisi'),
-('mod-companion-mount', 45, 'frFR', 'Cette monture n''a pas de sort clé.');
+('mod-companion-mount', 45, 'frFR', 'Cette monture n''a pas de sort clé.'),
+('mod-companion-mount', 46, 'frFR', 'Votre monture-compagnon est maintenant niveau {}.');
 
-DELETE FROM `command` WHERE `name` IN ('companion talent', 'companion talent learn', 'companion talent reset');
+DELETE FROM `command` WHERE `name` IN ('companion talent', 'companion talent learn', 'companion talent reset', 'companion setlevel');
 INSERT INTO `command` (`name`, `security`, `help`) VALUES
 ('companion talent', 0, 'Syntax: .companion talent\n\nThe talent points and talents of your companion mount. The bar of the companion mount opens them as a window.'),
 ('companion talent learn', 0, 'Syntax: .companion talent learn $id\n\nOne more rank of a talent of your companion mount (one tree per mount, 3 points per row).'),
-('companion talent reset', 0, 'Syntax: .companion talent reset\n\nFrees every talent point of your companion mount.');
+('companion talent reset', 0, 'Syntax: .companion talent reset\n\nFrees every talent point of your companion mount.'),
+('companion setlevel', 2, 'Syntax: .companion setlevel $level\n\nSets the level of your companion mount (the mount chosen), for tests. It stays below your own level when CompanionMount.Level.CapToOwner is on.');
