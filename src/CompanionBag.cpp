@@ -57,8 +57,9 @@ namespace CompanionMount
 
         bool CanUseBag(Player* player, State const& state)
         {
-            // Les sacoches sont sur la bete : il faut qu'elle soit la.
-            if (GetConfig().bagRequiresOut && !GetCompanion(player))
+            // Les sacoches sont sur la bete : il faut qu'elle soit la, a cote
+            // du joueur ou sous lui (n'importe quelle monture porte les memes).
+            if (GetConfig().bagRequiresOut && !GetCompanion(player) && !player->IsMounted())
             {
                 Say(player, TEXT_NOT_OUT);
                 return false;

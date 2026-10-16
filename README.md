@@ -100,7 +100,7 @@ AzerothCore Mount mod
   `.companion bag`, `.companion bag put <sac> <place>`, `.companion bag take <place>` au clavier.
 - L'objet reste un objet : comme une pièce jointe de courrier, il quitte l'inventaire du joueur
   mais garde sa ligne d'`item_instance` (enchantements, gemmes, durabilité, liaison). Refusés :
-  un sac non vide, un objet invoqué ou à durée. La monture doit être dehors (réglable).
+  un sac non vide, un objet invoqué ou à durée. La monture doit être dehors, ou le joueur monté (réglable).
 - Un personnage supprimé emporte ses montures et ce qu'elles portaient.
 
 ## Jalon 7 : les talents

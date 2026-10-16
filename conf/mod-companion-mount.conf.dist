@@ -179,8 +179,8 @@ CompanionMount.Bag.Slots = 50
 
 #
 #    CompanionMount.Bag.RequiresOut
-#        Description: The companion mount must be out to put items into its
-#                     saddlebags or take them back.
+#        Description: The companion mount must be out, or the player mounted,
+#                     to put items into the saddlebags or take them back.
 #        Default:     1 - (Enabled)
 #                     0 - (Disabled)
 
