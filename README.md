@@ -156,7 +156,9 @@ Spécification : `docs/energie-gambits.md`.
   provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
   touche pas ; la sienne est gardée par monture. Réinitialiser y revient. Un sort en lancement
   automatique qu'aucun gambit ne nomme sert de dernier recours.
-- **L'onglet Gambits** du panneau Compagnon (Réinitialiser en bas) ; `/compagnon gambits` l'ouvre ; case à cocher, menu cible et
+- **L'onglet Gambits** du panneau Compagnon (Réinitialiser en bas) ; `/compagnon gambits` l'ouvre ;
+  **presets** : « Enregistrer sous... » garde la liste sous un nom (par personnage, pour toutes ses
+  montures), le menu Presets en charge un ou en supprime ; `/compagnon preset <nom>` le charge (macro) ; case à cocher, menu cible et
   condition, action (icône du sort), flèches ; emplacements fermés grisés avec leur niveau. Textes en
   anglais, français, allemand, espagnol et russe. Au clavier : `.companion gambit [save|reset]`.
 

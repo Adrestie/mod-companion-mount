@@ -352,8 +352,14 @@ local function GambitSlots(level)
     return GAMBIT_FIRST + math.floor((GAMBIT_MAX - GAMBIT_FIRST) * (level - 1) / 79)
 end
 
+-- The preset last loaded or saved, by character (shown on the window).
+local lastPreset = {}
+local PresetNames   -- below, with the presets
+
 local function Gambits(player)
     local data = { rows = {}, slots = GAMBIT_FIRST, max = GAMBIT_MAX, unlock = {}, custom = false, spells = {} }
+    data.presets = PresetNames and PresetNames(player) or {}
+    data.preset = lastPreset[player:GetGUIDLow()]
     for slot = 0, GAMBIT_MAX - 1 do
         for level = 1, 80 do
             if GambitSlots(level) > slot then data.unlock[slot + 1] = level break end
@@ -387,16 +393,104 @@ function Handlers.GambitOpen(player)
 end
 
 -- The whole list, as the window has it: "enabled:condition:action", comma separated.
-function Handlers.GambitSave(player, rows)
-    if type(rows) ~= "table" then return end
-    local parts = {}
+-- The rows the window sends, checked: { enabled, cond, action } each, or nil.
+local function CleanRows(rows)
+    if type(rows) ~= "table" then return nil end
+    local clean = {}
     for i = 1, math.min(#rows, GAMBIT_MAX) do
         local r = rows[i]
         local cond, action = tonumber(type(r) == "table" and r.cond), tonumber(type(r) == "table" and r.action)
-        if not cond or not action then return end
-        parts[#parts + 1] = string.format("%d:%d:%d", r.enabled and 1 or 0, cond, action)
+        if not cond or not action then return nil end
+        clean[#clean + 1] = { enabled = r.enabled and true or false, cond = math.floor(cond), action = math.floor(action) }
+    end
+    return clean
+end
+
+local function ApplyRows(player, rows)
+    local parts = {}
+    for _, r in ipairs(rows) do
+        parts[#parts + 1] = string.format("%d:%d:%d", r.enabled and 1 or 0, r.cond, r.action)
     end
     player:RunCommand("companion gambit save " .. table.concat(parts, ","))
+end
+
+function Handlers.GambitSave(player, rows)
+    rows = CleanRows(rows)
+    if not rows then return end
+    ApplyRows(player, rows)
+    SendGambits(player)
+end
+
+-- THE PRESETS: named lists of gambits, the character's own (any of its
+-- mounts may take one). Loading one writes it as the mount's list.
+local PRESET_TABLE = "mod_companion_mount_gambit_preset"
+local function EnsurePresetTable()
+    if HasCharTable(PRESET_TABLE) then return true end
+    CharDBQuery("CREATE TABLE IF NOT EXISTS `" .. PRESET_TABLE .. "` ("
+        .. "`guid` INT UNSIGNED NOT NULL, `name` VARCHAR(32) NOT NULL, `slot` TINYINT UNSIGNED NOT NULL, "
+        .. "`enabled` TINYINT UNSIGNED NOT NULL DEFAULT 1, `cond` SMALLINT UNSIGNED NOT NULL, `action` INT NOT NULL, "
+        .. "PRIMARY KEY (`guid`, `name`, `slot`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci "
+        .. "COMMENT='CompanionMount: the gambit presets of each character'")
+    known[PRESET_TABLE] = nil
+    return HasCharTable(PRESET_TABLE)
+end
+
+-- A name kept to what a query can hold as it is: no quote, backslash or control.
+local function PresetName(name)
+    if type(name) ~= "string" then return nil end
+    name = name:gsub("[%c'\\\"`%%;]", ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" or #name > 32 then return nil end
+    return name
+end
+
+PresetNames = function(player)
+    local names = {}
+    if not HasCharTable(PRESET_TABLE) then return names end
+    local q = CharDBQuery(string.format(
+        "SELECT DISTINCT `name` FROM `%s` WHERE `guid` = %d ORDER BY `name`", PRESET_TABLE, player:GetGUIDLow()))
+    if q then
+        repeat names[#names + 1] = q:GetString(0) until not q:NextRow()
+    end
+    return names
+end
+
+function Handlers.GambitPresetSave(player, name, rows)
+    name, rows = PresetName(name), CleanRows(rows)
+    if not name or not rows or not EnsurePresetTable() then return end
+    local guid = player:GetGUIDLow()
+    CharDBQuery(string.format("DELETE FROM `%s` WHERE `guid` = %d AND `name` = '%s'", PRESET_TABLE, guid, name))
+    for i, r in ipairs(rows) do
+        CharDBQuery(string.format(
+            "INSERT INTO `%s` (`guid`, `name`, `slot`, `enabled`, `cond`, `action`) VALUES (%d, '%s', %d, %d, %d, %d)",
+            PRESET_TABLE, guid, name, i - 1, r.enabled and 1 or 0, r.cond, r.action))
+    end
+    lastPreset[guid] = name
+    SendGambits(player)
+end
+
+function Handlers.GambitPresetLoad(player, name)
+    name = PresetName(name)
+    if not name or not HasCharTable(PRESET_TABLE) then return end
+    local q = CharDBQuery(string.format(
+        "SELECT `enabled`, `cond`, `action` FROM `%s` WHERE `guid` = %d AND `name` = '%s' ORDER BY `slot`",
+        PRESET_TABLE, player:GetGUIDLow(), name))
+    if not q then return end
+    local rows = {}
+    repeat
+        rows[#rows + 1] = { enabled = q:GetUInt8(0) ~= 0, cond = q:GetUInt32(1), action = q:GetInt32(2) }
+    until not q:NextRow()
+    ApplyRows(player, rows)
+    lastPreset[player:GetGUIDLow()] = name
+    player:SendBroadcastMessage(string.format("|cff66ccffGambits|r : %s", name))
+    SendGambits(player)
+end
+
+function Handlers.GambitPresetDelete(player, name)
+    name = PresetName(name)
+    if not name or not HasCharTable(PRESET_TABLE) then return end
+    CharDBQuery(string.format("DELETE FROM `%s` WHERE `guid` = %d AND `name` = '%s'",
+        PRESET_TABLE, player:GetGUIDLow(), name))
+    if lastPreset[player:GetGUIDLow()] == name then lastPreset[player:GetGUIDLow()] = nil end
     SendGambits(player)
 end
 

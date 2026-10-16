@@ -41,6 +41,9 @@ Un gambit est une règle : **cible + condition → action**. Le compagnon lit la
 - Tout sort appris par le compagnon (talents actifs, sort clé, ultime).
 - Les ordres : Attaquer, Revenir près de toi.
 
+### Presets
+- Le joueur enregistre la liste sous un nom et passe rapidement d'un preset à l'autre (demande de l'utilisateur, 2026-10-16) : menu Presets de l'onglet Gambits, ou `/compagnon preset <nom>` dans une macro. Les presets sont au personnage, toutes ses montures peuvent les charger.
+
 ### Gambits par défaut
 - Chaque arbre fournit sa liste de départ, qui reproduit l'IA actuelle. Par exemple pour Bienveillance : « Toi : PV < 50 % → Lumière sacrée », « Groupe : 3 membres < 70 % → Prière de soins », « Ennemi : ta cible → Attaquer ».
 - Un bouton Réinitialiser remet la liste par défaut.

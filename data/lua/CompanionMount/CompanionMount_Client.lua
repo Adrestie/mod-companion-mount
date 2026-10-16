@@ -104,6 +104,7 @@ local L = {
 local G_TEXTS = {
     enUS = {
         panelTitle = "Companion", tabStats = "Statistics",
+        presets = "Presets", saveAs = "Save as...", presetAsk = "Name of the preset:", deletePreset = "Delete", noPreset = "No preset yet: save the list as one.", presetShown = "Preset: %s",
         gambits = "Gambits", gambitsTip = "The rules of your companion: target and condition, then action, read from top to bottom.",
         help = "Read from top to bottom: the first rule whose condition holds and whose action is possible is played.",
         energy = "Energy", cost = "Energy cost: %d", locked = "Level %d", reset = "Reset",
@@ -124,6 +125,7 @@ local G_TEXTS = {
     },
     frFR = {
         panelTitle = "Compagnon", tabStats = "Statistiques",
+        presets = "Presets", saveAs = "Enregistrer sous...", presetAsk = "Nom du preset :", deletePreset = "Supprimer", noPreset = "Aucun preset : enregistrez la liste.", presetShown = "Preset : %s",
         gambits = "Gambits", gambitsTip = "Les règles de votre compagnon : cible et condition, puis action, lues de haut en bas.",
         help = "Lues de haut en bas : la première règle dont la condition est vraie et l'action possible est jouée.",
         energy = "Énergie", cost = "Coût en énergie : %d", locked = "Niveau %d", reset = "Réinitialiser",
@@ -144,6 +146,7 @@ local G_TEXTS = {
     },
     deDE = {
         panelTitle = "Begleiter", tabStats = "Werte",
+        presets = "Vorlagen", saveAs = "Speichern als...", presetAsk = "Name der Vorlage:", deletePreset = "Löschen", noPreset = "Noch keine Vorlage: speichert die Liste.", presetShown = "Vorlage: %s",
         gambits = "Gambits", gambitsTip = "Die Regeln Eures Begleiters: Ziel und Bedingung, dann Aktion, von oben nach unten gelesen.",
         help = "Von oben nach unten: Die erste Regel, deren Bedingung zutrifft und deren Aktion möglich ist, wird ausgeführt.",
         energy = "Energie", cost = "Energiekosten: %d", locked = "Stufe %d", reset = "Zurücksetzen",
@@ -164,6 +167,7 @@ local G_TEXTS = {
     },
     esES = {
         panelTitle = "Compañero", tabStats = "Estadísticas",
+        presets = "Plantillas", saveAs = "Guardar como...", presetAsk = "Nombre de la plantilla:", deletePreset = "Borrar", noPreset = "Aún no hay plantillas: guarda la lista.", presetShown = "Plantilla: %s",
         gambits = "Gambits", gambitsTip = "Las reglas de tu compañero: objetivo y condición, luego acción, leídas de arriba abajo.",
         help = "De arriba abajo: se juega la primera regla cuya condición se cumple y cuya acción es posible.",
         energy = "Energía", cost = "Coste de energía: %d", locked = "Nivel %d", reset = "Restablecer",
@@ -184,6 +188,7 @@ local G_TEXTS = {
     },
     ruRU = {
         panelTitle = "Спутник", tabStats = "Характеристики",
+        presets = "Наборы", saveAs = "Сохранить как...", presetAsk = "Название набора:", deletePreset = "Удалить", noPreset = "Наборов пока нет: сохраните список.", presetShown = "Набор: %s",
         gambits = "Гамбиты", gambitsTip = "Правила вашего спутника: цель и условие, затем действие, сверху вниз.",
         help = "Сверху вниз: выполняется первое правило, условие которого верно, а действие возможно.",
         energy = "Энергия", cost = "Затраты энергии: %d", locked = "Уровень %d", reset = "Сбросить",
@@ -1944,10 +1949,18 @@ local gambitTitle = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal
 gambitTitle:SetPoint("TOPLEFT", 0, -2)
 gambitTitle:SetText(G.gambits)
 local gambitHelp = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-gambitHelp:SetPoint("TOPLEFT", gambitTitle, "BOTTOMLEFT", 0, -3)
+gambitHelp:SetPoint("TOPLEFT", gambitTitle, "BOTTOMLEFT", 0, -6)
 gambitHelp:SetPoint("RIGHT", 0, 0)
 gambitHelp:SetJustifyH("LEFT")
 gambitHelp:SetText(G.help)
+
+-- THE PRESETS: named lists of the character, loaded from a menu (or with
+-- /compagnon preset <name>), the list saved as one under a name.
+local gambitPresets = PanelButton(gambitFrame, 160, 22)
+gambitPresets:SetPoint("TOPRIGHT", gambitFrame, "TOPRIGHT", 0, 2)
+local gambitSaveAs = PanelButton(gambitFrame, 130, 22)
+gambitSaveAs:SetPoint("RIGHT", gambitPresets, "LEFT", -6, 0)
+gambitSaveAs:SetText(G.saveAs)
 
 local gambitStatus = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 gambitStatus:SetPoint("BOTTOMLEFT", 0, 4)
@@ -2164,6 +2177,7 @@ local function RefreshGambits()
         end
     end
     gambitStatus:SetText(gambitData.custom and G.customList or G.defaultList)
+    gambitPresets:SetText(gambitData.preset and string.format(G.presetShown, gambitData.preset) or G.presets)
 end
 
 -- The Gambits tab of the panel: the list, its state and Reset at the bottom.
@@ -2182,6 +2196,68 @@ function CompanionMount_AttachGambits(page)
     RefreshGambits()
     page:HookScript("OnShow", function() AIO.Handle("CompanionMount", "GambitOpen") end)
 end
+
+-- The rules as a list without gaps (what a preset keeps).
+local function CompactRows()
+    local list = {}
+    for i = 1, gambitData.max or 10 do
+        local r = gambitData.rows[i]
+        if r and r.cond and r.action then
+            list[#list + 1] = { enabled = r.enabled and true or false, cond = r.cond, action = r.action }
+        end
+    end
+    return list
+end
+
+StaticPopupDialogs["COMPANIONMOUNT_GAMBIT_PRESET"] = {
+    text = G.presetAsk,
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    hasEditBox = 1,
+    maxLetters = 32,
+    OnShow = function(self) self.editBox:SetText(gambitData.preset or "") end,
+    OnAccept = function(self)
+        AIO.Handle("CompanionMount", "GambitPresetSave", self.editBox:GetText() or "", CompactRows())
+    end,
+    EditBoxOnEnterPressed = function(self)
+        AIO.Handle("CompanionMount", "GambitPresetSave", self:GetText() or "", CompactRows())
+        self:GetParent():Hide()
+    end,
+    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
+}
+
+gambitSaveAs:SetScript("OnClick", function() StaticPopup_Show("COMPANIONMOUNT_GAMBIT_PRESET") end)
+gambitPresets:SetScript("OnClick", function(self)
+    local menu = {}
+    local names = gambitData.presets or {}
+    if #names == 0 then
+        menu[1] = { text = G.noPreset, notCheckable = true, disabled = true }
+    end
+    local delete = {}
+    for _, name in ipairs(names) do
+        menu[#menu + 1] = {
+            text = name, checked = name == gambitData.preset,
+            func = function()
+                AIO.Handle("CompanionMount", "GambitPresetLoad", name)
+                CloseDropDownMenus()
+            end,
+        }
+        delete[#delete + 1] = {
+            text = name, notCheckable = true,
+            func = function()
+                AIO.Handle("CompanionMount", "GambitPresetDelete", name)
+                CloseDropDownMenus()
+            end,
+        }
+    end
+    if #delete > 0 then
+        menu[#menu + 1] = { text = G.deletePreset, hasArrow = true, notCheckable = true, menuList = delete }
+    end
+    EasyMenu(menu, gambitMenu, self, 0, 0, "MENU")
+end)
 
 function CompanionMount_ToggleGambits()
     Panel.Toggle(2)
@@ -2234,6 +2310,7 @@ end
 SLASH_COMPANIONMOUNT1 = "/companion"
 SLASH_COMPANIONMOUNT2 = "/compagnon"
 SlashCmdList["COMPANIONMOUNT"] = function(msg)
+    local raw = msg
     msg = (msg or ""):lower():match("^%s*(%S*)")
     if msg == "sacoches" or msg == "bag" then
         CompanionMount_ToggleBag()
@@ -2241,6 +2318,9 @@ SlashCmdList["COMPANIONMOUNT"] = function(msg)
         CompanionMount_ToggleTalents()
     elseif msg == "gambits" or msg == "gambit" then
         CompanionMount_ToggleGambits()
+    elseif msg == "preset" then
+        local name = (raw or ""):match("^%s*%S+%s+(.-)%s*$")
+        if name and name ~= "" then AIO.Handle("CompanionMount", "GambitPresetLoad", name) end
     elseif msg == "barre" or msg == "bar" then
         barHidden = not barHidden
         RefreshBar()
