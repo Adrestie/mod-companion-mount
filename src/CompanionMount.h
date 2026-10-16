@@ -96,6 +96,10 @@ namespace CompanionMount
         TEXT_RENAMED         = 26,
         TEXT_UNNAMED         = 27,
         TEXT_NAME            = 28,
+        TEXT_BAG_REFUSED     = 29,
+        TEXT_BAG_FULL        = 30,
+        TEXT_BAG_HEADER      = 31,
+        TEXT_BAG_LINE        = 32,
     };
 
     // LES ORDRES, comme ceux de la barre du familier.
@@ -154,6 +158,10 @@ namespace CompanionMount
         float levelXpNeedRate = 0.05f;   // part de l'experience d'un joueur
         float levelXpKillRate = 1.0f;
         uint32 levelSharedPercent = 10;  // ce que recoivent les autres montures
+
+        // LES SACOCHES (CompanionBag.cpp).
+        uint32 bagSlots = 16;
+        bool bagRequiresOut = true;      // il faut que la bete soit la
     };
 
     // CE QUE LE JOUEUR A CHOISI, et ou en est sa monture.
@@ -222,6 +230,12 @@ namespace CompanionMount
     void SaveMount(Player* player, State const& state);
     void AddXP(Player* player, State& state, uint32 amount);
     void GiveKillXP(Player* owner, Creature* victim);
+
+    // LES SACOCHES (CompanionBag.cpp).
+    bool BagDeposit(Player* player, uint8 bag, uint8 slot);
+    bool BagWithdraw(Player* player, uint32 bagSlot);
+    void BagList(ChatHandler* handler, Player* player);
+    void BagDeleteAll(ObjectGuid::LowType guid);
 
     // LE NOM (CompanionName.cpp).
     void ApplyName(Creature* companion, State const& state);

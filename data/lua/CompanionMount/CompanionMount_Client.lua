@@ -68,6 +68,9 @@ local L = {
     renameTip  = FR and "Donne un nom à la monture choisie (vide : retire le nom)."
                      or "Names the chosen mount (empty: removes the name).",
     renameAsk  = FR and "Nouveau nom de votre monture-compagnon :" or "New name of your companion mount:",
+    bag        = FR and "Sacoches" or "Saddlebags",
+    bagTip     = FR and "Ouvre les sacoches de la monture : glissez-y un objet de vos sacs, cliquez sur un objet pour le reprendre."
+                     or "Opens the saddlebags of the mount: drop an item of your bags on them, click an item to take it back.",
 }
 
 -- ---------------------------------------------------------------------------
@@ -102,6 +105,8 @@ local BUTTONS = {
       lit = function() return state.react == REACT_PASSIVE end },
     { order = "rename",     text = L.rename,     tip = L.renameTip,     icon = "Interface\\Icons\\INV_Scroll_11",
       popup = "COMPANIONMOUNT_RENAME" },
+    { order = "bag",        text = L.bag,        tip = L.bagTip,        icon = "Interface\\Icons\\INV_Misc_Bag_08",
+      window = true },
 }
 
 StaticPopupDialogs["COMPANIONMOUNT_RENAME"] = {
@@ -169,6 +174,11 @@ for i, def in ipairs(BUTTONS) do
     b.def = def
 
     b:SetScript("OnClick", function(self)
+        if self.def.window then
+            self:SetChecked(false)
+            CompanionMount_ToggleBag()
+            return
+        end
         if self.def.popup then
             self:SetChecked(false)
             StaticPopup_Show(self.def.popup)
@@ -215,6 +225,131 @@ local function Refresh()
         bar:Show()
     end
 end
+
+-- ---------------------------------------------------------------------------
+-- The saddlebags window
+-- ---------------------------------------------------------------------------
+
+local BAG_COLUMNS, BAG_SIZE = 4, 37
+local bagItems = {}
+local bagSlots = 16
+
+-- The last item taken from the player's bags: the window needs its bag and
+-- slot, the cursor only says what it holds.
+local picked
+hooksecurefunc("PickupContainerItem", function(bag, slot) picked = { bag = bag, slot = slot } end)
+
+local bagFrame = CreateFrame("Frame", "CompanionMountBagFrame", UIParent)
+bagFrame:SetPoint("CENTER", UIParent, "CENTER", 250, 0)
+bagFrame:SetMovable(true)
+bagFrame:EnableMouse(true)
+bagFrame:SetClampedToScreen(true)
+bagFrame:RegisterForDrag("LeftButton")
+bagFrame:SetScript("OnDragStart", bagFrame.StartMoving)
+bagFrame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    if LibWindow then LibWindow.SavePosition(self) end
+end)
+bagFrame:SetBackdrop({
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    tile = true, tileSize = 32, edgeSize = 24,
+    insets = { left = 6, right = 6, top = 6, bottom = 6 },
+})
+bagFrame:Hide()
+tinsert(UISpecialFrames, "CompanionMountBagFrame")   -- the Escape key closes it
+
+bagFrame.title = bagFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+bagFrame.title:SetPoint("TOP", 0, -12)
+bagFrame.title:SetText(L.bag)
+
+local close = CreateFrame("Button", nil, bagFrame, "UIPanelCloseButton")
+close:SetPoint("TOPRIGHT", -2, -2)
+
+local bagButtons = {}
+
+-- An item of the player's bags dropped on the window: sent with its bag and
+-- slot, while the container still shows it locked under the cursor.
+local function DropOn()
+    if CursorHasItem() and picked and select(3, GetContainerItemInfo(picked.bag, picked.slot)) then
+        AIO.Handle("CompanionMount", "BagPut", picked.bag, picked.slot)
+        ClearCursor()
+        picked = nil
+        return true
+    end
+    return false
+end
+
+local function BagButton(i)
+    local b = bagButtons[i]
+    if b then return b end
+    b = CreateFrame("Button", "CompanionMountBagButton" .. i, bagFrame)
+    b:SetSize(BAG_SIZE, BAG_SIZE)
+    local row, col = math.floor((i - 1) / BAG_COLUMNS), (i - 1) % BAG_COLUMNS
+    b:SetPoint("TOPLEFT", bagFrame, "TOPLEFT", 14 + col * (BAG_SIZE + 4), -34 - row * (BAG_SIZE + 4))
+    b:SetNormalTexture("Interface\\Buttons\\UI-EmptySlot-Disabled")
+    b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetPoint("TOPLEFT", 2, -2)
+    b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+    b.count:SetPoint("BOTTOMRIGHT", -3, 3)
+    b.place = i
+    b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    b:SetScript("OnClick", function(self)
+        if DropOn() then return end
+        if bagItems[self.place] then
+            AIO.Handle("CompanionMount", "BagTake", self.place)
+        end
+    end)
+    b:SetScript("OnReceiveDrag", DropOn)
+    b:SetScript("OnEnter", function(self)
+        local item = bagItems[self.place]
+        if item then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetHyperlink(item.link)
+            GameTooltip:Show()
+        end
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    bagButtons[i] = b
+    return b
+end
+
+local function RefreshBag()
+    local rows = math.ceil(bagSlots / BAG_COLUMNS)
+    bagFrame:SetSize(28 + BAG_COLUMNS * (BAG_SIZE + 4) - 4, 48 + rows * (BAG_SIZE + 4))
+    for i = 1, math.max(bagSlots, #bagButtons) do
+        local b = BagButton(i)
+        local item = bagItems[i]
+        if i > bagSlots then
+            b:Hide()
+        else
+            b:Show()
+            b.icon:SetTexture(item and GetItemIcon(item.entry) or nil)
+            b.count:SetText(item and item.count > 1 and item.count or "")
+        end
+    end
+end
+
+function CompanionMount_ToggleBag()
+    if bagFrame:IsShown() then
+        bagFrame:Hide()
+    else
+        AIO.Handle("CompanionMount", "BagOpen")
+        RefreshBag()
+        bagFrame:Show()
+    end
+end
+
+function Handlers.Bag(_, items, slots)
+    if type(items) ~= "table" then return end
+    bagItems = items
+    bagSlots = tonumber(slots) or bagSlots
+    RefreshBag()
+end
+
+AIO.SavePosition(bagFrame, true)
 
 -- ---------------------------------------------------------------------------
 -- The server

@@ -28,11 +28,13 @@
     "characters": {
       "tables": [
         "mod_companion_mount_character",
-        "mod_companion_mount_mount"
+        "mod_companion_mount_mount",
+        "mod_companion_mount_item"
       ],
       "kept_on_update": [
         "mod_companion_mount_character",
-        "mod_companion_mount_mount"
+        "mod_companion_mount_mount",
+        "mod_companion_mount_item"
       ],
       "rows": [
         {

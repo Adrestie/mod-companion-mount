@@ -27,6 +27,9 @@
  * .companion follow|stay     (SEC_PLAYER)  suivre le joueur, ou rester sur place
  * .companion passive|defensive|aggressive  (SEC_PLAYER)  son attitude
  * .companion rename [nom]    (SEC_PLAYER)  nomme la monture choisie, sans nom : le retire
+ * .companion bag             (SEC_PLAYER)  ce que portent les sacoches de la monture
+ * .companion bag put <sac> <place>   (SEC_PLAYER)  y range un objet des sacs (numeros du serveur)
+ * .companion bag take <place>        (SEC_PLAYER)  le reprend (places de 1 a N)
  * .companion debug           (SEC_GAMEMASTER)  la bete vue du serveur : PV, cible, mouvement
  *
  * Elles sont le chemin que prendra l'interface (ALE) : le jeu reste jouable
@@ -57,8 +60,16 @@ public:
 
     ChatCommandTable GetCommands() const override
     {
+        static ChatCommandTable bagTable =
+        {
+            { "put",  HandleBagPutCommand,  SEC_PLAYER, Console::No },
+            { "take", HandleBagTakeCommand, SEC_PLAYER, Console::No },
+            { "",     HandleBagCommand,     SEC_PLAYER, Console::No },
+        };
+
         static ChatCommandTable companionTable =
         {
+            { "bag",     bagTable },
             { "summon",  HandleSummonCommand,  SEC_PLAYER, Console::No },
             { "dismiss", HandleDismissCommand, SEC_PLAYER, Console::No },
             { "info",    HandleInfoCommand,    SEC_PLAYER, Console::No },
@@ -161,6 +172,25 @@ public:
             Say(handler, TEXT_LEVEL, uint32(level), state.xp, NextLevelXP(level));
         else
             Say(handler, TEXT_LEVEL_MAX, uint32(level));
+        return true;
+    }
+
+    static bool HandleBagCommand(ChatHandler* handler)
+    {
+        BagList(handler, handler->GetPlayer());
+        return true;
+    }
+
+    static bool HandleBagPutCommand(ChatHandler* handler, uint8 bag, uint8 slot)
+    {
+        BagDeposit(handler->GetPlayer(), bag, slot);
+        return true;
+    }
+
+    static bool HandleBagTakeCommand(ChatHandler* handler, uint32 place)
+    {
+        if (place >= 1)
+            BagWithdraw(handler->GetPlayer(), place - 1);
         return true;
     }
 

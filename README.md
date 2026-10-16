@@ -90,6 +90,16 @@ AzerothCore Mount mod
 - Il s'affiche au-dessus d'elle par le chemin des noms de familiers (numéro de familier et
   demande de nom), puisque toutes partagent le même modèle de créature.
 
+## Jalon 6 : les sacoches
+
+- Chaque monture a ses sacoches (16 places, réglable), par personnage et par sort de monture.
+  Bouton Sacoches de la barre : on y glisse un objet de ses sacs, un clic sur une place le reprend.
+  `.companion bag`, `.companion bag put <sac> <place>`, `.companion bag take <place>` au clavier.
+- L'objet reste un objet : comme une pièce jointe de courrier, il quitte l'inventaire du joueur
+  mais garde sa ligne d'`item_instance` (enchantements, gemmes, durabilité, liaison). Refusés :
+  un sac non vide, un objet invoqué ou à durée. La monture doit être dehors (réglable).
+- Un personnage supprimé emporte ses montures et ce qu'elles portaient.
+
 ## Identifiants provisoires
 
 La tranche 91 (`91000-91999`) est libre dans `ID_RANGES.md` mais **pas encore attribuée** :
@@ -99,8 +109,7 @@ il sert à la ligne de `npc_spellclick_spells`). À changer dans `src/CompanionM
 
 ## Ce qui vient ensuite
 
-Talents DPS / Tank / Heal, inventaire — interface par
-patch client et addon.
+Talents DPS / Tank / Heal et sorts des montures — interface en ALE/AIO, sans patch client.
 
 # Installation (développement)
 

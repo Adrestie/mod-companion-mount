@@ -166,3 +166,22 @@ CompanionMount.Level.XpKillRate = 1.0
 #        Default:     10
 
 CompanionMount.Level.SharedPercent = 10
+
+########################################
+# Saddlebags
+########################################
+#
+#    CompanionMount.Bag.Slots
+#        Description: Places in the saddlebags of each mount.
+#        Default:     16
+
+CompanionMount.Bag.Slots = 16
+
+#
+#    CompanionMount.Bag.RequiresOut
+#        Description: The companion mount must be out to put items into its
+#                     saddlebags or take them back.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.Bag.RequiresOut = 1
