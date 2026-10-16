@@ -79,6 +79,10 @@ local L = {
     points     = FR and "Points : %d/%d - %s" or "Points: %d/%d - %s",
     reset      = FR and "Réinitialiser" or "Reset",
     keyTip     = FR and "Sort clé : il dépend du type de la monture." or "Key spell: it depends on the kind of the mount.",
+    rankLine   = FR and "Rang %d/%d" or "Rank %d/%d",
+    otherTree  = FR and "La monture a déjà choisi un autre arbre : réinitialisez ses talents pour changer."
+                     or "The mount already chose another tree: reset its talents to change.",
+    needPoints = FR and "Demande %d points dans cet arbre." or "Requires %d points in this tree.",
     bagTip     = FR and "Ouvre les sacoches de la monture : glissez-y un objet de vos sacs, cliquez sur un objet pour le reprendre."
                      or "Opens the saddlebags of the mount: drop an item of your bags on them, click an item to take it back.",
 }
@@ -449,19 +453,43 @@ AIO.SavePosition(bagFrame, true)
 
 -- ---------------------------------------------------------------------------
 -- The talents window
+--
+-- The pet talent frame of the game: the art of the tree (the client's
+-- HunterPetFerocity, -Tenacity, -Cunning), buttons laid as TalentFrame lays
+-- them (63 px apart), the slot and the rank colored as Blizzard colors them --
+-- green while a rank can be learned, yellow at the top rank, gray out of
+-- reach -- tabs at the bottom, the points in the footer. With ForeverUI
+-- installed, its square talent nodes.
 -- ---------------------------------------------------------------------------
 
-local TREES = { L.treeDps, L.treeTank, L.treeHeal }
-local T_SIZE, T_GAP, T_COLS, T_ROWS = 36, 10, 4, 6
+local TP = string.char(92)
+local function TPath(...) return table.concat({ ... }, TP) end
+
+local TREES = {
+    { name = L.treeDps,  art = "HunterPetFerocity" },
+    { name = L.treeTank, art = "HunterPetTenacity" },
+    { name = L.treeHeal, art = "HunterPetCunning" },
+}
+-- TalentFrame: INITIAL_TALENT_OFFSET_X/Y and the step between two buttons.
+local T_X, T_Y, T_STEP, T_BUTTON = 35, 20, 63, 37
+local T_ART_W, T_ART_H = 320, 384      -- the four pieces of a tree's art
+local T_INSET_X, T_INSET_Y = 14, 40    -- where the art sits in the window
+local GREEN, YELLOW, GRAY = { 0.1, 1, 0.1 }, { 1, 0.82, 0 }, { 0.5, 0.5, 0.5 }
+
 local talentData = { talents = {}, ranks = {}, points = 0, key = 0 }
 local shownTree = 1
 
+local function TForever()
+    return type(ForeverUI) == "table" and type(ForeverUI.SetAtlas) == "function"
+end
+
 local talentFrame = CreateFrame("Frame", "CompanionMountTalentFrame", UIParent)
-talentFrame:SetSize(2 * 20 + T_COLS * T_SIZE + (T_COLS - 1) * T_GAP, 120 + T_ROWS * T_SIZE + (T_ROWS - 1) * T_GAP)
+talentFrame:SetSize(T_ART_W + 2 * T_INSET_X, T_ART_H + T_INSET_Y + 54)
 talentFrame:SetPoint("CENTER", UIParent, "CENTER", -250, 0)
 talentFrame:SetMovable(true)
 talentFrame:EnableMouse(true)
 talentFrame:SetClampedToScreen(true)
+talentFrame:SetToplevel(true)
 talentFrame:RegisterForDrag("LeftButton")
 talentFrame:SetScript("OnDragStart", talentFrame.StartMoving)
 talentFrame:SetScript("OnDragStop", function(self)
@@ -469,53 +497,102 @@ talentFrame:SetScript("OnDragStop", function(self)
     if LibWindow then LibWindow.SavePosition(self) end
 end)
 talentFrame:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    bgFile = TPath("Interface", "DialogFrame", "UI-DialogBox-Background"),
+    edgeFile = TPath("Interface", "DialogFrame", "UI-DialogBox-Gold-Border"),
     tile = true, tileSize = 32, edgeSize = 24,
     insets = { left = 6, right = 6, top = 6, bottom = 6 },
 })
 talentFrame:Hide()
 tinsert(UISpecialFrames, "CompanionMountTalentFrame")
 
+-- The header: the window's title on the game's title strip.
+local header = talentFrame:CreateTexture(nil, "ARTWORK")
+header:SetTexture(TPath("Interface", "DialogFrame", "UI-DialogBox-Header"))
+header:SetSize(300, 64)
+header:SetPoint("TOP", 0, 12)
 talentFrame.title = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-talentFrame.title:SetPoint("TOP", 0, -12)
-talentFrame.title:SetText(L.talents)
-
-talentFrame.points = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-talentFrame.points:SetPoint("TOP", 0, -30)
+talentFrame.title:SetPoint("TOP", header, "TOP", 0, -14)
 
 local tclose = CreateFrame("Button", nil, talentFrame, "UIPanelCloseButton")
 tclose:SetPoint("TOPRIGHT", -2, -2)
 
-local tabs = {}
-for i, name in ipairs(TREES) do
-    local tab = CreateFrame("Button", "CompanionMountTalentTab" .. i, talentFrame, "UIPanelButtonTemplate")
-    tab:SetSize(70, 20)
-    tab:SetPoint("TOPLEFT", talentFrame, "TOPLEFT", 16 + (i - 1) * 74, -48)
-    tab:SetText(name)
-    tab:SetScript("OnClick", function() shownTree = i; CompanionMount_RefreshTalents() end)
-    tabs[i] = tab
+-- The tree's art, in its four pieces.
+local art = CreateFrame("Frame", nil, talentFrame)
+art:SetSize(T_ART_W, T_ART_H)
+art:SetPoint("TOPLEFT", T_INSET_X, -T_INSET_Y)
+local pieces = {
+    { "TopLeft", 256, 256, "TOPLEFT", 0, 0 },
+    { "TopRight", 64, 256, "TOPLEFT", 256, 0 },
+    { "BottomLeft", 256, 128, "TOPLEFT", 0, -256 },
+    { "BottomRight", 64, 128, "TOPLEFT", 256, -256 },
+}
+for _, p in ipairs(pieces) do
+    local t = art:CreateTexture(nil, "BACKGROUND")
+    t:SetSize(p[2], p[3])
+    t:SetPoint(p[4], art, "TOPLEFT", p[5], p[6])
+    p.texture = t
 end
+
+-- The footer: the points, the tree chosen, the reset.
+local footer = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+footer:SetPoint("BOTTOMLEFT", 20, 22)
 
 local reset = CreateFrame("Button", nil, talentFrame, "UIPanelButtonTemplate")
 reset:SetSize(110, 22)
-reset:SetPoint("BOTTOM", 0, 14)
+reset:SetPoint("BOTTOMRIGHT", -16, 16)
 reset:SetText(L.reset)
 reset:SetScript("OnClick", function() AIO.Handle("CompanionMount", "TalentReset") end)
 
+-- The tabs, under the window, as the game's.
+local tabs = {}
+for i, tree in ipairs(TREES) do
+    local tab = CreateFrame("Button", "CompanionMountTalentFrameTab" .. i, talentFrame, "CharacterFrameTabButtonTemplate")
+    tab:SetID(i)
+    tab:SetText(tree.name)
+    if i == 1 then
+        tab:SetPoint("TOPLEFT", talentFrame, "BOTTOMLEFT", 12, 6)
+    else
+        tab:SetPoint("LEFT", tabs[i - 1], "RIGHT", -16, 0)
+    end
+    tab:SetScript("OnClick", function(self)
+        shownTree = self:GetID()
+        PlaySound("igCharacterInfoTab")
+        CompanionMount_RefreshTalents()
+    end)
+    tabs[i] = tab
+end
+PanelTemplates_SetNumTabs(talentFrame, #TREES)
+PanelTemplates_SetTab(talentFrame, 1)
+
 local cells = {}
-local function Cell(tier, col)
+local function TalentCell(tier, col)
     local key = tier * 10 + col
     local b = cells[key]
     if b then return b end
-    b = CreateFrame("Button", nil, talentFrame)
-    b:SetSize(T_SIZE, T_SIZE)
-    b:SetPoint("TOPLEFT", talentFrame, "TOPLEFT", 20 + col * (T_SIZE + T_GAP), -78 - tier * (T_SIZE + T_GAP))
+    b = CreateFrame("Button", nil, art)
+    b:SetSize(T_BUTTON, T_BUTTON)
+    b:SetPoint("TOPLEFT", art, "TOPLEFT", T_X + col * T_STEP, -(T_Y + tier * T_STEP))
+
+    -- TalentButtonTemplate: the slot, the icon, the frame, the rank in its border.
+    b.slot = b:CreateTexture(nil, "BACKGROUND")
+    b.slot:SetTexture(TPath("Interface", "Buttons", "UI-EmptySlot-White"))
+    b.slot:SetSize(64, 64)
+    b.slot:SetPoint("CENTER")
+    b.shadow = b:CreateTexture(nil, "BACKGROUND")
+    b.shadow:SetPoint("CENTER")
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetAllPoints()
-    b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-    b.rank = b:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
-    b.rank:SetPoint("BOTTOMRIGHT", 4, -4)
+    b.frame = b:CreateTexture(nil, "OVERLAY")
+    b.frame:SetPoint("CENTER", 0, -1)
+    b:SetHighlightTexture(TPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
+    b:SetPushedTexture(TPath("Interface", "Buttons", "UI-Quickslot-Depress"))
+    b.rankBorder = b:CreateTexture(nil, "OVERLAY")
+    b.rankBorder:SetTexture(TPath("Interface", "TalentFrame", "TalentFrame-RankBorder"))
+    b.rankBorder:SetSize(32, 32)
+    b.rankBorder:SetPoint("CENTER", b, "BOTTOMRIGHT", 0, 0)
+    b.rank = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    b.rank:SetPoint("CENTER", b.rankBorder, "CENTER", 0, 0)
+
     b:SetScript("OnClick", function(self)
         if self.talent then AIO.Handle("CompanionMount", "TalentLearn", self.talent.id) end
     end)
@@ -523,8 +600,12 @@ local function Cell(tier, col)
         if not self.spell then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetHyperlink("spell:" .. self.spell)
+        GameTooltip:AddLine(string.format(L.rankLine, self.rankValue or 0, self.maxRank or 1), 1, 1, 1)
         if self.talent and self.talent.key then
             GameTooltip:AddLine(L.keyTip, 1, 0.82, 0, true)
+        end
+        if self.reason then
+            GameTooltip:AddLine(self.reason, 1, 0.1, 0.1, true)
         end
         GameTooltip:Show()
     end)
@@ -533,31 +614,87 @@ local function Cell(tier, col)
     return b
 end
 
+local function Paint(b, state)
+    local c = state == "maxed" and YELLOW or (state == "selectable" and GREEN or GRAY)
+    if TForever() then
+        -- ForeverUI: its square node, colored by state.
+        b.slot:Hide()
+        local border = state == "maxed" and "yellow" or (state == "selectable" and "green" or "gray")
+        ForeverUI.SetAtlas(b.shadow, "talents-node-square-shadow", true)
+        b.shadow:SetSize(39, 39)
+        b.shadow:Show()
+        ForeverUI.SetAtlas(b.frame, "talents-node-square-" .. border, true)
+        b.frame:SetSize(40, 40)
+        b.frame:SetVertexColor(1, 1, 1)
+        b.icon:ClearAllPoints()
+        b.icon:SetPoint("CENTER")
+        b.icon:SetSize(36, 36)
+    else
+        b.icon:ClearAllPoints()
+        b.icon:SetAllPoints()
+        -- The game's: the white slot tinted, under the quickslot frame.
+        b.shadow:Hide()
+        b.slot:Show()
+        b.slot:SetVertexColor(c[1], c[2], c[3])
+        b.frame:SetTexture(TPath("Interface", "Buttons", "UI-Quickslot2"))
+        b.frame:SetTexCoord(0, 1, 0, 1)
+        b.frame:SetSize(64, 64)
+        b.frame:SetVertexColor(1, 1, 1)
+    end
+    b.icon:SetDesaturated(state == "disabled" or state == "locked")
+    b.rank:SetTextColor(c[1], c[2], c[3])
+end
+
 function CompanionMount_RefreshTalents()
-    local spent, tree = 0, nil
-    for id, rank in pairs(talentData.ranks) do
-        spent = spent + rank
+    local tree = TREES[shownTree]
+    for _, p in ipairs(pieces) do
+        p.texture:SetTexture(TPath("Interface", "TalentFrame", tree.art .. "-" .. p[1]))
     end
+    PanelTemplates_SetTab(talentFrame, shownTree)
+    talentFrame.title:SetText(L.talents .. " - " .. tree.name)
+
+    -- Points spent, overall and in the tree shown; the tree already chosen.
+    local spent, inTree, chosen = 0, 0, nil
     for _, t in ipairs(talentData.talents) do
-        if (talentData.ranks[t.id] or 0) > 0 then tree = t.tree end
+        local rank = talentData.ranks[t.id] or 0
+        if rank > 0 then
+            spent = spent + rank
+            chosen = t.tree
+            if t.tree == shownTree - 1 then inTree = inTree + rank end
+        end
     end
-    talentFrame.points:SetText(string.format(L.points, spent, talentData.points,
-        tree and TREES[tree + 1] or L.noTree))
-    for i, tab in ipairs(tabs) do
-        if i == shownTree then tab:LockHighlight() else tab:UnlockHighlight() end
-    end
+    local left = math.max(0, (talentData.points or 0) - spent)
+    footer:SetText(string.format(L.points, spent, talentData.points or 0,
+        chosen and TREES[chosen + 1].name or L.noTree))
+
     for _, b in pairs(cells) do b:Hide() end
     for _, t in ipairs(talentData.talents) do
         if t.tree == shownTree - 1 then
-            local b = Cell(t.tier, t.col)
+            local b = TalentCell(t.tier, t.col)
             local rank = talentData.ranks[t.id] or 0
             local max = t.key and 1 or #t.ranks
-            b.talent = t
+            local reached = inTree >= t.tier * 3
+            local otherTree = chosen ~= nil and chosen ~= t.tree
+
+            local state, reason
+            if rank >= max then
+                state = "maxed"
+            elseif otherTree then
+                state, reason = "disabled", L.otherTree
+            elseif not reached then
+                state, reason = "locked", string.format(L.needPoints, t.tier * 3)
+            elseif left > 0 then
+                state = "selectable"
+            else
+                state = rank > 0 and "selectable" or "disabled"
+            end
+
+            b.talent, b.rankValue, b.maxRank, b.reason = t, rank, max, reason
             b.spell = t.key and talentData.key or t.ranks[math.max(1, math.min(rank + 1, max))]
             local _, _, icon = GetSpellInfo(b.spell or 0)
-            b.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-            b.icon:SetDesaturated(rank == 0)
-            b.rank:SetText(rank .. "/" .. max)
+            b.icon:SetTexture(icon or TPath("Interface", "Icons", "INV_Misc_QuestionMark"))
+            Paint(b, state)
+            b.rank:SetText(rank)
             b:Show()
         end
     end
@@ -570,16 +707,23 @@ function CompanionMount_ToggleTalents()
         AIO.Handle("CompanionMount", "TalentOpen")
         CompanionMount_RefreshTalents()
         talentFrame:Show()
+        PlaySound("TalentScreenOpen")
     end
 end
 
+talentFrame:SetScript("OnHide", function() PlaySound("TalentScreenClose") end)
+
 function Handlers.Talents(_, data)
     if type(data) ~= "table" then return end
+    local first = talentData.talents == nil or #talentData.talents == 0
     talentData = data
     talentData.ranks = talentData.ranks or {}
     talentData.talents = talentData.talents or {}
-    for _, t in ipairs(talentData.talents) do
-        if (talentData.ranks[t.id] or 0) > 0 then shownTree = t.tree + 1 break end
+    -- On opening, the tab of the tree already chosen.
+    if first then
+        for _, t in ipairs(talentData.talents) do
+            if (talentData.ranks[t.id] or 0) > 0 then shownTree = t.tree + 1 break end
+        end
     end
     CompanionMount_RefreshTalents()
 end
