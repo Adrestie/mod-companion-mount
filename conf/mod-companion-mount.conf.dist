@@ -212,9 +212,9 @@ CompanionMount.Talent.LevelsPerPoint = 2
 #
 #    CompanionMount.Talent.PointsPerTier
 #        Description: Points to spend in a tree to reach each next row.
-#        Default:     3
+#        Default:     5
 
-CompanionMount.Talent.PointsPerTier = 3
+CompanionMount.Talent.PointsPerTier = 5
 
 #
 #    CompanionMount.Talent.OneTree

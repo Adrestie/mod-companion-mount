@@ -188,8 +188,9 @@ end
 -- the catalogue, the ranks and the points are read for the window.
 -- ---------------------------------------------------------------------------
 
--- CompanionMount.Talent.FirstLevel and LevelsPerPoint: the points of a level.
-local TALENT_FIRST_LEVEL, TALENT_LEVELS_PER_POINT = 4, 2
+-- CompanionMount.Talent.FirstLevel, LevelsPerPoint and PointsPerTier: the
+-- points of a level and the cost of a row (the module's configuration, mirrored).
+local TALENT_FIRST_LEVEL, TALENT_LEVELS_PER_POINT, TALENT_POINTS_PER_TIER = 4, 2, 5
 
 local function TalentPoints(level)
     if level < TALENT_FIRST_LEVEL then return 0 end
@@ -222,7 +223,7 @@ end
 
 local function Talents(player)
     local guid = player:GetGUIDLow()
-    local data = { talents = Catalogue(), ranks = {}, points = 0, keys = {}, level = 0 }
+    local data = { talents = Catalogue(), ranks = {}, points = 0, keys = {}, level = 0, perTier = TALENT_POINTS_PER_TIER }
     if not HasCharTable("mod_companion_mount_talent_rank") or not HasWorldTable("mod_companion_mount_key_spell") then
         return data
     end

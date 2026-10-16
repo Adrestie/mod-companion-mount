@@ -83,6 +83,8 @@ local L = {
     otherTree  = FR and "La monture a déjà choisi un autre arbre : réinitialisez ses talents pour changer."
                      or "The mount already chose another tree: reset its talents to change.",
     needPoints = FR and "Demande %d points dans cet arbre." or "Requires %d points in this tree.",
+    available  = FR and "Points de talent disponibles : |cff00ff00%d|r  (monture niveau %d)"
+                     or "Talent points available: |cff00ff00%d|r  (mount level %d)",
     bagTip     = FR and "Ouvre les sacoches de la monture : glissez-y un objet de vos sacs, cliquez sur un objet pour le reprendre."
                      or "Opens the saddlebags of the mount: drop an item of your bags on them, click an item to take it back.",
 }
@@ -409,6 +411,10 @@ for _, p in ipairs(pieces) do
     p.texture = t
 end
 
+-- The points left, big, under the title.
+talentFrame.available = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+talentFrame.available:SetPoint("TOP", 0, -24)
+
 -- The footer: the points, the tree chosen, the reset.
 local footer = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 footer:SetPoint("BOTTOMLEFT", 20, 22)
@@ -540,6 +546,7 @@ function CompanionMount_RefreshTalents()
         end
     end
     local left = math.max(0, (talentData.points or 0) - spent)
+    talentFrame.available:SetText(string.format(L.available, left, talentData.level or 0))
     footer:SetText(string.format(L.points, spent, talentData.points or 0,
         chosen and TREES[chosen + 1].name or L.noTree))
 
@@ -549,7 +556,8 @@ function CompanionMount_RefreshTalents()
             local b = TalentCell(t.tier, t.col)
             local rank = talentData.ranks[t.id] or 0
             local max = t.key and 1 or #t.ranks
-            local reached = inTree >= t.tier * 3
+            local perTier = tonumber(talentData.perTier) or 5
+            local reached = inTree >= t.tier * perTier
             local otherTree = chosen ~= nil and chosen ~= t.tree
 
             local state, reason
@@ -558,7 +566,7 @@ function CompanionMount_RefreshTalents()
             elseif otherTree then
                 state, reason = "disabled", L.otherTree
             elseif not reached then
-                state, reason = "locked", string.format(L.needPoints, t.tier * 3)
+                state, reason = "locked", string.format(L.needPoints, t.tier * perTier)
             elseif left > 0 then
                 state = "selectable"
             else

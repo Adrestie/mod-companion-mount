@@ -200,7 +200,7 @@ namespace CompanionMount
         // LES TALENTS (CompanionTalent.cpp).
         uint32 talentFirstLevel = 4;
         uint32 talentLevelsPerPoint = 2;
-        uint32 talentPointsPerTier = 3;
+        uint32 talentPointsPerTier = 5;
         bool talentOneTree = true;       // un seul arbre par monture
     };
 
