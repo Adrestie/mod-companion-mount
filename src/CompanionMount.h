@@ -133,6 +133,9 @@ namespace CompanionMount
         uint32 spell = 0;
         uint8 use = TALENT_USE_VICTIM;
         uint32 cooldown = 0;   // ms ; 0 : celui du sort
+        // Pour .companion debug : lancers reussis, et le dernier refus du core.
+        mutable uint32 casts = 0;
+        mutable int32 lastRefusal = -1;
     };
 
     // LES ORDRES, comme ceux de la barre du familier.

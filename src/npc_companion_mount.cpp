@@ -312,14 +312,17 @@ private:
             // Ni mana ni rage, ni forme ni posture : une bete n'en a pas.
             TriggerCastFlags const flags = TriggerCastFlags(TRIGGERED_IGNORE_POWER_AND_REAGENT_COST | TRIGGERED_IGNORE_GCD
                 | TRIGGERED_IGNORE_SHAPESHIFT);
-            if (me->CastSpell(target, info, flags) == SPELL_CAST_OK)
+            SpellCastResult const result = me->CastSpell(target, info, flags);
+            if (result == SPELL_CAST_OK)
             {
+                ++active.casts;
                 uint32 cooldown = active.cooldown;
                 if (!cooldown)
                     cooldown = std::max<uint32>({ info->RecoveryTime, info->CategoryRecoveryTime, 6000 });
                 _cooldowns[active.spell] = cooldown;
                 return;   // un sort par tour
             }
+            active.lastRefusal = int32(result);
             _cooldowns[active.spell] = 3000;   // refuse (portee, cible) : on reessaie plus tard
         }
     }

@@ -335,6 +335,9 @@ public:
             companion->GetScriptName(), companion->IsInEvadeMode(),
             nearest ? nearest->GetName() : std::string("none"), nearest ? companion->GetDistance(nearest) : 0.0f);
         handler->PSendSysMessage("companion: lootTarget {} tried {}", state.lootTarget.ToString(), state.lootTried.size());
+        for (ActiveSpell const& active : state.actives)
+            handler->PSendSysMessage("  spell {} use {} casts {} last refusal {}", active.spell, uint32(active.use),
+                active.casts, active.lastRefusal);
 
         // Les creatures autour du joueur, avec le GUID que les commandes
         // attendent (.die, .companion attack avec une cible).
