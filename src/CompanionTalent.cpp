@@ -128,7 +128,8 @@ namespace CompanionMount
 
             std::string values;
             for (uint32 first : firsts)
-                for (SpellInfo const* info = sSpellMgr->GetSpellInfo(first); info; info = info->GetNextRankSpell())
+                for (SpellInfo const* info = sSpellMgr->GetSpellInfo(first); info && info->Id <= MAX_CLIENT_SPELL;
+                        info = info->GetNextRankSpell())
                     values += Acore::StringFormat("{}({}, {}, {})", values.empty() ? "" : ", ", first, info->Id, info->SpellLevel);
 
             WorldDatabase.DirectExecute(
@@ -217,7 +218,7 @@ namespace CompanionMount
         info = info->GetFirstRankSpell();
         while (SpellInfo const* next = info->GetNextRankSpell())
         {
-            if (next->SpellLevel > level)
+            if (next->SpellLevel > level || next->Id > MAX_CLIENT_SPELL)
                 break;
             info = next;
         }

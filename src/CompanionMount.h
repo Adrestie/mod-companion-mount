@@ -62,6 +62,9 @@ namespace CompanionMount
     // celles du loup fantome. Elles font un gardien sans prendre la place du
     // familier.
     constexpr uint32 SPELL_HEALING_RATE = 16178;   // Purification : seul effet, soins prodigues en %
+    // Le plus grand sort du client 3.3.5 : les rangs au-dela viennent d'autres
+    // modules (spell_dbc, ex. mod-spheregrid), plus forts et inconnus du client.
+    constexpr uint32 MAX_CLIENT_SPELL = 80864;
     constexpr uint32 SUMMON_PROPERTIES = 61;
 
     // Le compagnon se tient a la droite du joueur ; le familier, a sa gauche.
