@@ -1289,12 +1289,12 @@ function UI.Build(parent)
         UI.mainRows[i] = r
     end
 
-    -- Two categories, each under a dropdown, as the sheet's left and right
-    -- stat frames: Melee, Spell, Defense, Misc.
+    -- One category under a dropdown, as the sheet's stat frames: Melee,
+    -- Spell, Defense, Misc.
     UI.groups = {}
-    local defaults = { "melee", "defense" }
+    local defaults = { "melee" }
     y = y - 34 - 2 * STEP - 14
-    for g = 1, 2 do
+    for g = 1, 1 do
         local header = Header(y)
         local group = { header = header, rows = {}, category = UI.groupChoice and UI.groupChoice[g] or defaults[g] }
         for i = 1, 3 do group.rows[i] = Row(y - 34 - (i - 1) * STEP, i) end
