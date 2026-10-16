@@ -156,8 +156,9 @@ Spécification : `docs/energie-gambits.md`.
   provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
   touche pas ; la sienne est gardée par monture. Réinitialiser y revient. Un sort en lancement
   automatique qu'aucun gambit ne nomme sert de dernier recours.
-- **Gambits dans la fiche**, à droite des chiffres (la vue 3D est plus petite, la description de la
-  monture retirée) ; `/compagnon gambits` ouvre la fiche ; case à cocher, menu cible et
+- **Gambits dans la fiche**, sous la vue 3D et les chiffres (la vue 3D est plus petite, la description
+  de la monture retirée) ; en bas, ensemble : Renommer, Sacoches, Réinitialiser (les gambits), Talents ;
+  `/compagnon gambits` ouvre la fiche ; case à cocher, menu cible et
   condition, action (icône du sort), flèches ; emplacements fermés grisés avec leur niveau. Textes en
   anglais, français, allemand, espagnol et russe. Au clavier : `.companion gambit [save|reset]`.
 

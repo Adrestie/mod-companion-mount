@@ -1670,7 +1670,7 @@ function UI.Build(parent)
     -- WHO IT IS, its level and experience.
     local info = CreateFrame("Frame", nil, root)
     info:SetPoint("TOPLEFT", view, "TOPRIGHT", 20, 0)
-    info:SetPoint("BOTTOM", root, "BOTTOM", 0, 60)
+    info:SetPoint("BOTTOM", view, "BOTTOM", 0, 0)
     info:SetWidth(296)
     UI.name = info:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     UI.name:SetPoint("TOPLEFT", 0, -2)
@@ -1711,18 +1711,22 @@ function UI.Build(parent)
         line:SetSize(290, 18)
     end
 
-    -- BELOW: its name, its saddlebags, its talents.
+    -- BELOW, together on the right: its name, its saddlebags, the reset of its
+    -- gambits (placed with them) and its talents.
+    local talents = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
+    talents:SetSize(110, 26)
+    talents:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 4)
+    UI.talentsButton = talents
+
     local rename = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
-    rename:SetSize(130, 26)
-    rename:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", 0, 4)
+    rename:SetSize(110, 26)
     rename:SetText(L.rename)
     rename:SetScript("OnClick", function() StaticPopup_Show("COMPANIONMOUNT_RENAME") end)
 
     -- The saddlebags: an icon that opens them, and that can be dragged to an
     -- action bar (it becomes the macro /compagnon sacoches).
     local bag = CreateFrame("Button", "CompanionMountSheetBagButton", root)
-    bag:SetSize(36, 36)
-    bag:SetPoint("LEFT", rename, "RIGHT", 24, 0)
+    bag:SetSize(32, 32)
     local bagIcon = bag:CreateTexture(nil, "ARTWORK")
     bagIcon:SetAllPoints()
     bagIcon:SetTexture(OPath("Interface", "Icons", "INV_Misc_Bag_08"))
@@ -1743,12 +1747,12 @@ function UI.Build(parent)
     end)
     bag:SetScript("OnLeave", function() GameTooltip:Hide() end)
     local bagLabel = root:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    bagLabel:SetPoint("LEFT", bag, "RIGHT", 8, 0)
     bagLabel:SetText(L.bag)
+    -- Right to left from Talents: Reset (110 wide, 8 apart), the saddlebags, Rename.
+    bagLabel:SetPoint("RIGHT", talents, "LEFT", -(8 + 110 + 14), 0)
+    bag:SetPoint("RIGHT", bagLabel, "LEFT", -6, 0)
+    rename:SetPoint("RIGHT", bag, "LEFT", -14, 0)
 
-    local talents = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
-    talents:SetSize(130, 26)
-    talents:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 4)
     talents:SetText(L.talents)
     talents:SetScript("OnClick", function() CompanionMount_ToggleTalents() end)
 
@@ -1854,7 +1858,7 @@ end
 
 function UI.CreateWindow()
     local f = CreateFrame("Frame", "CompanionMountFrame", UIParent)
-    f:SetSize(1000, 470)
+    f:SetSize(640, 690)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -2434,7 +2438,7 @@ end
 
 local function MakeGambitRow(i)
     local row = CreateFrame("Frame", nil, gambitFrame)
-    row:SetSize(400, GAMBIT_ROW_HEIGHT - 2)
+    row:SetSize(500, GAMBIT_ROW_HEIGHT - 2)
     row:SetPoint("TOPLEFT", 0, -46 - (i - 1) * GAMBIT_ROW_HEIGHT)
 
     row.number = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -2460,7 +2464,7 @@ local function MakeGambitRow(i)
     row.check:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     row.condition = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.condition:SetSize(178, 22)
+    row.condition:SetSize(230, 22)
     row.condition:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
     row.condition:SetScript("OnClick", function(self)
         EasyMenu(ConditionMenu(i), gambitMenu, self, 0, 0, "MENU")
@@ -2471,7 +2475,7 @@ local function MakeGambitRow(i)
     row.arrow:SetText(">")
 
     row.action = CreateFrame("Button", nil, row)
-    row.action:SetSize(132, 24)
+    row.action:SetSize(176, 24)
     row.action:SetPoint("LEFT", row.arrow, "RIGHT", 3, 0)
     row.action.icon = row.action:CreateTexture(nil, "ARTWORK")
     row.action.icon:SetSize(22, 22)
@@ -2553,8 +2557,12 @@ end
 function CompanionMount_AttachGambits(root)
     gambitFrame:SetParent(root)
     gambitFrame:ClearAllPoints()
-    gambitFrame:SetPoint("TOPLEFT", root, "TOPLEFT", 540, 0)
+    gambitFrame:SetPoint("TOPLEFT", root, "TOPLEFT", 0, -262)
     gambitFrame:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 40)
+    gambitReset:SetParent(root)
+    gambitReset:ClearAllPoints()
+    gambitReset:SetSize(110, 26)
+    if UI.talentsButton then gambitReset:SetPoint("RIGHT", UI.talentsButton, "LEFT", -8, 0) end
     gambitFrame:Show()
     RefreshGambits()
     root:HookScript("OnShow", function() AIO.Handle("CompanionMount", "GambitOpen") end)
