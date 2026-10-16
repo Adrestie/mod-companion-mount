@@ -35,6 +35,7 @@
  * .companion talent reset    (SEC_PLAYER)  rend tous les points
  * .companion setlevel <n>    (SEC_GAMEMASTER)  le niveau de la monture choisie, pour les tests
  * .companion snapshot        (SEC_PLAYER)  ecrit la fiche de la monture, pour la fenetre (muet)
+ * .companion reload          (SEC_ADMINISTRATOR) relit les talents, types et sorts cles en base
  * .companion debug           (SEC_GAMEMASTER)  la bete vue du serveur : PV, cible, mouvement
  *
  * Elles sont le chemin que prendra l'interface (ALE) : le jeu reste jouable
@@ -95,6 +96,7 @@ public:
             { "rename",     HandleRenameCommand,     SEC_PLAYER, Console::No },
             { "snapshot",   HandleSnapshotCommand,   SEC_PLAYER, Console::No },
             { "setlevel",   HandleSetLevelCommand,   SEC_GAMEMASTER, Console::No },
+            { "reload",     HandleReloadCommand,     SEC_ADMINISTRATOR, Console::Yes },
             { "debug",      HandleDebugCommand,      SEC_GAMEMASTER, Console::No },
         };
 
@@ -224,6 +226,17 @@ public:
     {
         if (place >= 1)
             BagWithdraw(handler->GetPlayer(), place - 1);
+        return true;
+    }
+
+    // Le catalogue des talents relu en base : une modification de
+    // mod_companion_mount_talent (ou des types, des sorts cles) sans
+    // redemarrer. Les montures dehors prennent leurs talents a leur prochaine
+    // sortie ou au prochain point appris.
+    static bool HandleReloadCommand(ChatHandler* handler)
+    {
+        LoadTalentCatalogue();
+        handler->SendSysMessage("CompanionMount: talents reloaded.");
         return true;
     }
 
