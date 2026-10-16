@@ -48,6 +48,7 @@
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "SpellInfo.h"
+#include "Spell.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
 
@@ -277,9 +278,22 @@ private:
         {
             state.castRequest = 0;
             for (ActiveSpell const& active : state.actives)
-                if (FirstRank(active.spell) == wanted && !_cooldowns[active.spell])
-                    if (TryCast(active, TalentTarget(active, owner, victim, true), false))
+            {
+                if (FirstRank(active.spell) != wanted)
+                    continue;
+                // Le refus s'affiche comme celui d'un sort du joueur (texte rouge).
+                if (_cooldowns[active.spell])
+                    Refuse(owner, active, SPELL_FAILED_NOT_READY);
+                else if (Unit* target = TalentTarget(active, owner, victim, true))
+                {
+                    if (TryCast(active, target, false))
                         return;
+                    Refuse(owner, active, SpellCastResult(active.lastRefusal));
+                }
+                else
+                    Refuse(owner, active, SPELL_FAILED_BAD_TARGETS);
+                break;
+            }
         }
 
         if (_talentTimer < 1000)
@@ -334,6 +348,12 @@ private:
             default:
                 return nullptr;
         }
+    }
+
+    void Refuse(Player* owner, ActiveSpell const& active, SpellCastResult result) const
+    {
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(active.spell))
+            Spell::SendCastResult(owner, info, 0, result);
     }
 
     // Lance le sort ; reussi, sa recharge commence. Refuse en automatique, il
