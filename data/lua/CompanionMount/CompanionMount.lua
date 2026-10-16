@@ -198,14 +198,14 @@ local function TalentPoints(level)
     return 1 + math.floor((level - TALENT_FIRST_LEVEL) / TALENT_LEVELS_PER_POINT)
 end
 
-local catalogue
+-- Read at each opening: `.companion reload` changes it without a restart.
 local function Catalogue()
-    if catalogue then return catalogue end
     if not HasWorldTable("mod_companion_mount_talent") or not HasWorldColumn("mod_companion_mount_talent", "spell_5") then
         return {}
     end
-    catalogue = {}
-    local q = WorldDBQuery("SELECT id, tree, tier, col, spell_1, spell_2, spell_3, spell_4, spell_5 FROM mod_companion_mount_talent")
+    local catalogue = {}
+    local q = WorldDBQuery("SELECT `id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `spell_4`, `spell_5`, `use` "
+        .. "FROM `mod_companion_mount_talent`")
     if q then
         repeat
             local ranks = {}
@@ -215,11 +215,22 @@ local function Catalogue()
             end
             catalogue[#catalogue + 1] = {
                 id = q:GetUInt32(0), tree = q:GetUInt8(1), tier = q:GetUInt8(2), col = q:GetUInt8(3),
-                ranks = ranks, key = q:GetUInt32(4) == 0,
+                ranks = ranks, key = q:GetUInt32(4) == 0, active = q:GetUInt8(9) ~= 0 and q:GetUInt8(9) ~= 6,
             }
         until not q:NextRow()
     end
     return catalogue
+end
+
+-- The rank of a spell the mount casts at its level (the module writes the
+-- ranks and their levels at startup): the tooltip shows what it casts.
+local function RankForLevel(spell, level)
+    if not HasWorldTable("mod_companion_mount_rank_level") then return spell end
+    local q = WorldDBQuery(string.format(
+        "SELECT r.`spell` FROM `mod_companion_mount_rank_level` r "
+        .. "JOIN `mod_companion_mount_rank_level` s ON s.`first_spell` = r.`first_spell` AND s.`spell` = %d "
+        .. "WHERE r.`level` <= %d ORDER BY r.`level` DESC, r.`spell` DESC LIMIT 1", spell, level))
+    return q and q:GetUInt32(0) or spell
 end
 
 local function Talents(player)
@@ -254,8 +265,14 @@ local function Talents(player)
         "SELECT tree, key_spell FROM mod_companion_mount_key_spell WHERE kind = %d", kind))
     if k then
         repeat
-            data.keys[k:GetUInt8(0)] = k:GetUInt32(1)
+            data.keys[k:GetUInt8(0)] = RankForLevel(k:GetUInt32(1), data.level)
         until not k:NextRow()
+    end
+    -- An active talent shows the rank its mount casts, not the first.
+    for _, t in ipairs(data.talents) do
+        if t.active and #t.ranks == 1 then
+            t.ranks = { RankForLevel(t.ranks[1], data.level) }
+        end
     end
     return data
 end

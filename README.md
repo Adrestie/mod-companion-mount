@@ -124,6 +124,7 @@ AzerothCore Mount mod
   Bienveillance (cheval : Piétinement / Intervention / Lumière sacrée ; kodo : Choc martial / Coup de
   tonnerre / Prière de soins…, table `mod_companion_mount_key_spell`). Et un **ultime** par arbre :
   Tempête de lames (Fureur), Cri de défi (Rempart), Tranquillité (Bienveillance).
+- Les sorts actifs sont lancés au rang que permet le niveau de la monture, et l'infobulle de la fenêtre montre ce rang-là. Ses soins valent 40 % du sort (`CompanionMount.HealingRate`, 0.4).
 - Fenêtre Talents (bouton de la barre), à l'image de celle du jeu. `.companion talent`,
   `.companion talent learn <id>`, `.companion talent reset`, `.companion setlevel <n>` (MJ).
 

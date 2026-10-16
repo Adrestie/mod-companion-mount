@@ -26,10 +26,9 @@
  * mod_companion_mount_kind, mod_companion_mount_key_spell : un sort cle par
  * type de monture ET par arbre -- une attaque, une defense, un soin).
  *
- * LES REGLES, celles du familier : un point au niveau 20 puis un tous les
- * quatre niveaux (16 au niveau 80) ; une rangee demande 3 points de plus que
- * la precedente dans l'arbre ; UN SEUL ARBRE par monture -- le premier point
- * le choisit, une remise a zero le libere.
+ * LES REGLES (reglables) : un point au niveau 4 puis un tous les deux niveaux
+ * (39 au niveau 80) ; une rangee demande 5 points de plus que la precedente
+ * dans l'arbre ; tous les arbres a la fois, ou un seul en option (Talent.OneTree).
  *
  * L'EFFET : un talent passif pose son aura sur la bete (rang appris) ; un
  * talent actif entre dans la liste que son IA lance en combat (State::actives),
@@ -41,11 +40,13 @@
 #include "Creature.h"
 #include "DatabaseEnv.h"
 #include "Player.h"
+#include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 
 #include <algorithm>
+#include <cmath>
 #include <set>
 #include <unordered_map>
 
@@ -110,6 +111,38 @@ namespace CompanionMount
         }
     }
 
+    namespace
+    {
+        // LES RANGS ET LEURS NIVEAUX, pour la fenetre (ALE ne lit pas le niveau
+        // d'un sort) : chaque rang des sorts actifs et des sorts cles, avec le
+        // niveau qui le donne. L'infobulle montre le rang que la bete lance.
+        void PublishRankLevels()
+        {
+            std::set<uint32> firsts;
+            for (auto const& [id, talent] : sTalents)
+                if (!talent.key && talent.use != TALENT_USE_PASSIVE && talent.use != TALENT_USE_NONE)
+                    for (uint32 spell : talent.ranks)
+                        firsts.insert(sSpellMgr->GetSpellInfo(spell)->GetFirstRankSpell()->Id);
+            for (auto const& [kindTree, kindSpell] : sKindSpell)
+                firsts.insert(sSpellMgr->GetSpellInfo(kindSpell.spell)->GetFirstRankSpell()->Id);
+
+            std::string values;
+            for (uint32 first : firsts)
+                for (SpellInfo const* info = sSpellMgr->GetSpellInfo(first); info; info = info->GetNextRankSpell())
+                    values += Acore::StringFormat("{}({}, {}, {})", values.empty() ? "" : ", ", first, info->Id, info->SpellLevel);
+
+            WorldDatabase.DirectExecute(
+                "CREATE TABLE IF NOT EXISTS `mod_companion_mount_rank_level` ("
+                "`first_spell` INT UNSIGNED NOT NULL, `spell` INT UNSIGNED NOT NULL, `level` INT UNSIGNED NOT NULL, "
+                "PRIMARY KEY (`first_spell`, `spell`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci "
+                "COMMENT='CompanionMount: the ranks of the spells mounts cast, and their levels (written at startup)'");
+            WorldDatabase.DirectExecute("DELETE FROM `mod_companion_mount_rank_level`");
+            if (!values.empty())
+                WorldDatabase.DirectExecute(
+                    "INSERT INTO `mod_companion_mount_rank_level` (`first_spell`, `spell`, `level`) VALUES " + values);
+        }
+    }
+
     void LoadTalentCatalogue()
     {
         sTalents.clear();
@@ -157,6 +190,8 @@ namespace CompanionMount
                     sKindSpell[KindTree(fields[0].Get<uint8>(), fields[1].Get<uint8>())] =
                         { fields[2].Get<uint32>(), fields[3].Get<uint8>() };
             } while (result->NextRow());
+
+        PublishRankLevels();
 
         LOG_INFO("module", "CompanionMount: {} talent(s), {} mount kind(s), {} key spell(s) loaded.",
             sTalents.size(), sMountKind.size(), sKindSpell.size());
@@ -235,6 +270,18 @@ namespace CompanionMount
 
         state.actives.clear();
         uint8 const level = companion->GetLevel();
+
+        // LA FORCE DE SES SOINS (CompanionMount.HealingRate) : une aura de soins
+        // prodigues (Purification, seul effet) dont le montant est remplace.
+        companion->RemoveAurasDueToSpell(SPELL_HEALING_RATE);
+        int32 const healingPct = int32(std::lround((GetConfig().healingRate - 1.0f) * 100.0f));
+        if (healingPct)
+            if (Aura* aura = companion->AddAura(SPELL_HEALING_RATE, companion))
+                if (AuraEffect* effect = aura->GetEffect(EFFECT_0))
+                {
+                    effect->SetCanBeRecalculated(false);
+                    effect->ChangeAmount(std::max(-100, healingPct));
+                }
 
         for (auto const& [id, rank] : state.talentRanks)
         {

@@ -61,6 +61,7 @@ namespace CompanionMount
     // SummonProperties 61 : categorie ALLY, type GUARDIAN, aucun emplacement --
     // celles du loup fantome. Elles font un gardien sans prendre la place du
     // familier.
+    constexpr uint32 SPELL_HEALING_RATE = 16178;   // Purification : seul effet, soins prodigues en %
     constexpr uint32 SUMMON_PROPERTIES = 61;
 
     // Le compagnon se tient a la droite du joueur ; le familier, a sa gauche.
@@ -181,6 +182,7 @@ namespace CompanionMount
         uint32 reviveDelay = 60;      // secondes
         float healthRate = 1.0f;
         float damageRate = 1.0f;
+        float healingRate = 0.4f;     // force des soins qu'elle lance
         float attackPowerOwnerShare = 0.22f;   // part de la PA du maitre
         float leashDistance = 40.0f;  // metres
         float clickDistance = 10.0f;  // metres

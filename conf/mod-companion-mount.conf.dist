@@ -65,6 +65,15 @@ CompanionMount.HealthRate = 1.0
 CompanionMount.DamageRate = 1.0
 
 #
+#    CompanionMount.HealingRate
+#        Description: Multiplier of the heals the companion mount casts (its
+#                     talents and key spell, at the rank of its level). 1.0 is
+#                     the full spell, as strong as a healer's without gear.
+#        Default:     0.4
+
+CompanionMount.HealingRate = 0.4
+
+#
 #    CompanionMount.AttackPowerOwnerShare
 #        Description: Share of its master's attack power the companion mount
 #                     adds to that of the creatures of its level (as a hunter
