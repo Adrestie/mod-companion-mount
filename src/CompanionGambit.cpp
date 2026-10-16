@@ -485,14 +485,16 @@ namespace CompanionMount
         }
     }
 
-    // LE PORTRAIT : « dehors;PV;PV max;energie;energie max;niveau;modele;nom ».
+    // LE PORTRAIT : « dehors;PV;PV max;energie;energie max;niveau;modele;creature;nom »
+    // (la creature de la monture, pour un client sans SetDisplayInfo).
     void SendFrame(Player* player, State& state, Creature* companion, bool force)
     {
         std::string payload = "0";
         if (companion && companion->IsInWorld())
-            payload = Acore::StringFormat("1;{};{};{};{};{};{};{}", companion->GetHealth(), companion->GetMaxHealth(),
+            payload = Acore::StringFormat("1;{};{};{};{};{};{};{};{}", companion->GetHealth(), companion->GetMaxHealth(),
                 companion->GetPower(POWER_ENERGY), companion->GetMaxPower(POWER_ENERGY), uint32(companion->GetLevel()),
-                companion->GetDisplayId(), state.name.empty() ? companion->GetName() : state.name);
+                companion->GetDisplayId(), GetMountCreatureEntry(sSpellMgr->GetSpellInfo(state.mountSpell)),
+                state.name.empty() ? companion->GetName() : state.name);
         if (!force && payload == state.frameSent)
             return;
         state.frameSent = payload;

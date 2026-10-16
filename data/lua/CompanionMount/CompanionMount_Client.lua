@@ -96,6 +96,139 @@ local L = {
 }
 
 -- ---------------------------------------------------------------------------
+-- ENERGY, PORTRAIT AND GAMBITS (docs/energie-gambits.md): texts in five
+-- languages.
+-- ---------------------------------------------------------------------------
+
+local G_TEXTS = {
+    enUS = {
+        gambits = "Gambits", gambitsTip = "The rules of your companion: target and condition, then action, read from top to bottom.",
+        help = "Read from top to bottom: the first rule whose condition holds and whose action is possible is played.",
+        energy = "Energy", cost = "Energy cost: %d", locked = "Level %d", reset = "Reset",
+        defaultList = "Default list (drawn from the spells learned)", customList = "Your list",
+        pickCondition = "Choose a condition", pickAction = "Choose an action", empty = "(empty)", clear = "Clear the rule",
+        attack = "Attack", comeBack = "Come back to you", up = "Up", down = "Down", enable = "On / off",
+        portraitTip = "Click: target your companion. Shift + drag: move.",
+        cat = { "You", "Companion", "Enemy", "Group", "Fight" },
+        cond = {
+            [1] = "HP < 30%", [2] = "HP < 50%", [3] = "HP < 70%", [4] = "HP < 90%", [5] = "Under attack",
+            [6] = "Poisoned", [7] = "Diseased", [8] = "Magic effect", [9] = "Cursed",
+            [10] = "HP < 30%", [11] = "HP < 50%", [12] = "HP < 70%", [13] = "Energy >= 40", [14] = "Energy >= 60", [15] = "Energy >= 80",
+            [20] = "Your target", [21] = "Its target", [22] = "Nearest", [23] = "Attacking you", [24] = "HP < 20%",
+            [25] = "HP < 35%", [26] = "HP < 50%", [27] = "HP >= 90%", [28] = "Casting", [29] = "Elite or boss",
+            [30] = "A member HP < 50%", [31] = "3 members HP < 70%",
+            [40] = "2+ enemies around", [41] = "3+ enemies around", [42] = "5+ enemies around", [43] = "Always",
+        },
+    },
+    frFR = {
+        gambits = "Gambits", gambitsTip = "Les règles de votre compagnon : cible et condition, puis action, lues de haut en bas.",
+        help = "Lues de haut en bas : la première règle dont la condition est vraie et l'action possible est jouée.",
+        energy = "Énergie", cost = "Coût en énergie : %d", locked = "Niveau %d", reset = "Réinitialiser",
+        defaultList = "Liste par défaut (tirée des sorts appris)", customList = "Votre liste",
+        pickCondition = "Choisir une condition", pickAction = "Choisir une action", empty = "(vide)", clear = "Vider la règle",
+        attack = "Attaquer", comeBack = "Revenir près de toi", up = "Monter", down = "Descendre", enable = "Activer / couper",
+        portraitTip = "Clic : cibler votre compagnon. Maj + glisser : déplacer.",
+        cat = { "Toi", "Le compagnon", "Ennemi", "Groupe", "Combat" },
+        cond = {
+            [1] = "PV < 30 %", [2] = "PV < 50 %", [3] = "PV < 70 %", [4] = "PV < 90 %", [5] = "Subit une attaque",
+            [6] = "Empoisonné", [7] = "Malade", [8] = "Effet magique", [9] = "Maudit",
+            [10] = "PV < 30 %", [11] = "PV < 50 %", [12] = "PV < 70 %", [13] = "Énergie >= 40", [14] = "Énergie >= 60", [15] = "Énergie >= 80",
+            [20] = "Ta cible", [21] = "Sa cible", [22] = "Le plus proche", [23] = "Celui qui t'attaque", [24] = "PV < 20 %",
+            [25] = "PV < 35 %", [26] = "PV < 50 %", [27] = "PV >= 90 %", [28] = "En train d'incanter", [29] = "Élite ou boss",
+            [30] = "Un membre PV < 50 %", [31] = "3 membres PV < 70 %",
+            [40] = "2 ennemis ou plus autour", [41] = "3 ennemis ou plus autour", [42] = "5 ennemis ou plus autour", [43] = "Toujours",
+        },
+    },
+    deDE = {
+        gambits = "Gambits", gambitsTip = "Die Regeln Eures Begleiters: Ziel und Bedingung, dann Aktion, von oben nach unten gelesen.",
+        help = "Von oben nach unten: Die erste Regel, deren Bedingung zutrifft und deren Aktion möglich ist, wird ausgeführt.",
+        energy = "Energie", cost = "Energiekosten: %d", locked = "Stufe %d", reset = "Zurücksetzen",
+        defaultList = "Standardliste (aus den erlernten Zaubern)", customList = "Eure Liste",
+        pickCondition = "Bedingung wählen", pickAction = "Aktion wählen", empty = "(leer)", clear = "Regel leeren",
+        attack = "Angreifen", comeBack = "Zu dir zurückkehren", up = "Hoch", down = "Runter", enable = "An / aus",
+        portraitTip = "Klick: Begleiter anvisieren. Umschalt + Ziehen: verschieben.",
+        cat = { "Du", "Begleiter", "Feind", "Gruppe", "Kampf" },
+        cond = {
+            [1] = "GP < 30%", [2] = "GP < 50%", [3] = "GP < 70%", [4] = "GP < 90%", [5] = "Wird angegriffen",
+            [6] = "Vergiftet", [7] = "Krank", [8] = "Magischer Effekt", [9] = "Verflucht",
+            [10] = "GP < 30%", [11] = "GP < 50%", [12] = "GP < 70%", [13] = "Energie >= 40", [14] = "Energie >= 60", [15] = "Energie >= 80",
+            [20] = "Dein Ziel", [21] = "Sein Ziel", [22] = "Nächster", [23] = "Greift dich an", [24] = "GP < 20%",
+            [25] = "GP < 35%", [26] = "GP < 50%", [27] = "GP >= 90%", [28] = "Wirkt einen Zauber", [29] = "Elite oder Boss",
+            [30] = "Ein Mitglied GP < 50%", [31] = "3 Mitglieder GP < 70%",
+            [40] = "2+ Feinde in der Nähe", [41] = "3+ Feinde in der Nähe", [42] = "5+ Feinde in der Nähe", [43] = "Immer",
+        },
+    },
+    esES = {
+        gambits = "Gambits", gambitsTip = "Las reglas de tu compañero: objetivo y condición, luego acción, leídas de arriba abajo.",
+        help = "De arriba abajo: se juega la primera regla cuya condición se cumple y cuya acción es posible.",
+        energy = "Energía", cost = "Coste de energía: %d", locked = "Nivel %d", reset = "Restablecer",
+        defaultList = "Lista por defecto (según los hechizos aprendidos)", customList = "Tu lista",
+        pickCondition = "Elegir una condición", pickAction = "Elegir una acción", empty = "(vacía)", clear = "Vaciar la regla",
+        attack = "Atacar", comeBack = "Volver a tu lado", up = "Subir", down = "Bajar", enable = "Activar / desactivar",
+        portraitTip = "Clic: seleccionar a tu compañero. Mayús + arrastrar: mover.",
+        cat = { "Tú", "Compañero", "Enemigo", "Grupo", "Combate" },
+        cond = {
+            [1] = "Salud < 30%", [2] = "Salud < 50%", [3] = "Salud < 70%", [4] = "Salud < 90%", [5] = "Bajo ataque",
+            [6] = "Envenenado", [7] = "Enfermo", [8] = "Efecto mágico", [9] = "Maldito",
+            [10] = "Salud < 30%", [11] = "Salud < 50%", [12] = "Salud < 70%", [13] = "Energía >= 40", [14] = "Energía >= 60", [15] = "Energía >= 80",
+            [20] = "Tu objetivo", [21] = "Su objetivo", [22] = "El más cercano", [23] = "Quien te ataca", [24] = "Salud < 20%",
+            [25] = "Salud < 35%", [26] = "Salud < 50%", [27] = "Salud >= 90%", [28] = "Lanzando un hechizo", [29] = "Élite o jefe",
+            [30] = "Un miembro salud < 50%", [31] = "3 miembros salud < 70%",
+            [40] = "2+ enemigos cerca", [41] = "3+ enemigos cerca", [42] = "5+ enemigos cerca", [43] = "Siempre",
+        },
+    },
+    ruRU = {
+        gambits = "Гамбиты", gambitsTip = "Правила вашего спутника: цель и условие, затем действие, сверху вниз.",
+        help = "Сверху вниз: выполняется первое правило, условие которого верно, а действие возможно.",
+        energy = "Энергия", cost = "Затраты энергии: %d", locked = "Уровень %d", reset = "Сбросить",
+        defaultList = "Список по умолчанию (из изученных заклинаний)", customList = "Ваш список",
+        pickCondition = "Выбрать условие", pickAction = "Выбрать действие", empty = "(пусто)", clear = "Очистить правило",
+        attack = "Атаковать", comeBack = "Вернуться к тебе", up = "Вверх", down = "Вниз", enable = "Вкл. / выкл.",
+        portraitTip = "Щелчок: выбрать спутника целью. Shift + перетаскивание: переместить.",
+        cat = { "Ты", "Спутник", "Враг", "Группа", "Бой" },
+        cond = {
+            [1] = "Здоровье < 30%", [2] = "Здоровье < 50%", [3] = "Здоровье < 70%", [4] = "Здоровье < 90%", [5] = "Под атакой",
+            [6] = "Отравлен", [7] = "Болен", [8] = "Магический эффект", [9] = "Проклят",
+            [10] = "Здоровье < 30%", [11] = "Здоровье < 50%", [12] = "Здоровье < 70%", [13] = "Энергия >= 40", [14] = "Энергия >= 60", [15] = "Энергия >= 80",
+            [20] = "Твоя цель", [21] = "Его цель", [22] = "Ближайший", [23] = "Атакует тебя", [24] = "Здоровье < 20%",
+            [25] = "Здоровье < 35%", [26] = "Здоровье < 50%", [27] = "Здоровье >= 90%", [28] = "Читает заклинание", [29] = "Элита или босс",
+            [30] = "Участник: здоровье < 50%", [31] = "3 участника: здоровье < 70%",
+            [40] = "2+ врагов рядом", [41] = "3+ врагов рядом", [42] = "5+ врагов рядом", [43] = "Всегда",
+        },
+    },
+}
+local G = G_TEXTS[GetLocale()] or (GetLocale() == "esMX" and G_TEXTS.esES) or G_TEXTS.enUS
+
+-- The conditions by category, as the server numbers them (CompanionMount.h).
+local G_CATEGORIES = {
+    { 1, 2, 3, 4, 5, 6, 7, 8, 9 },
+    { 10, 11, 12, 13, 14, 15 },
+    { 20, 21, 22, 23, 24, 25, 26, 27, 28, 29 },
+    { 30, 31 },
+    { 40, 41, 42, 43 },
+}
+local GAMBIT_ATTACK, GAMBIT_RETURN = -1, -2
+
+local function ConditionText(cond)
+    for c, list in ipairs(G_CATEGORIES) do
+        for _, code in ipairs(list) do
+            if code == cond then return G.cat[c] .. " : " .. (G.cond[cond] or "?") end
+        end
+    end
+    return G.pickCondition
+end
+
+local function ActionText(action)
+    if action == GAMBIT_ATTACK then return G.attack, PET_ATTACK_TEXTURE end
+    if action == GAMBIT_RETURN then return G.comeBack, PET_FOLLOW_TEXTURE end
+    if action and action > 0 then
+        local name, _, icon = GetSpellInfo(action)
+        return name or ("#" .. action), icon
+    end
+    return G.pickAction, nil
+end
+
+-- ---------------------------------------------------------------------------
 -- The state, as the server sends it
 -- ---------------------------------------------------------------------------
 
@@ -1620,6 +1753,19 @@ function UI.Build(parent)
     talents:SetText(L.talents)
     talents:SetScript("OnClick", function() CompanionMount_ToggleTalents() end)
 
+    local gambits = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
+    gambits:SetSize(110, 26)
+    gambits:SetPoint("RIGHT", talents, "LEFT", -8, 0)
+    gambits:SetText(G.gambits)
+    gambits:SetScript("OnClick", function() CompanionMount_ToggleGambits() end)
+    gambits:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine(G.gambits, 1, 1, 1)
+        GameTooltip:AddLine(G.gambitsTip, nil, nil, nil, true)
+        GameTooltip:Show()
+    end)
+    gambits:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     -- While it is shown, the numbers follow the fight (every 3 s: each
     -- request has the module write the sheet in the database).
     local elapsed = 0
@@ -1958,6 +2104,9 @@ local function SpellButton(i)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetHyperlink("spell:" .. self.spell)
         GameTooltip:AddLine(" ")
+        if (self.cost or 0) > 0 then
+            GameTooltip:AddLine(string.format(G.cost, self.cost), 1, 1, 0)
+        end
         GameTooltip:AddLine(self.auto and L.autoOn or L.autoOff, 1, 0.82, 0)
         GameTooltip:AddLine(L.spellTip, 0.5, 0.5, 0.5, true)
         GameTooltip:Show()
@@ -1973,6 +2122,7 @@ local function RefreshSpells()
         local b = SpellButton(i)
         b.spell = tonumber(entry.spell)
         b.auto = entry.auto and true or false
+        b.cost = tonumber(entry.cost) or 0
         b.icon:SetTexture(select(3, GetSpellInfo(b.spell)) or OPath("Interface", "Icons", "INV_Misc_QuestionMark"))
         local usable = state.summoned
         b.icon:SetDesaturated(not usable)
@@ -1996,6 +2146,7 @@ local function RefreshSpells()
 end
 
 local barHidden = false
+local RefreshSpellEnergy   -- below, with the portrait that knows the energy
 
 -- No bar in a dungeon, a raid, a battleground or an arena.
 local function InGroupInstance()
@@ -2016,6 +2167,7 @@ local function RefreshBar()
         b.icon:SetVertexColor(shade, shade, shade)
     end
     RefreshSpells()
+    if RefreshSpellEnergy then RefreshSpellEnergy() end
     if barHidden or (state.mount or 0) == 0 or InGroupInstance() then bar:Hide() else bar:Show() end
 end
 
@@ -2026,6 +2178,443 @@ barWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 barWatch:SetScript("OnEvent", function() RefreshBar() end)
 
 AIO.SavePosition(bar, true)
+
+-- ---------------------------------------------------------------------------
+-- THE PORTRAIT: the game shows none for a guardian. Its name, its level, its
+-- health and, below, its energy in yellow, as any unit with a resource; a
+-- click targets it. The server sends the figures as they change (addon
+-- message CMPF: "out;hp;max hp;energy;max energy;level;display;creature;name").
+-- ---------------------------------------------------------------------------
+
+local companionEnergy = 0
+local portrait = { out = false, name = "" }
+
+local unitFrame = CreateFrame("Button", "CompanionMountUnitFrame", UIParent, "SecureActionButtonTemplate")
+unitFrame:SetSize(170, 52)
+unitFrame:SetPoint("TOPLEFT", PlayerFrame, "BOTTOMLEFT", 150, 22)
+unitFrame:SetMovable(true)
+unitFrame:SetClampedToScreen(true)
+unitFrame:RegisterForClicks("AnyUp")
+unitFrame:RegisterForDrag("LeftButton")
+unitFrame:SetAttribute("type", "macro")
+unitFrame:SetBackdrop({
+    bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
+    edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
+    tile = true, tileSize = 16, edgeSize = 12,
+    insets = { left = 3, right = 3, top = 3, bottom = 3 },
+})
+unitFrame:SetBackdropColor(0, 0, 0, 0.75)
+unitFrame:SetScript("OnDragStart", function(self)
+    if IsShiftKeyDown() and not InCombatLockdown() then self:StartMoving() end
+end)
+unitFrame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    if LibWindow then LibWindow.SavePosition(self) end
+end)
+unitFrame:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT")
+    GameTooltip:AddLine(portrait.name ~= "" and portrait.name or L.title, 1, 1, 1)
+    GameTooltip:AddLine(G.portraitTip, 0.5, 0.5, 0.5, true)
+    GameTooltip:Show()
+end)
+unitFrame:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+local portraitModel = CreateFrame("PlayerModel", nil, unitFrame)
+portraitModel:SetSize(42, 42)
+portraitModel:SetPoint("LEFT", 5, 0)
+
+local portraitName = unitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+portraitName:SetPoint("TOPLEFT", portraitModel, "TOPRIGHT", 6, 1)
+portraitName:SetPoint("RIGHT", unitFrame, "RIGHT", -28, 0)
+portraitName:SetJustifyH("LEFT")
+local portraitLevel = unitFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+portraitLevel:SetPoint("TOPRIGHT", unitFrame, "TOPRIGHT", -7, -6)
+
+local function PortraitBar(r, g, b, height)
+    local bar = CreateFrame("StatusBar", nil, unitFrame)
+    bar:SetStatusBarTexture(OPath("Interface", "TargetingFrame", "UI-StatusBar"))
+    bar:SetStatusBarColor(r, g, b)
+    bar:SetHeight(height)
+    bar:SetPoint("LEFT", portraitModel, "RIGHT", 6, 0)
+    bar:SetPoint("RIGHT", unitFrame, "RIGHT", -7, 0)
+    bar:SetMinMaxValues(0, 1)
+    local back = bar:CreateTexture(nil, "BACKGROUND")
+    back:SetAllPoints()
+    back:SetTexture(0, 0, 0, 0.5)
+    bar.text = bar:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
+    bar.text:SetPoint("CENTER", 0, 0)
+    return bar
+end
+local healthBar = PortraitBar(0, 1, 0, 12)
+healthBar:SetPoint("TOP", portraitName, "BOTTOM", 0, -3)
+local energyBar = PortraitBar(1, 1, 0, 9)
+energyBar:SetPoint("TOP", healthBar, "BOTTOM", 0, -2)
+
+-- A protected frame can not be shown or hidden in combat: then it only fades.
+local pendingVisibility
+local function ApplyPortraitVisibility()
+    local wanted = portrait.out and not InGroupInstance()
+    if InCombatLockdown() then
+        unitFrame:SetAlpha(wanted and 1 or 0)
+        pendingVisibility = true
+        return
+    end
+    pendingVisibility = nil
+    unitFrame:SetAlpha(1)
+    if wanted then unitFrame:Show() else unitFrame:Hide() end
+    unitFrame:SetAttribute("macrotext", "/targetexact " .. (portrait.name or ""))
+end
+
+local lastModel
+local function RefreshPortrait()
+    portraitName:SetText(portrait.name or "")
+    portraitLevel:SetText(portrait.level or "")
+    healthBar:SetMinMaxValues(0, math.max(1, portrait.maxHealth or 1))
+    healthBar:SetValue(portrait.health or 0)
+    healthBar.text:SetText((portrait.health or 0) .. " / " .. (portrait.maxHealth or 0))
+    energyBar:SetMinMaxValues(0, math.max(1, portrait.maxEnergy or 1))
+    energyBar:SetValue(portrait.energy or 0)
+    energyBar.text:SetText(portrait.energy or 0)
+    local modelKey = (portrait.display or 0) .. ":" .. (portrait.creature or 0)
+    if portrait.out and modelKey ~= lastModel then
+        lastModel = modelKey
+        if (portrait.display or 0) > 0 and portraitModel.SetDisplayInfo then
+            portraitModel:SetDisplayInfo(portrait.display)
+        elseif (portrait.creature or 0) > 0 then
+            portraitModel:SetCreature(portrait.creature)
+        end
+        portraitModel:SetCamera(0)
+    end
+    ApplyPortraitVisibility()
+end
+
+
+local portraitWatch = CreateFrame("Frame")
+portraitWatch:RegisterEvent("CHAT_MSG_ADDON")
+portraitWatch:RegisterEvent("PLAYER_REGEN_ENABLED")
+portraitWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
+portraitWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+portraitWatch:SetScript("OnEvent", function(_, event, prefix, message)
+    if event == "CHAT_MSG_ADDON" then
+        if prefix ~= "CMPF" or type(message) ~= "string" then return end
+        local out, hp, maxHp, energy, maxEnergy, level, display, creature, name =
+            message:match("^(%d);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(%d+);(.*)$")
+        if out then
+            portrait.out = true
+            portrait.health, portrait.maxHealth = tonumber(hp), tonumber(maxHp)
+            portrait.energy, portrait.maxEnergy = tonumber(energy), tonumber(maxEnergy)
+            portrait.level, portrait.display, portrait.creature = tonumber(level), tonumber(display), tonumber(creature)
+            portrait.name = name or ""
+        else
+            portrait.out = false
+            portrait.energy = 0
+        end
+        companionEnergy = portrait.energy or 0
+        RefreshPortrait()
+        if RefreshSpellEnergy then RefreshSpellEnergy() end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if pendingVisibility then ApplyPortraitVisibility() end
+    else
+        ApplyPortraitVisibility()
+    end
+end)
+unitFrame:Hide()
+AIO.SavePosition(unitFrame, true)
+
+-- ---------------------------------------------------------------------------
+-- THE GAMBITS WINDOW: a rule per line -- on/off, target and condition, action,
+-- up and down. The locked slots are grayed with the level they open at. Every
+-- change sends the whole list; the server answers with it as it keeps it.
+-- ---------------------------------------------------------------------------
+
+local GAMBIT_ROW_HEIGHT = 32
+local gambitData = { rows = {}, slots = 3, max = 12, unlock = {}, spells = {}, custom = false }
+local gambitRows = {}
+
+local gambitFrame = CreateFrame("Frame", "CompanionMountGambitFrame", UIParent)
+gambitFrame:SetSize(540, 120 + 12 * GAMBIT_ROW_HEIGHT)
+gambitFrame:SetPoint("CENTER")
+gambitFrame:SetMovable(true)
+gambitFrame:EnableMouse(true)
+gambitFrame:SetClampedToScreen(true)
+gambitFrame:RegisterForDrag("LeftButton")
+gambitFrame:SetScript("OnDragStart", gambitFrame.StartMoving)
+gambitFrame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    if LibWindow then LibWindow.SavePosition(self) end
+end)
+gambitFrame:SetBackdrop({
+    bgFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Background"),
+    edgeFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Border"),
+    tile = true, tileSize = 32, edgeSize = 32,
+    insets = { left = 11, right = 12, top = 12, bottom = 11 },
+})
+gambitFrame:SetFrameStrata("DIALOG")
+gambitFrame:Hide()
+tinsert(UISpecialFrames, "CompanionMountGambitFrame")
+
+local gambitTitle = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+gambitTitle:SetPoint("TOP", 0, -18)
+gambitTitle:SetText(G.gambits)
+local gambitClose = CreateFrame("Button", nil, gambitFrame, "UIPanelCloseButton")
+gambitClose:SetPoint("TOPRIGHT", -6, -6)
+local gambitHelp = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+gambitHelp:SetPoint("TOPLEFT", 24, -44)
+gambitHelp:SetPoint("RIGHT", -24, 0)
+gambitHelp:SetJustifyH("LEFT")
+gambitHelp:SetText(G.help)
+
+local gambitStatus = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+gambitStatus:SetPoint("BOTTOMLEFT", 24, 22)
+local gambitReset = CreateFrame("Button", nil, gambitFrame, "UIPanelButtonTemplate")
+gambitReset:SetSize(130, 22)
+gambitReset:SetPoint("BOTTOMRIGHT", -24, 18)
+gambitReset:SetText(G.reset)
+gambitReset:SetScript("OnClick", function() AIO.Handle("CompanionMount", "GambitReset") end)
+
+local gambitMenu = CreateFrame("Frame", "CompanionMountGambitMenu", UIParent, "UIDropDownMenuTemplate")
+
+-- The list as the window shows it: the rules, then empty unlocked lines.
+local function GambitRow(i)
+    return gambitData.rows[i] or { enabled = false }
+end
+
+local function SaveGambits(rows)
+    local list = {}
+    for i = 1, math.max(gambitData.max or 12, #rows) do
+        local r = rows[i]
+        if r and r.cond and r.action then
+            list[#list + 1] = { enabled = r.enabled and true or false, cond = r.cond, action = r.action }
+        end
+    end
+    AIO.Handle("CompanionMount", "GambitSave", list)
+end
+
+local function EditedRows()
+    local rows = {}
+    for i = 1, gambitData.max do rows[i] = gambitData.rows[i] end
+    return rows
+end
+
+local function ConditionMenu(index)
+    local menu = {}
+    for c, list in ipairs(G_CATEGORIES) do
+        local sub = {}
+        for _, code in ipairs(list) do
+            sub[#sub + 1] = {
+                text = G.cond[code], notCheckable = true,
+                func = function()
+                    local rows = EditedRows()
+                    local r = rows[index] or {}
+                    rows[index] = { enabled = r.cond == nil and true or r.enabled, cond = code, action = r.action or GAMBIT_ATTACK }
+                    SaveGambits(rows)
+                    CloseDropDownMenus()
+                end,
+            }
+        end
+        menu[#menu + 1] = { text = G.cat[c], hasArrow = true, notCheckable = true, menuList = sub }
+    end
+    return menu
+end
+
+local function ActionMenu(index)
+    local menu = {}
+    local function pick(action)
+        return function()
+            local rows = EditedRows()
+            local r = rows[index] or {}
+            if action then
+                rows[index] = { enabled = r.cond == nil and true or r.enabled, cond = r.cond or 43, action = action }
+            else
+                rows[index] = nil
+                local compact = {}
+                for i = 1, gambitData.max do if rows[i] then compact[#compact + 1] = rows[i] end end
+                rows = compact
+            end
+            SaveGambits(rows)
+            CloseDropDownMenus()
+        end
+    end
+    for _, entry in ipairs(gambitData.spells or {}) do
+        local id = tonumber(entry.spell)
+        local name, _, icon = GetSpellInfo(id)
+        menu[#menu + 1] = { text = name or ("#" .. id), icon = icon, notCheckable = true, func = pick(id) }
+    end
+    menu[#menu + 1] = { text = G.attack, icon = PET_ATTACK_TEXTURE, notCheckable = true, func = pick(GAMBIT_ATTACK) }
+    menu[#menu + 1] = { text = G.comeBack, icon = PET_FOLLOW_TEXTURE, notCheckable = true, func = pick(GAMBIT_RETURN) }
+    menu[#menu + 1] = { text = G.clear, notCheckable = true, func = pick(nil) }
+    return menu
+end
+
+-- The spell a gambit names is a first rank; the bar knows the rank cast.
+local function GambitSpellShown(action)
+    for _, entry in ipairs(gambitData.spells or {}) do
+        local id = tonumber(entry.spell)
+        if id and GetSpellInfo(id) == GetSpellInfo(action) then return id end
+    end
+    return action
+end
+
+local function Move(index, step)
+    local rows = EditedRows()
+    local other = index + step
+    if other < 1 or other > math.min(gambitData.slots, gambitData.max) then return end
+    rows[index], rows[other] = rows[other], rows[index]
+    local compact = {}
+    for i = 1, gambitData.max do if rows[i] then compact[#compact + 1] = rows[i] end end
+    SaveGambits(compact)
+end
+
+local function MakeGambitRow(i)
+    local row = CreateFrame("Frame", nil, gambitFrame)
+    row:SetSize(500, GAMBIT_ROW_HEIGHT - 2)
+    row:SetPoint("TOPLEFT", 20, -70 - (i - 1) * GAMBIT_ROW_HEIGHT)
+
+    row.number = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    row.number:SetPoint("LEFT", 0, 0)
+    row.number:SetWidth(22)
+    row.number:SetText(i .. ".")
+
+    row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+    row.check:SetSize(26, 26)
+    row.check:SetPoint("LEFT", 22, 0)
+    row.check:SetScript("OnClick", function(self)
+        local rows = EditedRows()
+        if rows[i] then
+            rows[i] = { enabled = self:GetChecked() and true or false, cond = rows[i].cond, action = rows[i].action }
+            SaveGambits(rows)
+        end
+    end)
+    row.check:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(G.enable)
+        GameTooltip:Show()
+    end)
+    row.check:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    row.condition = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+    row.condition:SetSize(230, 24)
+    row.condition:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
+    row.condition:SetScript("OnClick", function(self)
+        EasyMenu(ConditionMenu(i), gambitMenu, self, 0, 0, "MENU")
+    end)
+
+    row.arrow = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    row.arrow:SetPoint("LEFT", row.condition, "RIGHT", 6, 0)
+    row.arrow:SetText(">")
+
+    row.action = CreateFrame("Button", nil, row)
+    row.action:SetSize(160, 26)
+    row.action:SetPoint("LEFT", row.arrow, "RIGHT", 6, 0)
+    row.action.icon = row.action:CreateTexture(nil, "ARTWORK")
+    row.action.icon:SetSize(24, 24)
+    row.action.icon:SetPoint("LEFT")
+    row.action.text = row.action:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.action.text:SetPoint("LEFT", row.action.icon, "RIGHT", 5, 0)
+    row.action.text:SetPoint("RIGHT")
+    row.action.text:SetJustifyH("LEFT")
+    row.action:SetHighlightTexture(OPath("Interface", "QuestFrame", "UI-QuestTitleHighlight"), "ADD")
+    row.action:SetScript("OnClick", function(self)
+        EasyMenu(ActionMenu(i), gambitMenu, self, 0, 0, "MENU")
+    end)
+    row.action:SetScript("OnEnter", function(self)
+        local r = gambitData.rows[i]
+        if r and r.action and r.action > 0 then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetHyperlink("spell:" .. GambitSpellShown(r.action))
+            GameTooltip:Show()
+        end
+    end)
+    row.action:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    row.up = CreateFrame("Button", nil, row, "UIPanelScrollUpButtonTemplate")
+    row.up:SetPoint("LEFT", row.action, "RIGHT", 6, 6)
+    row.up:SetScript("OnClick", function() Move(i, -1) end)
+    row.down = CreateFrame("Button", nil, row, "UIPanelScrollDownButtonTemplate")
+    row.down:SetPoint("LEFT", row.action, "RIGHT", 6, -6)
+    row.down:SetScript("OnClick", function() Move(i, 1) end)
+
+    row.locked = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.locked:SetPoint("LEFT", row.check, "RIGHT", 8, 0)
+
+    gambitRows[i] = row
+    return row
+end
+
+local function RefreshGambits()
+    local open = math.min(gambitData.slots or 3, gambitData.max or 12)
+    for i = 1, (gambitData.max or 12) do
+        local row = gambitRows[i] or MakeGambitRow(i)
+        row:Show()
+        local r = gambitData.rows[i]
+        if i > open then
+            row.check:Hide()
+            row.condition:Hide()
+            row.arrow:Hide()
+            row.action:Hide()
+            row.up:Hide()
+            row.down:Hide()
+            row.locked:Show()
+            row.locked:SetText(string.format(G.locked, gambitData.unlock[i] or 80))
+            row.number:SetTextColor(0.5, 0.5, 0.5)
+        else
+            row.locked:Hide()
+            row.number:SetTextColor(1, 0.82, 0)
+            row.check:Show()
+            row.condition:Show()
+            row.arrow:Show()
+            row.action:Show()
+            row.up:Show()
+            row.down:Show()
+            row.check:SetChecked(r and r.enabled or false)
+            row.check:Enable()
+            if not r then row.check:Disable() end
+            row.condition:SetText(r and r.cond and ConditionText(r.cond) or G.empty)
+            local text, icon = ActionText(r and r.action)
+            row.action.text:SetText(r and r.action and text or G.empty)
+            row.action.icon:SetTexture(icon or OPath("Interface", "Buttons", "UI-EmptySlot-Disabled"))
+            local dim = r and not r.enabled
+            row.action.icon:SetDesaturated(dim and true or false)
+            row.condition:SetAlpha(dim and 0.6 or 1)
+        end
+    end
+    gambitStatus:SetText(gambitData.custom and G.customList or G.defaultList)
+end
+
+function CompanionMount_ToggleGambits()
+    if gambitFrame:IsShown() then
+        gambitFrame:Hide()
+    else
+        gambitFrame:Show()
+        RefreshGambits()
+        AIO.Handle("CompanionMount", "GambitOpen")
+    end
+end
+
+function Handlers.Gambits(_, data)
+    if type(data) ~= "table" then return end
+    gambitData = data
+    gambitData.rows = type(data.rows) == "table" and data.rows or {}
+    gambitData.unlock = type(data.unlock) == "table" and data.unlock or {}
+    if gambitFrame:IsShown() then RefreshGambits() end
+end
+
+gambitFrame:SetSize(540, 120 + 12 * GAMBIT_ROW_HEIGHT)
+AIO.SavePosition(gambitFrame, true)
+
+-- The spell bar: a spell the energy can not pay is dimmed blue, as the
+-- game dims a spell without mana.
+RefreshSpellEnergy = function()
+    for _, b in ipairs(spellButtons) do
+        if b.spell and b:IsShown() and state.summoned then
+            if (b.cost or 0) > companionEnergy then
+                b.icon:SetVertexColor(0.4, 0.4, 1)
+            else
+                b.icon:SetVertexColor(1, 1, 1)
+            end
+        end
+    end
+end
 
 -- ---------------------------------------------------------------------------
 -- The server
@@ -2056,6 +2645,8 @@ SlashCmdList["COMPANIONMOUNT"] = function(msg)
         CompanionMount_ToggleBag()
     elseif msg == "talents" then
         CompanionMount_ToggleTalents()
+    elseif msg == "gambits" or msg == "gambit" then
+        CompanionMount_ToggleGambits()
     elseif msg == "barre" or msg == "bar" then
         barHidden = not barHidden
         RefreshBar()

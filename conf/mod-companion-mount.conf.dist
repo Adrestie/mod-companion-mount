@@ -234,3 +234,49 @@ CompanionMount.Talent.PointsPerTier = 5
 #                     1 - (Enabled)
 
 CompanionMount.Talent.OneTree = 0
+
+#
+#    CompanionMount.Energy.Enable
+#        Description: The companion mount has energy (100, +10 a second like a
+#                     rogue) and every one of its spells costs some; it replaces
+#                     the delays between two casts. 0: the spells cost nothing.
+#        Default:     1
+
+CompanionMount.Energy.Enable = 1
+
+#
+#    CompanionMount.Energy.Max
+#        Description: The top of its energy bar.
+#        Default:     100
+
+CompanionMount.Energy.Max = 100
+
+#
+#    CompanionMount.Energy.Cost.Quick
+#    CompanionMount.Energy.Cost.Strong
+#    CompanionMount.Energy.Cost.Defensive
+#    CompanionMount.Energy.Cost.Key
+#    CompanionMount.Energy.Cost.Ultimate
+#        Description: What a spell costs: quick attack or heal; strong heal or
+#                     attack, area spell; defensive or control spell; the key
+#                     spell of the mount; the ultimate (which keeps its own
+#                     cooldown). The class of each talent is in
+#                     mod_companion_mount_talent.energy.
+#        Default:     25, 40, 50, 60, 80
+
+CompanionMount.Energy.Cost.Quick = 25
+CompanionMount.Energy.Cost.Strong = 40
+CompanionMount.Energy.Cost.Defensive = 50
+CompanionMount.Energy.Cost.Key = 60
+CompanionMount.Energy.Cost.Ultimate = 80
+
+#
+#    CompanionMount.Gambit.FirstSlots
+#    CompanionMount.Gambit.MaxSlots
+#        Description: Gambit slots (rules "target + condition -> action") at
+#                     level 1, and at level 80 (at most 12); the others open
+#                     regularly in between.
+#        Default:     3, 12
+
+CompanionMount.Gambit.FirstSlots = 3
+CompanionMount.Gambit.MaxSlots = 12

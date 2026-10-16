@@ -133,6 +133,33 @@ AzerothCore Mount mod
 - Fenêtre Talents (bouton de la barre), à l'image de celle du jeu. `.companion talent`,
   `.companion talent learn <id>`, `.companion talent reset`, `.companion setlevel <n>` (MJ).
 
+## Jalon 8 : l'énergie et les Gambits
+
+Spécification : `docs/energie-gambits.md`.
+
+- **L'énergie** : 100, rendue comme celle du voleur (+10 par seconde). Chaque sort en coûte selon sa
+  classe (`mod_companion_mount_talent.energy`) : attaque ou soin rapide 25, soin ou attaque forte et
+  sort de zone 40, défensif ou contrôle 50, sort clé 60, ultime 80 (qui garde sa recharge). Elle
+  remplace les délais entre deux lancers. Réglages `CompanionMount.Energy.*`.
+- **Le portrait** : le jeu n'en montre pas pour un gardien ; l'interface en ajoute un (modèle, nom,
+  niveau, PV, énergie en jaune dessous), nourri par un message d'addon (`CMPF`). Un clic cible le
+  compagnon ; Maj + glisser le déplace. Sur la barre, un sort que l'énergie ne paie pas est grisé
+  de bleu, et son infobulle donne son coût.
+- **Les Gambits** (comme Final Fantasy XII) : des règles « cible + condition → action » lues de
+  haut en bas ; à chaque tour, la première dont la condition est vraie et l'action possible (sort
+  prêt, énergie, portée) est jouée. 3 emplacements au niveau 1, 12 au niveau 80. Conditions : toi
+  (PV, attaqué, poison, maladie, magie, malédiction), le compagnon (PV, énergie), ennemi (ta cible,
+  sa cible, le plus proche, celui qui t'attaque, PV, incante, élite ou boss), groupe (un membre
+  < 50 %, 3 membres < 70 %), combat (2/3/5 ennemis autour, toujours). Actions : ses sorts,
+  Attaquer, Revenir près de toi. Passive, elle ne s'en prend à personne, gambit ou pas.
+- La liste **par défaut** est tirée des sorts appris (ultime, secours, soins, purifications,
+  provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
+  touche pas ; la sienne est gardée par monture. Réinitialiser y revient. Un sort en lancement
+  automatique qu'aucun gambit ne nomme sert de dernier recours.
+- Fenêtre **Gambits** : bouton de la fiche ou `/compagnon gambits` ; case à cocher, menu cible et
+  condition, action (icône du sort), flèches ; emplacements fermés grisés avec leur niveau. Textes en
+  anglais, français, allemand, espagnol et russe. Au clavier : `.companion gambit [save|reset]`.
+
 ## Identifiants provisoires
 
 La tranche 91 (`91000-91999`) est libre dans `ID_RANGES.md` mais **pas encore attribuée** :

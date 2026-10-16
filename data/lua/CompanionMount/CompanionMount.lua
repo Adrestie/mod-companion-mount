@@ -89,6 +89,7 @@ end
 -- The client says hello once its side is loaded.
 function Handlers.Hello(player)
     AIO.Handle(player, "CompanionMount", "State", State(player))
+    player:RunCommand("companion frame")
 end
 
 -- A `.companion` typed in the chat changes the state too: the sheet follows,
@@ -208,8 +209,9 @@ local function Catalogue()
         return {}
     end
     local catalogue = {}
-    local q = WorldDBQuery("SELECT `id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `spell_4`, `spell_5`, `use` "
-        .. "FROM `mod_companion_mount_talent`")
+    local hasEnergy = HasWorldColumn("mod_companion_mount_talent", "energy")
+    local q = WorldDBQuery("SELECT `id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `spell_4`, `spell_5`, `use`, "
+        .. (hasEnergy and "`energy`" or "0") .. " FROM `mod_companion_mount_talent`")
     if q then
         repeat
             local ranks = {}
@@ -220,6 +222,7 @@ local function Catalogue()
             catalogue[#catalogue + 1] = {
                 id = q:GetUInt32(0), tree = q:GetUInt8(1), tier = q:GetUInt8(2), col = q:GetUInt8(3),
                 ranks = ranks, key = q:GetUInt32(4) == 0, active = q:GetUInt8(9) ~= 0 and q:GetUInt8(9) ~= 6,
+                energy = q:GetUInt32(10),
             }
         until not q:NextRow()
     end
@@ -285,6 +288,11 @@ local function SendTalents(player)
     AIO.Handle(player, "CompanionMount", "Talents", Talents(player))
 end
 
+-- CompanionMount.Energy.Cost.*, by class: quick, strong or area, defensive or
+-- control, key spell, ultimate (the module's configuration, mirrored).
+local ENERGY_COSTS = { [0] = 25, [1] = 40, [2] = 50, [3] = 60, [4] = 80 }
+local ENERGY_KEY = 3
+
 -- THE SPELL BAR: the spells the mount learned (its active talents and its key
 -- spell), at the rank it casts, in the order of the trees; `auto` is false
 -- for those whose automatic casting the player cut.
@@ -315,7 +323,9 @@ Spells = function(player)
         if rank > 0 and (t.key or t.active) then
             local spell = t.key and data.keys[t.tree] or t.ranks[math.min(rank, #t.ranks)]
             if spell then
-                learned[#learned + 1] = { spell = spell, order = t.tree * 100 + t.tier * 10 + t.col }
+                local class = t.key and ENERGY_KEY or (t.energy or 0)
+                learned[#learned + 1] = { spell = spell, order = t.tree * 100 + t.tier * 10 + t.col,
+                    cost = ENERGY_COSTS[class] or 0 }
             end
         end
     end
@@ -323,9 +333,75 @@ Spells = function(player)
 
     local spells = {}
     for _, l in ipairs(learned) do
-        spells[#spells + 1] = { spell = l.spell, auto = not off[l.spell] }
+        spells[#spells + 1] = { spell = l.spell, auto = not off[l.spell], cost = l.cost }
     end
     return spells
+end
+
+-- ---------------------------------------------------------------------------
+-- The gambits. The C++ module plays them and keeps them (`.companion gambit
+-- save|reset`); here the list of the chosen mount is read for the window.
+-- ---------------------------------------------------------------------------
+
+-- CompanionMount.Gambit.FirstSlots and MaxSlots (mirrored): 3 at level 1, 12 at 80.
+local GAMBIT_FIRST, GAMBIT_MAX = 3, 12
+
+local function GambitSlots(level)
+    level = math.max(1, math.min(level, 80))
+    return GAMBIT_FIRST + math.floor((GAMBIT_MAX - GAMBIT_FIRST) * (level - 1) / 79)
+end
+
+local function Gambits(player)
+    local data = { rows = {}, slots = GAMBIT_FIRST, max = GAMBIT_MAX, unlock = {}, custom = false, spells = {} }
+    for slot = 0, GAMBIT_MAX - 1 do
+        for level = 1, 80 do
+            if GambitSlots(level) > slot then data.unlock[slot + 1] = level break end
+        end
+    end
+    local state = State(player)
+    data.spells = state.spells or {}
+    data.slots = GambitSlots(math.max(state.level or 1, 1))
+    data.mount = state.mount
+    if not HasCharTable("mod_companion_mount_gambit") or (state.mount or 0) == 0 then
+        return data
+    end
+    local q = CharDBQuery(string.format(
+        "SELECT `enabled`, `cond`, `action`, `custom` FROM `mod_companion_mount_gambit` "
+        .. "WHERE `guid` = %d AND `mount_spell` = %d ORDER BY `slot`", player:GetGUIDLow(), state.mount))
+    if q then
+        repeat
+            data.rows[#data.rows + 1] = { enabled = q:GetUInt8(0) ~= 0, cond = q:GetUInt32(1), action = q:GetInt32(2) }
+            if q:GetUInt8(3) ~= 0 then data.custom = true end
+        until not q:NextRow()
+    end
+    return data
+end
+
+local function SendGambits(player)
+    AIO.Handle(player, "CompanionMount", "Gambits", Gambits(player))
+end
+
+function Handlers.GambitOpen(player)
+    SendGambits(player)
+end
+
+-- The whole list, as the window has it: "enabled:condition:action", comma separated.
+function Handlers.GambitSave(player, rows)
+    if type(rows) ~= "table" then return end
+    local parts = {}
+    for i = 1, math.min(#rows, GAMBIT_MAX) do
+        local r = rows[i]
+        local cond, action = tonumber(type(r) == "table" and r.cond), tonumber(type(r) == "table" and r.action)
+        if not cond or not action then return end
+        parts[#parts + 1] = string.format("%d:%d:%d", r.enabled and 1 or 0, cond, action)
+    end
+    player:RunCommand("companion gambit save " .. table.concat(parts, ","))
+    SendGambits(player)
+end
+
+function Handlers.GambitReset(player)
+    player:RunCommand("companion gambit reset")
+    SendGambits(player)
 end
 
 -- A click on a spell of the bar: cast by hand. A right click: its automatic
