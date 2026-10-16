@@ -190,11 +190,11 @@ local function Catalogue()
         return {}
     end
     catalogue = {}
-    local q = WorldDBQuery("SELECT id, tree, tier, col, spell_1, spell_2, spell_3 FROM mod_companion_mount_talent")
+    local q = WorldDBQuery("SELECT id, tree, tier, col, spell_1, spell_2, spell_3, spell_4, spell_5 FROM mod_companion_mount_talent")
     if q then
         repeat
             local ranks = {}
-            for i = 4, 6 do
+            for i = 4, 8 do
                 local spell = q:GetUInt32(i)
                 if spell > 0 then ranks[#ranks + 1] = spell end
             end

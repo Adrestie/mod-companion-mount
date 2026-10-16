@@ -309,7 +309,9 @@ private:
             if (!target)
                 continue;
 
-            TriggerCastFlags const flags = TriggerCastFlags(TRIGGERED_IGNORE_POWER_AND_REAGENT_COST | TRIGGERED_IGNORE_GCD);
+            // Ni mana ni rage, ni forme ni posture : une bete n'en a pas.
+            TriggerCastFlags const flags = TriggerCastFlags(TRIGGERED_IGNORE_POWER_AND_REAGENT_COST | TRIGGERED_IGNORE_GCD
+                | TRIGGERED_IGNORE_SHAPESHIFT);
             if (me->CastSpell(target, info, flags) == SPELL_CAST_OK)
             {
                 uint32 cooldown = active.cooldown;

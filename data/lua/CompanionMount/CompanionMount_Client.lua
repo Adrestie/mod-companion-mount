@@ -72,9 +72,9 @@ local L = {
     talents    = FR and "Talents" or "Talents",
     talentsTip = FR and "Ouvre les talents de la monture : un arbre par monture, cliquez pour apprendre un rang."
                      or "Opens the talents of the mount: one tree per mount, click to learn a rank.",
-    treeDps    = "DPS",
-    treeTank   = "Tank",
-    treeHeal   = FR and "Soin" or "Heal",
+    treeDps    = FR and "Fureur" or "Fury",
+    treeTank   = FR and "Rempart" or "Rampart",
+    treeHeal   = FR and "Bienveillance" or "Benevolence",
     noTree     = FR and "aucun arbre choisi" or "no tree chosen",
     points     = FR and "Points : %d/%d - %s" or "Points: %d/%d - %s",
     reset      = FR and "Réinitialiser" or "Reset",
@@ -454,8 +454,8 @@ AIO.SavePosition(bagFrame, true)
 -- ---------------------------------------------------------------------------
 -- The talents window
 --
--- The pet talent frame of the game: the art of the tree (the client's
--- HunterPetFerocity, -Tenacity, -Cunning), buttons laid as TalentFrame lays
+-- The talent frame of the game: the art of a tree (the client's WarriorFury,
+-- WarriorProtection, DruidRestoration), buttons laid as TalentFrame lays
 -- them (63 px apart), the slot and the rank colored as Blizzard colors them --
 -- green while a rank can be learned, yellow at the top rank, gray out of
 -- reach -- tabs at the bottom, the points in the footer. With ForeverUI
@@ -466,9 +466,9 @@ local TP = string.char(92)
 local function TPath(...) return table.concat({ ... }, TP) end
 
 local TREES = {
-    { name = L.treeDps,  art = "HunterPetFerocity" },
-    { name = L.treeTank, art = "HunterPetTenacity" },
-    { name = L.treeHeal, art = "HunterPetCunning" },
+    { name = L.treeDps,  art = "WarriorFury" },
+    { name = L.treeTank, art = "WarriorProtection" },
+    { name = L.treeHeal, art = "DruidRestoration" },
 }
 -- TalentFrame: INITIAL_TALENT_OFFSET_X/Y and the step between two buttons.
 local T_X, T_Y, T_STEP, T_BUTTON = 35, 20, 63, 37

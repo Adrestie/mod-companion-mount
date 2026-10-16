@@ -18,11 +18,11 @@
 /*
  * mod-companion-mount — LES TALENTS.
  *
- * Trois arbres, ceux des familiers de chasseur que le client connait deja
- * (icones, noms, infobulles) : DPS = Ferocite, Tank = Tenacite, Soin = Astuce
- * dont les coups sont remplaces par des soins. Chacun se termine par le SORT
- * CLE, qui depend du type de la monture (cheval : Charge, loup : Hurlement
- * furieux...). Le catalogue est en base (mod_companion_mount_talent,
+ * Trois arbres a elle -- DPS « Fureur », Tank « Rempart », Soin « Bienveillance »
+ * -- faits de sorts que le client connait deja (icones, noms, infobulles) :
+ * des talents de classe sans masque de classe pour les passifs, des sorts de
+ * PNJ ou a rangs pour les actifs. Chacun se termine par le SORT CLE, qui
+ * depend du type de la monture (cheval : Pietinement, kodo : Choc martial...). Le catalogue est en base (mod_companion_mount_talent,
  * mod_companion_mount_kind, mod_companion_mount_kind_spell).
  *
  * LES REGLES, celles du familier : un point au niveau 20 puis un tous les
@@ -112,7 +112,8 @@ namespace CompanionMount
         sPassiveSpells.clear();
 
         if (QueryResult result = WorldDatabase.Query(
-                "SELECT `id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `use`, `cooldown` FROM `mod_companion_mount_talent`"))
+                "SELECT `id`, `tree`, `tier`, `col`, `spell_1`, `spell_2`, `spell_3`, `spell_4`, `spell_5`, `use`, `cooldown` "
+                "FROM `mod_companion_mount_talent`"))
         {
             do
             {
@@ -122,12 +123,12 @@ namespace CompanionMount
                 talent.tree = fields[1].Get<uint8>();
                 talent.tier = fields[2].Get<uint8>();
                 talent.col = fields[3].Get<uint8>();
-                for (uint8 i = 0; i < 3; ++i)
+                for (uint8 i = 0; i < 5; ++i)
                     if (uint32 spell = fields[4 + i].Get<uint32>())
                         if (sSpellMgr->GetSpellInfo(spell))
                             talent.ranks.push_back(spell);
-                talent.use = fields[7].Get<uint8>();
-                talent.cooldown = fields[8].Get<uint32>();
+                talent.use = fields[9].Get<uint8>();
+                talent.cooldown = fields[10].Get<uint32>();
                 talent.key = !fields[4].Get<uint32>();
                 if (talent.tree > 2 || (!talent.key && talent.ranks.empty()))
                     continue;

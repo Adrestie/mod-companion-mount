@@ -105,22 +105,20 @@ AzerothCore Mount mod
 
 ## Jalon 7 : les talents
 
-- Trois arbres, ceux des familiers de chasseur que le client connaît (icônes, infobulles) :
-  DPS = Férocité, Tank = Ténacité, Soin = Astuce dont les coups sont remplacés par des soins
-  (Récupération et Toucher guérisseur sur le maître, Lécher ses plaies). Un seul arbre par monture,
-  choisi par son premier point ; 1 point au niveau 20 puis 1 tous les 4 niveaux (16 au niveau 80),
-  3 points par rangée.
+- Trois arbres propres aux montures, faits de sorts que le client 3.3.5 connaît déjà (icônes,
+  infobulles) : DPS « Fureur », Tank « Rempart », Soin « Bienveillance ». Passifs : talents de classe
+  sans masque de classe (Cruauté, Précision, Robustesse, Anticipation, Divinité…), jusqu'à 5 rangs.
+  Actifs : sorts de PNJ ou à rangs, lancés par l'IA de la monture (Rossée, Enchaînement, Provocation,
+  Choc martial, Récupération et Salve de guérison sur le maître…). Liste complète dans
+  `data/sql/world/companion_mount_12_new_talents.sql`.
+- Un seul arbre par monture, choisi par son premier point ; 1 point au niveau 20 puis 1 tous les 4
+  niveaux (16 au niveau 80), 3 points par rangée.
 - En haut de chaque arbre, le **sort clé**, selon le type de la monture (classé d'après le modèle de
-  sa créature) : cheval Charge, mort-vivant Frappe spirituelle, loup Hurlement furieux, félin
-  Griffure, raptor Déchirure sauvage, bête lourde Piétinement, ours Balayer, oiseau Hurlement
-  démoralisant, dragon Souffle de feu, bête ailée Souffle d'éclair, insecte Jet de toile venimeuse,
-  machine Souffle de lave. Il prend le plus haut rang que le niveau de la monture permet.
-- Les talents passifs posent leur aura sur la monture ; les actifs sont lancés par son IA (sur sa
-  cible, sur elle, ou sur le maître selon le talent).
-- Fenêtre Talents (bouton de la barre) : onglets DPS / Tank / Soin, rangs, points, réinitialisation.
-  `.companion talent`, `.companion talent learn <id>`, `.companion talent reset` au clavier.
-- Le catalogue est en base (`mod_companion_mount_talent`, `_kind`, `_kind_spell`), généré depuis les
-  DBC du client.
+  sa créature) : cheval Piétinement, mort-vivant Drain de vie, loup Cri de guerre, félin Rossée,
+  raptor Enrager, bête lourde Choc martial, ours Rugissement intimidant, oiseau Cri démoralisant,
+  dragon Souffle de feu, bête ailée Frappe des ailes, insecte Fracasser armure, machine Renversement.
+- Fenêtre Talents (bouton de la barre), à l'image de celle du jeu. `.companion talent`,
+  `.companion talent learn <id>`, `.companion talent reset`, `.companion setlevel <n>` (MJ).
 
 ## Identifiants provisoires
 
