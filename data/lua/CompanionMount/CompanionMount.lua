@@ -55,7 +55,7 @@ local function HasWorldColumn(tableName, column)
     return known[key]
 end
 
--- The orders the bar may give: the subcommands of `.companion`, nothing else.
+-- The orders the interface may give: the subcommands of `.companion`, nothing else.
 local ORDERS = {
     summon = true, dismiss = true, attack = true,
     follow = true, stay = true,
@@ -76,8 +76,8 @@ local function State(player)
         summoned = q:GetUInt8(1) ~= 0,
         command = q:GetUInt8(2),
         react = q:GetUInt8(3),
-        -- the level is written as it changes, a moment later: the bar shows
-        -- it as of the last order or command
+        -- the level is written as it changes, a moment later: the interface
+        -- shows it as of the last order or command
         level = q:IsNull(4) and 0 or q:GetUInt8(4),
     }
 end
@@ -87,8 +87,9 @@ function Handlers.Hello(player)
     AIO.Handle(player, "CompanionMount", "State", State(player))
 end
 
--- A `.companion` typed in the chat changes the state too: the bar follows,
--- once the command has run (the event comes before it).
+-- A `.companion` typed in the chat changes the state too: the sheet follows,
+-- once the command has run (the event comes before it). Not for
+-- `.companion snapshot`, which the sheet itself runs every few seconds.
 local PLAYER_EVENT_ON_COMMAND = 42
 
 local function SendState(_, _, _, player)
@@ -96,7 +97,8 @@ local function SendState(_, _, _, player)
 end
 
 RegisterPlayerEvent(PLAYER_EVENT_ON_COMMAND, function(_, player, command)
-    if player and type(command) == "string" and command:lower():find("^%.?companion") then
+    if player and type(command) == "string" and command:lower():find("^%.?companion")
+        and not command:lower():find("snapshot", 1, true) then
         player:RegisterEvent(SendState, 100, 1)
     end
 end)

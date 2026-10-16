@@ -1604,12 +1604,13 @@ function UI.Build(parent)
     talents:SetText(L.talents)
     talents:SetScript("OnClick", function() CompanionMount_ToggleTalents() end)
 
-    -- While it is shown, the numbers follow the fight.
+    -- While it is shown, the numbers follow the fight (every 3 s: each
+    -- request has the module write the sheet in the database).
     local elapsed = 0
     root:SetScript("OnShow", function() UI.Request() end)
     root:SetScript("OnUpdate", function(_, dt)
         elapsed = elapsed + dt
-        if elapsed >= 2 then
+        if elapsed >= 3 then
             elapsed = 0
             UI.Request()
         end
