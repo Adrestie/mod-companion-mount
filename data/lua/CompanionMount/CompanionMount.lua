@@ -44,6 +44,17 @@ end
 local function HasCharTable(name) return HasTable(CharDBQuery, name) end
 local function HasWorldTable(name) return HasTable(WorldDBQuery, name) end
 
+-- The same for a column a newer SQL file adds (MySQL error 1054 stops it too).
+local function HasWorldColumn(tableName, column)
+    local key = tableName .. "." .. column
+    if known[key] then return true end
+    local q = WorldDBQuery(string.format(
+        "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() "
+        .. "AND TABLE_NAME = '%s' AND COLUMN_NAME = '%s'", tableName, column))
+    known[key] = q ~= nil
+    return known[key]
+end
+
 -- The orders the bar may give: the subcommands of `.companion`, nothing else.
 local ORDERS = {
     summon = true, dismiss = true, attack = true,
@@ -186,7 +197,7 @@ end
 local catalogue
 local function Catalogue()
     if catalogue then return catalogue end
-    if not HasWorldTable("mod_companion_mount_talent") then
+    if not HasWorldTable("mod_companion_mount_talent") or not HasWorldColumn("mod_companion_mount_talent", "spell_5") then
         return {}
     end
     catalogue = {}
