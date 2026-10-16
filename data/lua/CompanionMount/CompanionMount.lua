@@ -275,10 +275,48 @@ function Handlers.TalentReset(player)
     SendTalents(player)
 end
 
+-- ---------------------------------------------------------------------------
+-- The sheet. ALE cannot read a creature's armor, damage or chances: the module
+-- writes them (`.companion snapshot`, a direct write) and they are read back.
+-- ---------------------------------------------------------------------------
+
+local SHEET_COLUMNS = {
+    "mount_spell", "name", "kind", "level", "xp", "xp_next", "out", "health", "max_health", "armor",
+    "attack_power", "min_damage", "max_damage", "attack_time", "crit", "dodge", "parry", "tree",
+    "points_spent", "points_total", "command_state", "react_state",
+}
+
+local function Sheet(player)
+    if not HasCharTable("mod_companion_mount_snapshot") then
+        return {}
+    end
+    player:RunCommand("companion snapshot")
+    local q = CharDBQuery(string.format("SELECT %s FROM mod_companion_mount_snapshot WHERE guid = %d",
+        table.concat(SHEET_COLUMNS, ", "), player:GetGUIDLow()))
+    local sheet = {}
+    if q then
+        for i, column in ipairs(SHEET_COLUMNS) do
+            if column == "name" then
+                sheet[column] = q:GetString(i - 1)
+            elseif column == "crit" or column == "dodge" or column == "parry" then
+                sheet[column] = q:GetFloat(i - 1)
+            else
+                sheet[column] = q:GetUInt32(i - 1)
+            end
+        end
+    end
+    return sheet
+end
+
+function Handlers.SheetOpen(player)
+    AIO.Handle(player, "CompanionMount", "Sheet", Sheet(player))
+end
+
 function Handlers.Order(player, order)
     if type(order) ~= "string" or not ORDERS[order] then
         return
     end
     player:RunCommand("companion " .. order)
     AIO.Handle(player, "CompanionMount", "State", State(player))
+    AIO.Handle(player, "CompanionMount", "Sheet", Sheet(player))
 end
