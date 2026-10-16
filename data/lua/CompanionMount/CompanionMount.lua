@@ -117,6 +117,7 @@ function Handlers.Rename(player, name)
     name = name:gsub("[%c|]", ""):sub(1, 48)
     player:RunCommand("companion rename " .. name)
     AIO.Handle(player, "CompanionMount", "State", State(player))
+    Handlers.SheetOpen(player)   -- defined below: read when the name changes
 end
 
 -- ---------------------------------------------------------------------------

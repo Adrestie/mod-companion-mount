@@ -797,7 +797,7 @@ local SL = {
                      or "No companion mount: ride a mount and click Call.",
     level      = FR and "Niveau %d" or "Level %d",
     xp         = FR and "%d / %d points d'expérience" or "%d / %d experience",
-    xpMax      = FR and "Niveau maximal pour l'instant" or "Highest level for now",
+    xpMax      = FR and "Niveau max" or "Max Level",
     health     = FR and "Points de vie" or "Health",
     armor      = FR and "Armure" or "Armor",
     power      = FR and "Puissance d'attaque" or "Attack power",
@@ -809,6 +809,11 @@ local SL = {
     points     = FR and "Points de talent" or "Talent points",
     orders     = FR and "Ordres" or "Orders",
     stats      = FR and "Caractéristiques" or "Statistics",
+    mainStats  = FR and "Caractéristiques principales" or "Main Stats",
+    melee      = FR and "Mêlée" or "Melee",
+    spell      = FR and "Sorts" or "Spell",
+    defense    = FR and "Défense" or "Defense",
+    misc       = FR and "Divers" or "Misc.",
     mmTip      = FR and "Clic : la fiche de votre monture-compagnon." or "Click: the sheet of your companion mount.",
     bagDrag    = FR and "Clic : ouvre les sacoches. Glissez l'icône dans une barre d'action pour l'y garder."
                      or "Click: opens the saddlebags. Drag the icon to an action bar to keep it there.",
@@ -831,7 +836,10 @@ local function Percent(v) return string.format("%.2f %%", tonumber(v) or 0) end
 
 local FUI = ForeverUI and ForeverUI.AddMicroButton and true or false
 local FUI_ART = OPath("Interface", "ForeverUI") .. string.char(92)
-local PANEL_W, PANEL_H = 673, 594
+-- The character sheet's size (ForeverUI: 631 x 484, panes 398 + 233 under a 20 px
+-- title); the game's dialog adds its border around the same panes.
+local PANEL_W, PANEL_H = 631, 484
+if not FUI then PANEL_W, PANEL_H = 655, 514 end
 local MICRO_NAME = "CompanionMountMicroButton"
 
 -- The pieces of ForeverUI's sheets used here: { file, u1, u2, v1, v2, width, height }.
@@ -857,6 +865,8 @@ local PANEL_ART = {
     statTitle = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart1c60", 0.283203, 0.479492, 0.056641, 0.087891, 201, 32 },
     statLight = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart1c60", 0.491211, 0.699219, 0.000977, 0.018555, 213, 18 },
     statDark = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart1c60", 0.263672, 0.462891, 0.000977, 0.021484, 204, 21 },
+    stone = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart1c60", 0.459961, 0.687500, 0.859375, 0.942383, 233, 85 },
+    divider = { "common" .. string.char(92) .. "commonframedividerc60", 0.062500, 0.750000, 0.015625, 0.796875, 11, 50 },
 }
 
 local function Art(t, name, keepSize)
@@ -1043,9 +1053,16 @@ function Panel.Create()
     Panel.frame = f
 
     for i = 1, #TAB_DEFS do
+        -- The statistics fill the window under the title, as the sheet's panes;
+        -- the gambits keep a margin.
         local page = CreateFrame("Frame", nil, f)
-        page:SetPoint("TOPLEFT", f, "TOPLEFT", 18, FUI and -66 or -40)
-        page:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -18, FUI and 14 or 18)
+        if i == 1 then
+            page:SetPoint("TOPLEFT", f, "TOPLEFT", FUI and 0 or 12, FUI and -20 or -38)
+            page:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", FUI and 0 or -12, FUI and 0 or 12)
+        else
+            page:SetPoint("TOPLEFT", f, "TOPLEFT", 18, FUI and -30 or -40)
+            page:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -18, 14)
+        end
         page:SetFrameLevel(f:GetFrameLevel() + 2)
         page:Hide()
         Panel.pages[i] = page
@@ -1106,25 +1123,31 @@ function UI.Build(parent)
     local root = CreateFrame("Frame", nil, parent)
     root:SetAllPoints(parent)
     UI.root = root
+    local LEFT_PANE, RIGHT_PANE = 398, 233
 
-    -- THE 3D VIEW, on the sheet's own background with ForeverUI.
-    local view = CreateFrame("Frame", nil, root)
-    view:SetSize(380, 404)
-    view:SetPoint("TOPLEFT", 0, 0)
-    if FUI then
-        Art(view:CreateTexture(nil, "BACKGROUND"), "generalBg", true):SetAllPoints(view)
-    else
-        view:SetBackdrop({
+    local function Backdrop(frame, alpha)
+        frame:SetBackdrop({
             bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
             edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
             tile = true, tileSize = 16, edgeSize = 14,
             insets = { left = 4, right = 4, top = 4, bottom = 4 },
         })
-        view:SetBackdropColor(0, 0, 0, 0.75)
+        frame:SetBackdropColor(0, 0, 0, alpha)
     end
-    local model = CreateFrame("PlayerModel", nil, view)
-    model:SetPoint("TOPLEFT", 8, -44)
-    model:SetPoint("BOTTOMRIGHT", -8, 8)
+
+    -- THE LEFT PANE: the mount in 3D (drag to turn it), its name above it.
+    local left = CreateFrame("Frame", nil, root)
+    left:SetPoint("TOPLEFT", 0, 0)
+    left:SetPoint("BOTTOMLEFT", 0, 0)
+    left:SetWidth(LEFT_PANE)
+    if FUI then
+        Art(left:CreateTexture(nil, "BACKGROUND"), "generalBg"):SetPoint("TOPLEFT", 0, 0)
+    else
+        Backdrop(left, 0.75)
+    end
+    local model = CreateFrame("PlayerModel", nil, left)
+    model:SetPoint("TOPLEFT", 10, -44)
+    model:SetPoint("BOTTOMRIGHT", -10, 48)
     model.rotation = 0.6
     model:EnableMouse(true)
     model:SetScript("OnMouseDown", function(self) self.turning = GetCursorPosition() end)
@@ -1138,84 +1161,14 @@ function UI.Build(parent)
         end
     end)
     UI.model = model
+    UI.name = left:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    UI.name:SetPoint("TOP", left, "TOP", 0, -14)
 
-    -- Its name and level, over the view.
-    UI.name = view:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    UI.name:SetPoint("TOP", view, "TOP", 0, -10)
-    UI.levelText = view:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    UI.levelText:SetPoint("TOP", UI.name, "BOTTOM", 0, -4)
-
-    -- Its experience, under the view.
-    local xp = CreateFrame("StatusBar", nil, root)
-    xp:SetSize(372, 14)
-    xp:SetPoint("TOPLEFT", view, "BOTTOMLEFT", 4, -10)
-    xp:SetStatusBarTexture(OPath("Interface", "TargetingFrame", "UI-StatusBar"))
-    xp:SetStatusBarColor(0.58, 0.0, 0.55)
-    local xpBack = xp:CreateTexture(nil, "BACKGROUND")
-    xpBack:SetAllPoints()
-    xpBack:SetTexture(0, 0, 0, 0.5)
-    local xpBorder = CreateFrame("Frame", nil, xp)
-    xpBorder:SetPoint("TOPLEFT", -3, 3)
-    xpBorder:SetPoint("BOTTOMRIGHT", 3, -3)
-    xpBorder:SetBackdrop({ edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"), edgeSize = 10 })
-    UI.xpText = xp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    UI.xpText:SetPoint("CENTER")
-    UI.xp = xp
-
-    -- ITS FIGURES, in the character sheet's right pane.
-    local stats = CreateFrame("Frame", nil, root)
-    stats:SetSize(233, 383)
-    stats:SetPoint("TOPRIGHT", 0, 0)
-    if FUI then
-        Art(stats:CreateTexture(nil, "BACKGROUND"), "statBg", true):SetAllPoints(stats)
-    else
-        stats:SetBackdrop({
-            bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
-            edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
-            tile = true, tileSize = 16, edgeSize = 14,
-            insets = { left = 4, right = 4, top = 4, bottom = 4 },
-        })
-        stats:SetBackdropColor(0, 0, 0, 0.6)
-    end
-    local header = stats:CreateTexture(nil, "ARTWORK")
-    header:SetPoint("TOP", stats, "TOP", 0, -10)
-    if FUI then Art(header, "statTitle") else header:SetSize(201, 24) header:SetTexture(1, 1, 1, 0.08) end
-    local statsTitle = stats:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    statsTitle:SetPoint("CENTER", header, "CENTER", 0, 0)
-    statsTitle:SetText(SL.stats)
-    local labels = { "health", "armor", "power", "damage", "speed", "crit", "dodge", "parry", "points" }
-    for i, key in ipairs(labels) do
-        local y = -50 - (i - 1) * 20
-        local line = stats:CreateTexture(nil, "ARTWORK")
-        line:SetPoint("TOP", stats, "TOP", 0, y + 1)
-        if FUI then
-            Art(line, (i % 2 == 0) and "statDark" or "statLight", true)
-            line:SetSize(213, 20)
-        else
-            line:SetSize(213, 20)
-            line:SetTexture(1, 1, 1, (i % 2 == 0) and 0.04 or 0.08)
-        end
-        local label = stats:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        label:SetPoint("LEFT", line, "LEFT", 8, 0)
-        label:SetText(SL[key])
-        local value = stats:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        value:SetPoint("RIGHT", line, "RIGHT", -8, 0)
-        value:SetJustifyH("RIGHT")
-        UI.rows[key] = value
-    end
-
-    -- BELOW: its name and its saddlebags on the left, its talents on the right.
-    local rename = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
-    rename:SetSize(120, 24)
-    rename:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", 0, 6)
-    rename:SetText(L.rename)
-    rename:SetScript("OnClick", function() StaticPopup_Show("COMPANIONMOUNT_RENAME") end)
-
-    -- The saddlebags: an icon that opens them, and that can be dragged to an
-    -- action bar (it becomes the macro /compagnon sacoches).
-    local bag = CreateFrame("Button", "CompanionMountSheetBagButton", root)
+    -- The saddlebags, bottom left of the view: an icon that opens them, and
+    -- that can be dragged to an action bar (the macro /compagnon sacoches).
+    local bag = CreateFrame("Button", "CompanionMountSheetBagButton", left)
     bag:SetSize(30, 30)
-    bag:SetPoint("LEFT", rename, "RIGHT", 18, 0)
+    bag:SetPoint("BOTTOMLEFT", left, "BOTTOMLEFT", 16, 12)
     local bagIcon = bag:CreateTexture(nil, "ARTWORK")
     bagIcon:SetAllPoints()
     bagIcon:SetTexture(OPath("Interface", "Icons", "INV_Misc_Bag_08"))
@@ -1235,13 +1188,150 @@ function UI.Build(parent)
         GameTooltip:Show()
     end)
     bag:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    local bagLabel = root:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local bagLabel = left:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     bagLabel:SetPoint("LEFT", bag, "RIGHT", 8, 0)
     bagLabel:SetText(L.bag)
 
-    local talents = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
-    talents:SetSize(120, 24)
-    talents:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 6)
+    -- THE RIGHT PANE, as the character sheet's: its background, the stone band
+    -- (level and experience), the divider against the view.
+    local right = CreateFrame("Frame", nil, root)
+    right:SetPoint("TOPLEFT", left, "TOPRIGHT", 0, 0)
+    right:SetPoint("BOTTOMLEFT", left, "BOTTOMRIGHT", 0, 0)
+    right:SetWidth(RIGHT_PANE)
+    if FUI then
+        Art(right:CreateTexture(nil, "BACKGROUND"), "statBg", true):SetAllPoints(right)
+        Art(right:CreateTexture(nil, "ARTWORK"), "stone"):SetPoint("TOPLEFT", 0, 0)
+        -- The divider: a cap at each end, the middle drawn between them.
+        local divider = CreateFrame("Frame", nil, right)
+        divider:SetWidth(11)
+        divider:SetPoint("TOPLEFT", right, "TOPLEFT", -6, -1)
+        divider:SetPoint("BOTTOMLEFT", right, "BOTTOMLEFT", -6, 0)
+        divider:SetFrameLevel(right:GetFrameLevel() + 3)
+        local e = PANEL_ART.divider
+        local cap = (e[5] - e[4]) * 4 / e[7]
+        local function slice(v1, v2)
+            local t = divider:CreateTexture(nil, "OVERLAY")
+            t:SetTexture(FUI_ART .. e[1])
+            t:SetTexCoord(e[2], e[3], v1, v2)
+            return t
+        end
+        local top, bottom = slice(e[4], e[4] + cap), slice(e[5] - cap, e[5])
+        top:SetHeight(4)
+        top:SetPoint("TOPLEFT")
+        top:SetPoint("TOPRIGHT")
+        bottom:SetHeight(4)
+        bottom:SetPoint("BOTTOMLEFT")
+        bottom:SetPoint("BOTTOMRIGHT")
+        local middle = slice(e[4] + cap, e[5] - cap)
+        middle:SetPoint("TOPLEFT", top, "BOTTOMLEFT")
+        middle:SetPoint("BOTTOMRIGHT", bottom, "TOPRIGHT")
+    else
+        Backdrop(right, 0.6)
+    end
+
+    UI.levelText = right:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    UI.levelText:SetPoint("TOP", right, "TOP", 0, -18)
+    local xp = CreateFrame("StatusBar", nil, right)
+    xp:SetSize(RIGHT_PANE - 40, 14)
+    xp:SetPoint("TOP", UI.levelText, "BOTTOM", 0, -10)
+    xp:SetStatusBarTexture(OPath("Interface", "TargetingFrame", "UI-StatusBar"))
+    xp:SetStatusBarColor(0.58, 0.0, 0.55)
+    local xpBack = xp:CreateTexture(nil, "BACKGROUND")
+    xpBack:SetAllPoints()
+    xpBack:SetTexture(0, 0, 0, 0.5)
+    local xpBorder = CreateFrame("Frame", nil, xp)
+    xpBorder:SetPoint("TOPLEFT", -3, 3)
+    xpBorder:SetPoint("BOTTOMRIGHT", 3, -3)
+    xpBorder:SetBackdrop({ edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"), edgeSize = 10 })
+    UI.xpText = xp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    UI.xpText:SetPoint("CENTER")
+    UI.xp = xp
+
+    -- THE FIGURES: a header (the sheet's title art), its rows on alternating
+    -- bands -- dark first, then light, starting again with each header.
+    local STEP, MARGIN = 15, 20
+    local function Header(y)
+        local h = CreateFrame("Button", nil, right)
+        h:SetSize(RIGHT_PANE - 2 * MARGIN + 10, 34)
+        h:SetPoint("TOP", right, "TOP", 0, y)
+        local art = h:CreateTexture(nil, "ARTWORK")
+        art:SetAllPoints(h)
+        if FUI then Art(art, "statTitle", true) else art:SetTexture(1, 1, 1, 0.08) end
+        h.text = h:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        h.text:SetPoint("CENTER", 0, 1)
+        return h
+    end
+    local function Row(y, index)
+        local band = right:CreateTexture(nil, "ARTWORK")
+        band:SetSize(RIGHT_PANE - 2 * MARGIN, STEP)
+        band:SetPoint("TOP", right, "TOP", 0, y)
+        if FUI then
+            Art(band, (index % 2 == 1) and "statDark" or "statLight", true)
+        else
+            band:SetTexture(1, 1, 1, (index % 2 == 1) and 0.04 or 0.08)
+        end
+        local label = right:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        label:SetPoint("LEFT", band, "LEFT", 4, 0)
+        local value = right:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        value:SetPoint("RIGHT", band, "RIGHT", -4, 0)
+        value:SetJustifyH("RIGHT")
+        return { band = band, label = label, value = value }
+    end
+
+    local y = -95
+    local main = Header(y)
+    main.text:SetText(SL.mainStats)
+    UI.mainRows = {}
+    for i, key in ipairs({ "health", "armor" }) do
+        local r = Row(y - 34 - (i - 1) * STEP, i)
+        r.label:SetText(SL[key])
+        r.key = key
+        UI.mainRows[i] = r
+    end
+
+    -- Two categories, each under a dropdown, as the sheet's left and right
+    -- stat frames: Melee, Spell, Defense, Misc.
+    UI.groups = {}
+    local defaults = { "melee", "defense" }
+    y = y - 34 - 2 * STEP - 14
+    for g = 1, 2 do
+        local header = Header(y)
+        local group = { header = header, rows = {}, category = UI.groupChoice and UI.groupChoice[g] or defaults[g] }
+        for i = 1, 3 do group.rows[i] = Row(y - 34 - (i - 1) * STEP, i) end
+        header.arrow = header:CreateTexture(nil, "OVERLAY")
+        header.arrow:SetTexture(OPath("Interface", "ChatFrame", "UI-ChatIcon-ScrollDown-Up"))
+        header.arrow:SetSize(18, 18)
+        header.arrow:SetPoint("RIGHT", header, "RIGHT", -8, 1)
+        header:SetScript("OnClick", function(self)
+            local menu = {}
+            for _, cat in ipairs(UI.CATEGORIES) do
+                menu[#menu + 1] = {
+                    text = SL[cat.key], checked = group.category == cat.key,
+                    func = function()
+                        group.category = cat.key
+                        UI.groupChoice = UI.groupChoice or {}
+                        UI.groupChoice[g] = cat.key
+                        UI.RenderStats()
+                        CloseDropDownMenus()
+                    end,
+                }
+            end
+            EasyMenu(menu, UI.statMenu, self, 0, 0, "MENU")
+        end)
+        UI.groups[g] = group
+        y = y - 34 - 3 * STEP - 14
+    end
+    UI.statMenu = UI.statMenu or CreateFrame("Frame", "CompanionMountStatMenu", UIParent, "UIDropDownMenuTemplate")
+
+    -- ITS NAME AND ITS TALENTS, at the foot of the right pane.
+    local rename = CreateFrame("Button", nil, right, "UIPanelButtonTemplate")
+    rename:SetSize(96, 24)
+    rename:SetPoint("BOTTOMLEFT", right, "BOTTOMLEFT", 14, 14)
+    rename:SetText(L.rename)
+    rename:SetScript("OnClick", function() StaticPopup_Show("COMPANIONMOUNT_RENAME") end)
+    local talents = CreateFrame("Button", nil, right, "UIPanelButtonTemplate")
+    talents:SetSize(96, 24)
+    talents:SetPoint("BOTTOMRIGHT", right, "BOTTOMRIGHT", -14, 14)
     talents:SetText(L.talents)
     talents:SetScript("OnClick", function() CompanionMount_ToggleTalents() end)
 
@@ -1258,6 +1348,42 @@ function UI.Build(parent)
     end)
     UI.Refresh()
     return root
+end
+
+-- The categories of the dropdowns and their figures (Spell: none yet).
+UI.CATEGORIES = {
+    { key = "melee", stats = { "power", "speed", "crit" } },
+    { key = "spell", stats = {} },
+    { key = "defense", stats = { "dodge", "parry" } },
+    { key = "misc", stats = { "points" } },
+}
+
+function UI.RenderStats()
+    local values = UI.values or {}
+    for _, r in ipairs(UI.mainRows or {}) do
+        r.value:SetText(values[r.key] or "-")
+    end
+    for _, group in ipairs(UI.groups or {}) do
+        local cat
+        for _, c in ipairs(UI.CATEGORIES) do
+            if c.key == group.category then cat = c end
+        end
+        group.header.text:SetText(SL[group.category] or "")
+        for i, r in ipairs(group.rows) do
+            local key = cat and cat.stats[i]
+            if key then
+                r.label:SetText(SL[key])
+                r.value:SetText(values[key] or "-")
+                r.band:Show()
+                r.label:Show()
+                r.value:Show()
+            else
+                r.band:Hide()
+                r.label:Hide()
+                r.value:Hide()
+            end
+        end
+    end
 end
 
 -- The saddlebags on an action bar: a macro of the player's own, made once.
@@ -1322,19 +1448,23 @@ function UI.Refresh()
     elseif level < (UnitLevel("player") or level) then
         UI.xpText:SetText(string.format(SL.xp, tonumber(s.xp) or 0, nextXp))
     else
+        UI.xp:SetMinMaxValues(0, 1)
+        UI.xp:SetValue(1)
         UI.xpText:SetText(SL.xpMax)
     end
 
     local out = s.out == 1
-    UI.rows.health:SetText(out and (s.health .. " / " .. s.max_health) or "-")
-    UI.rows.armor:SetText(out and s.armor or "-")
-    UI.rows.power:SetText(out and s.attack_power or "-")
-    UI.rows.damage:SetText(out and (s.min_damage .. " - " .. s.max_damage) or "-")
-    UI.rows.speed:SetText(out and string.format("%.2f", (tonumber(s.attack_time) or 0) / 1000) or "-")
-    UI.rows.crit:SetText(out and Percent(s.crit) or "-")
-    UI.rows.dodge:SetText(out and Percent(s.dodge) or "-")
-    UI.rows.parry:SetText(out and Percent(s.parry) or "-")
-    UI.rows.points:SetText((s.points_spent or 0) .. " / " .. (s.points_total or 0))
+    UI.values = {
+        health = out and (s.health .. " / " .. s.max_health) or nil,
+        armor = out and s.armor or nil,
+        power = out and s.attack_power or nil,
+        speed = out and string.format("%.2f", (tonumber(s.attack_time) or 0) / 1000) or nil,
+        crit = out and Percent(s.crit) or nil,
+        dodge = out and Percent(s.dodge) or nil,
+        parry = out and Percent(s.parry) or nil,
+        points = (s.points_spent or 0) .. " / " .. (s.points_total or 0),
+    }
+    UI.RenderStats()
 end
 
 -- ---------------------------------------------------------------------------
@@ -1757,7 +1887,7 @@ AIO.SavePosition(unitFrame, true)
 -- keeps it.
 -- ---------------------------------------------------------------------------
 
-local GAMBIT_ROW_HEIGHT = 36
+local GAMBIT_ROW_HEIGHT = 34
 local gambitData = { rows = {}, slots = 3, max = 10, unlock = {}, spells = {}, custom = false }
 local gambitRows = {}
 
@@ -1876,7 +2006,7 @@ end
 
 local function MakeGambitRow(i)
     local row = CreateFrame("Frame", nil, gambitFrame)
-    row:SetSize(600, GAMBIT_ROW_HEIGHT - 2)
+    row:SetSize(590, GAMBIT_ROW_HEIGHT - 2)
     row:SetPoint("TOPLEFT", 0, -52 - (i - 1) * GAMBIT_ROW_HEIGHT)
 
     row.number = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -1902,7 +2032,7 @@ local function MakeGambitRow(i)
     row.check:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     row.condition = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.condition:SetSize(250, 22)
+    row.condition:SetSize(240, 22)
     row.condition:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
     row.condition:SetScript("OnClick", function(self)
         EasyMenu(ConditionMenu(i), gambitMenu, self, 0, 0, "MENU")
@@ -1913,7 +2043,7 @@ local function MakeGambitRow(i)
     row.arrow:SetText(">")
 
     row.action = CreateFrame("Button", nil, row)
-    row.action:SetSize(210, 24)
+    row.action:SetSize(200, 24)
     row.action:SetPoint("LEFT", row.arrow, "RIGHT", 3, 0)
     row.action.icon = row.action:CreateTexture(nil, "ARTWORK")
     row.action.icon:SetSize(22, 22)
