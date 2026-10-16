@@ -18,8 +18,8 @@
 /*
  * mod-companion-mount — LES SACOCHES DE LA MONTURE.
  *
- * Chaque monture a ses sacoches : un nombre de places (16 par defaut), propre
- * a chaque personnage et chaque sort de monture (mod_companion_mount_item).
+ * UNE SEULE PAIRE DE SACOCHES PAR PERSONNAGE, la meme sur toutes ses montures :
+ * un nombre de places (16 par defaut), en base (mod_companion_mount_bag).
  *
  * L'OBJET RESTE UN OBJET. Comme le courrier du coeur : il quitte l'inventaire
  * du joueur (Player::MoveItemFromInventory), sa ligne de character_inventory
@@ -29,8 +29,11 @@
  * item_instance (Item::LoadFromDB) et range dans les sacs, comme une piece
  * jointe qu'on prend.
  *
- * Les ecritures sont IMMEDIATES (DirectCommitTransaction) : la fenetre (ALE)
- * relit les sacoches juste apres la commande.
+ * LES ECRITURES PASSENT PAR CommitTransaction, comme le courrier : les requetes
+ * du coeur sur les objets (Item::SaveToDB, SaveInventoryAndGoldToDB...) ne sont
+ * preparees que pour les connexions asynchrones ; une transaction directe les
+ * execute sur la connexion synchrone et le serveur tombe (assertion m_mStmt).
+ * La fenetre (ALE) relit donc les sacoches un instant apres la commande.
  */
 
 #include "CompanionMount.h"
@@ -49,16 +52,11 @@ namespace CompanionMount
         constexpr char const* SELECT_ITEMS =
             "SELECT ii.creatorGuid, ii.giftCreatorGuid, ii.count, ii.duration, ii.charges, ii.flags, ii.enchantments, "
             "ii.randomPropertyId, ii.durability, ii.playedTime, ii.text, ci.slot, ii.itemEntry, ii.guid "
-            "FROM mod_companion_mount_item ci JOIN item_instance ii ON ii.guid = ci.item_guid "
-            "WHERE ci.guid = {} AND ci.mount_spell = {}";
+            "FROM mod_companion_mount_bag ci JOIN item_instance ii ON ii.guid = ci.item_guid "
+            "WHERE ci.guid = {}";
 
         bool CanUseBag(Player* player, State const& state)
         {
-            if (!state.mountSpell)
-            {
-                Say(player, TEXT_NO_MOUNT);
-                return false;
-            }
             // Les sacoches sont sur la bete : il faut qu'elle soit la.
             if (GetConfig().bagRequiresOut && !GetCompanion(player))
             {
@@ -72,8 +70,8 @@ namespace CompanionMount
         {
             std::vector<bool> used(GetConfig().bagSlots, false);
             if (QueryResult result = CharacterDatabase.Query(
-                    "SELECT `slot` FROM `mod_companion_mount_item` WHERE `guid` = {} AND `mount_spell` = {}",
-                    player->GetGUID().GetCounter(), state.mountSpell))
+                    "SELECT `slot` FROM `mod_companion_mount_bag` WHERE `guid` = {}",
+                    player->GetGUID().GetCounter()))
             {
                 do
                 {
@@ -124,10 +122,10 @@ namespace CompanionMount
         item->DeleteFromInventoryDB(trans);
         item->FSetState(ITEM_CHANGED);
         item->SaveToDB(trans);
-        trans->Append("INSERT INTO `mod_companion_mount_item` (`guid`, `mount_spell`, `slot`, `item_guid`) VALUES ({}, {}, {}, {})",
-            player->GetGUID().GetCounter(), state.mountSpell, free, item->GetGUID().GetCounter());
+        trans->Append("INSERT INTO `mod_companion_mount_bag` (`guid`, `slot`, `item_guid`) VALUES ({}, {}, {})",
+            player->GetGUID().GetCounter(), free, item->GetGUID().GetCounter());
         player->SaveInventoryAndGoldToDB(trans);
-        CharacterDatabase.DirectCommitTransaction(trans);
+        CharacterDatabase.CommitTransaction(trans);
 
         // L'objet vit desormais en base seulement, comme une piece jointe.
         delete item;
@@ -141,7 +139,7 @@ namespace CompanionMount
             return false;
 
         QueryResult result = CharacterDatabase.Query(std::string(SELECT_ITEMS) + " AND ci.slot = {}",
-            player->GetGUID().GetCounter(), state.mountSpell, bagSlot);
+            player->GetGUID().GetCounter(), bagSlot);
         if (!result)
             return false;
 
@@ -169,26 +167,19 @@ namespace CompanionMount
         }
 
         CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-        trans->Append("DELETE FROM `mod_companion_mount_item` WHERE `guid` = {} AND `mount_spell` = {} AND `slot` = {}",
-            player->GetGUID().GetCounter(), state.mountSpell, bagSlot);
+        trans->Append("DELETE FROM `mod_companion_mount_bag` WHERE `guid` = {} AND `slot` = {}",
+            player->GetGUID().GetCounter(), bagSlot);
         item->SetState(ITEM_UNCHANGED);   // comme une piece jointe prise
         player->MoveItemToInventory(dest, item, true);
         player->SaveInventoryAndGoldToDB(trans);
-        CharacterDatabase.DirectCommitTransaction(trans);
+        CharacterDatabase.CommitTransaction(trans);
         return true;
     }
 
     void BagList(ChatHandler* handler, Player* player)
     {
-        State const& state = GetState(player);
-        if (!state.mountSpell)
-        {
-            Say(handler, TEXT_NO_MOUNT);
-            return;
-        }
-
         uint32 count = 0;
-        if (QueryResult result = CharacterDatabase.Query(SELECT_ITEMS, player->GetGUID().GetCounter(), state.mountSpell))
+        if (QueryResult result = CharacterDatabase.Query(SELECT_ITEMS, player->GetGUID().GetCounter()))
         {
             do
             {
@@ -205,8 +196,8 @@ namespace CompanionMount
     void BagDeleteAll(ObjectGuid::LowType guid)
     {
         CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-        trans->Append("DELETE ii FROM item_instance ii JOIN mod_companion_mount_item ci ON ci.item_guid = ii.guid WHERE ci.guid = {}", guid);
-        trans->Append("DELETE FROM mod_companion_mount_item WHERE guid = {}", guid);
+        trans->Append("DELETE ii FROM item_instance ii JOIN mod_companion_mount_bag ci ON ci.item_guid = ii.guid WHERE ci.guid = {}", guid);
+        trans->Append("DELETE FROM mod_companion_mount_bag WHERE guid = {}", guid);
         CharacterDatabase.CommitTransaction(trans);
     }
 }

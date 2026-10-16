@@ -97,8 +97,7 @@ local function Bag(player)
     local items = {}
     local q = CharDBQuery(string.format(
         "SELECT ci.slot, ii.itemEntry, ii.count, ii.enchantments, ii.randomPropertyId "
-        .. "FROM mod_companion_mount_item ci "
-        .. "JOIN mod_companion_mount_character c ON c.guid = ci.guid AND c.mount_spell = ci.mount_spell "
+        .. "FROM mod_companion_mount_bag ci "
         .. "JOIN item_instance ii ON ii.guid = ci.item_guid WHERE ci.guid = %d", player:GetGUIDLow()))
     if q then
         repeat
@@ -115,6 +114,12 @@ end
 
 local function SendBag(player)
     AIO.Handle(player, "CompanionMount", "Bag", Bag(player), BAG_SLOTS)
+end
+
+-- The module writes the saddlebags asynchronously, as the mail does: the
+-- contents are read a moment after the command.
+local function SendBagLater(player)
+    player:RegisterEvent(function(_, _, _, p) SendBag(p) end, 500, 1)
 end
 
 function Handlers.BagOpen(player)
@@ -135,7 +140,7 @@ function Handlers.BagPut(player, bag, slot)
         serverBag, serverSlot = 18 + bag, slot - 1
     end
     player:RunCommand(string.format("companion bag put %d %d", serverBag, serverSlot))
-    SendBag(player)
+    SendBagLater(player)
 end
 
 function Handlers.BagTake(player, place)
@@ -144,7 +149,7 @@ function Handlers.BagTake(player, place)
         return
     end
     player:RunCommand(string.format("companion bag take %d", place))
-    SendBag(player)
+    SendBagLater(player)
 end
 
 function Handlers.Order(player, order)
