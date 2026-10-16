@@ -251,6 +251,52 @@ local hidden = false
 local OSEP = string.char(92)
 local function OPath(...) return table.concat({ ... }, OSEP) end
 
+-- A PANEL BUTTON drawn in three pieces of UI-Panel-Button-Up / -Down /
+-- -Disabled: the ends keep their 12 px, only the middle stretches (as
+-- ForeverUI.CreatePanelButton; the template's own art stretches its corners
+-- at other sizes). -Highlight in ADD.
+local function PanelButton(parent, width, height, font)
+    local b = CreateFrame("Button", nil, parent)
+    b:SetSize(width, height)
+    local base = OPath("Interface", "Buttons", "UI-Panel-Button-")
+    local function piece(u1, u2)
+        local t = b:CreateTexture(nil, "BACKGROUND")
+        t:SetTexCoord(u1, u2, 0, 0.6875)
+        return t
+    end
+    local l, r = piece(0, 0.09375), piece(0.53125, 0.625)
+    l:SetWidth(12)
+    l:SetPoint("TOPLEFT")
+    l:SetPoint("BOTTOMLEFT")
+    r:SetWidth(12)
+    r:SetPoint("TOPRIGHT")
+    r:SetPoint("BOTTOMRIGHT")
+    local m = piece(0.09375, 0.53125)
+    m:SetPoint("TOPLEFT", l, "TOPRIGHT")
+    m:SetPoint("BOTTOMRIGHT", r, "BOTTOMLEFT")
+    local function state(suffix)
+        for _, t in ipairs({ l, m, r }) do t:SetTexture(base .. suffix) end
+    end
+    state("Up")
+    local fs = b:CreateFontString(nil, "ARTWORK")
+    fs:SetFontObject(font or GameFontNormalSmall)
+    fs:SetPoint("LEFT", 8, 0)
+    fs:SetPoint("RIGHT", -8, 0)
+    b:SetFontString(fs)
+    b:SetNormalFontObject(font or GameFontNormalSmall)
+    b:SetHighlightFontObject(GameFontHighlightSmall)
+    b:SetDisabledFontObject(GameFontDisableSmall)
+    b:SetHighlightTexture(base .. "Highlight")
+    local glow = b:GetHighlightTexture()
+    glow:SetTexCoord(0, 0.625, 0, 0.6875)
+    glow:SetBlendMode("ADD")
+    b:HookScript("OnMouseDown", function(self) if self:IsEnabled() == 1 then state("Down") end end)
+    b:HookScript("OnMouseUp", function(self) if self:IsEnabled() == 1 then state("Up") end end)
+    b:HookScript("OnEnable", function() state("Up") end)
+    b:HookScript("OnDisable", function() state("Disabled") end)
+    return b
+end
+
 StaticPopupDialogs["COMPANIONMOUNT_RENAME"] = {
     text = L.renameAsk,
     button1 = ACCEPT,
@@ -564,7 +610,7 @@ talentFrame.available:SetPoint("TOP", 0, -24)
 local footer = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 footer:SetPoint("BOTTOMLEFT", 20, 22)
 
-local reset = CreateFrame("Button", nil, talentFrame, "UIPanelButtonTemplate")
+local reset = PanelButton(talentFrame, 100, 22)
 reset:SetSize(110, 22)
 reset:SetPoint("BOTTOMRIGHT", -16, 16)
 reset:SetText(L.reset)
@@ -1324,12 +1370,12 @@ function UI.Build(parent)
     UI.statMenu = UI.statMenu or CreateFrame("Frame", "CompanionMountStatMenu", UIParent, "UIDropDownMenuTemplate")
 
     -- ITS NAME AND ITS TALENTS, at the foot of the right pane.
-    local rename = CreateFrame("Button", nil, right, "UIPanelButtonTemplate")
+    local rename = PanelButton(right, 96, 24)
     rename:SetSize(96, 24)
     rename:SetPoint("BOTTOMLEFT", right, "BOTTOMLEFT", 14, 14)
     rename:SetText(L.rename)
     rename:SetScript("OnClick", function() StaticPopup_Show("COMPANIONMOUNT_RENAME") end)
-    local talents = CreateFrame("Button", nil, right, "UIPanelButtonTemplate")
+    local talents = PanelButton(right, 96, 24)
     talents:SetSize(96, 24)
     talents:SetPoint("BOTTOMRIGHT", right, "BOTTOMRIGHT", -14, 14)
     talents:SetText(L.talents)
@@ -1905,7 +1951,7 @@ gambitHelp:SetText(G.help)
 
 local gambitStatus = gambitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 gambitStatus:SetPoint("BOTTOMLEFT", 0, 4)
-local gambitReset = CreateFrame("Button", nil, gambitFrame, "UIPanelButtonTemplate")
+local gambitReset = PanelButton(gambitFrame, 130, 24)
 gambitReset:SetSize(130, 22)
 gambitReset:SetPoint("BOTTOMRIGHT", 0, 0)
 gambitReset:SetText(G.reset)
@@ -2031,7 +2077,7 @@ local function MakeGambitRow(i)
     end)
     row.check:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    row.condition = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+    row.condition = PanelButton(row, 240, 22, GameFontHighlightSmall)
     row.condition:SetSize(240, 22)
     row.condition:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
     row.condition:SetScript("OnClick", function(self)
