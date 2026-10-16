@@ -544,16 +544,15 @@ local TREES = {
     { name = L.treeTank, art = "WarriorProtection" },
     { name = L.treeHeal, art = "DruidRestoration" },
 }
--- TalentFrame: INITIAL_TALENT_OFFSET_X/Y and the step between two buttons.
--- Six rows must fit the art (384 high): 58 between rows, the first under the
--- points line; 63 between columns, as the game.
-local T_STEP, T_ROW, T_BUTTON = 63, 58, 37
-local T_X, T_Y = math.floor((T_ART_W - 3 * T_STEP - T_BUTTON) / 2), 42
 -- The tree's art, as PlayerTalentFrame draws it: of its four pictures (256 +
 -- 64 wide, 256 + 128 high) only 256 + 44 by 256 + 75 is painted, the rest is
 -- empty. Drawn larger (T_ART_SCALE) so that six rows fit in it.
 local T_ART_SCALE = 1.15
 local T_ART_W, T_ART_H = math.floor(300 * T_ART_SCALE), math.floor(331 * T_ART_SCALE)
+-- The buttons (TalentFrame's INITIAL_TALENT_OFFSET and steps): 63 between
+-- columns as the game, centred; 58 between rows, the first under the points line.
+local T_STEP, T_ROW, T_BUTTON = 63, 58, 37
+local T_X, T_Y = math.floor((T_ART_W - 3 * T_STEP - T_BUTTON) / 2), 42
 -- The art fills the window inside its border (6 px); the footer has its own
 -- strip under it.
 local T_INSET_X, T_INSET_Y, T_FOOTER = 6, 6, 40
