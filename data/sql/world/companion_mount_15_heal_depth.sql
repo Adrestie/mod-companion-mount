@@ -16,6 +16,8 @@ INSERT INTO `mod_companion_mount_talent` (`id`, `tree`, `tier`, `col`, `spell_1`
 -- `.companion reload`: the talents read again from the database, without a restart.
 DELETE FROM `command` WHERE `name` = 'companion reload';
 INSERT INTO `command` (`name`, `security`, `help`) VALUES
-('companion reload', 3, 'Syntax: .companion reload
+('companion reload', 3, 'Syntax: .companion reload\n\nReads the talents, the kinds of mounts and the key spells again from the database.');
 
-Reads the talents, the kinds of mounts and the key spells again from the database.');
+-- The help of `.companion talent learn` still told of one tree and 3 points per row.
+UPDATE `command` SET `help` = 'Syntax: .companion talent learn $id\n\nOne more rank of a talent of your companion mount (5 points in its tree per row).'
+WHERE `name` = 'companion talent learn';
