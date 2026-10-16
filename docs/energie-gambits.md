@@ -50,7 +50,7 @@ Un gambit est une règle : **cible + condition → action**. Le compagnon lit la
 - Un sort en lancement automatique sans gambit est lancé en dernier recours, quand aucune règle ne s'applique.
 
 ### Interface
-- Les gambits sont dans la fiche du compagnon, à droite de ses statistiques (décision de l'utilisateur) ; la vue 3D y est plus petite (le modèle garde sa taille) et la description de la monture est retirée. `/compagnon gambits` ouvre la fiche.
+- L'interface du compagnon est son propre panneau « Compagnon » (décision de l'utilisateur, 2026-10-16) : un onglet pour la vue 3D et les statistiques, comme la feuille de personnage, et un onglet Gambits. Avec Forever UI, au thème de Forever UI et ouvert par un micro-bouton de sa barre (comme Attriboost) ; sans, au thème par défaut de WotLK, ouvert par un bouton. `/compagnon gambits` ouvre l'onglet Gambits.
 - Chaque ligne contient : une case à cocher, un menu de cible et condition, un bouton d'action avec l'icône du sort, et des flèches.
 - Les emplacements verrouillés sont grisés, avec le niveau requis.
 - Toutes les chaînes dans les 5 langues (enUS, frFR, deDE, esES, ruRU).

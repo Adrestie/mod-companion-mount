@@ -38,14 +38,14 @@ AzerothCore Mount mod
 
 ## Jalon 2 : les ordres, comme un familier
 
-- **La fiche de la monture** (envoyée au client par AIO, rien à installer en plus d'AIO_Client) :
-  la monture en 3D (on la fait tourner en glissant), son nom, son type, son arbre, son niveau et sa
-  barre d'expérience, ses caractéristiques (PV, armure, puissance d'attaque, dégâts, vitesse,
-  critique, esquive, parade, points de talent), et trois boutons : Renommer, Sacoches (une icône
-  qu'on peut glisser dans une barre d'action : elle devient la macro `/compagnon sacoches`) et
-  Talents. Avec Forever UI, c'est un onglet de la fenêtre Progression (comme Attriboost et Item
-  Upgrade, même code commun) ; sans, une fenêtre ouverte par un bouton au bord de la minimap.
-  `/compagnon` ouvre la fiche, `/compagnon sacoches` les sacoches, `/compagnon talents` les talents.
+- **Le panneau Compagnon** (envoyé au client par AIO, rien à installer en plus d'AIO_Client), sa propre
+  fenêtre à deux onglets : **Statistiques**, comme la feuille de personnage (la monture en 3D qu'on fait
+  tourner en glissant, son nom, son niveau et son expérience, ses caractéristiques ; Renommer, Sacoches
+  -- une icône qu'on peut glisser dans une barre d'action, la macro `/compagnon sacoches` -- et
+  Talents) ; **Gambits**. Avec Forever UI, il prend son thème (dessiné à partir des textures qu'il
+  installe) et s'ouvre par un micro-bouton de sa barre ; sans, le thème du jeu et un bouton au bord de
+  la minimap. `/compagnon` l'ouvre, `/compagnon gambits` sur ses gambits, `/compagnon sacoches` les
+  sacoches, `/compagnon talents` les talents.
 - **La barre des ordres**, comme celle du familier : Appeler, Renvoyer, Attaquer, Suivre, Rester et
   les trois attitudes (ordre et attitude actifs allumés). Maj + glisser la déplace, `/compagnon barre`
   la masque ou la remontre.
@@ -156,9 +156,7 @@ Spécification : `docs/energie-gambits.md`.
   provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
   touche pas ; la sienne est gardée par monture. Réinitialiser y revient. Un sort en lancement
   automatique qu'aucun gambit ne nomme sert de dernier recours.
-- **Gambits dans la fiche**, sous la vue 3D et les chiffres (la vue 3D est plus petite, la description
-  de la monture retirée) ; en bas, ensemble : Renommer, Sacoches, Réinitialiser (les gambits), Talents ;
-  `/compagnon gambits` ouvre la fiche ; case à cocher, menu cible et
+- **L'onglet Gambits** du panneau Compagnon (Réinitialiser en bas) ; `/compagnon gambits` l'ouvre ; case à cocher, menu cible et
   condition, action (icône du sort), flèches ; emplacements fermés grisés avec leur niveau. Textes en
   anglais, français, allemand, espagnol et russe. Au clavier : `.companion gambit [save|reset]`.
 

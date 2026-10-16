@@ -18,12 +18,12 @@
 --[[----------------------------------------------------------------------------
     The companion mount, client side (sent by AIO).
 
-    THE SHEET of the companion mount: who it is, its level and experience,
-    its numbers, its orders (call, send back, attack, follow, stay, the three
-    stances, rename -- the pet bar's icons) and the doors to its talents and
-    saddlebags. With ForeverUI, a tab of the Progression window (as Attriboost
-    and Item Upgrade); without, a window opened by a button at the edge of the
-    minimap. /companion or /compagnon opens it too.
+    THE COMPANION PANEL: its own window, a Statistics tab (the 3D view and its
+    figures, as the character sheet) and a Gambits tab. With ForeverUI, in its
+    theme and opened by a micro button of its bar; without, in the game's
+    theme and opened by a button at the edge of the minimap. /companion or
+    /compagnon opens it too. THE BAR: its orders and its spells. THE PORTRAIT,
+    the saddlebags, the talents.
 
     Nothing is decided here: every button is sent to the server, which runs
     the module's command as the player and sends the state back.
@@ -103,6 +103,7 @@ local L = {
 
 local G_TEXTS = {
     enUS = {
+        panelTitle = "Companion", tabStats = "Statistics",
         gambits = "Gambits", gambitsTip = "The rules of your companion: target and condition, then action, read from top to bottom.",
         help = "Read from top to bottom: the first rule whose condition holds and whose action is possible is played.",
         energy = "Energy", cost = "Energy cost: %d", locked = "Level %d", reset = "Reset",
@@ -122,6 +123,7 @@ local G_TEXTS = {
         },
     },
     frFR = {
+        panelTitle = "Compagnon", tabStats = "Statistiques",
         gambits = "Gambits", gambitsTip = "Les règles de votre compagnon : cible et condition, puis action, lues de haut en bas.",
         help = "Lues de haut en bas : la première règle dont la condition est vraie et l'action possible est jouée.",
         energy = "Énergie", cost = "Coût en énergie : %d", locked = "Niveau %d", reset = "Réinitialiser",
@@ -141,6 +143,7 @@ local G_TEXTS = {
         },
     },
     deDE = {
+        panelTitle = "Begleiter", tabStats = "Werte",
         gambits = "Gambits", gambitsTip = "Die Regeln Eures Begleiters: Ziel und Bedingung, dann Aktion, von oben nach unten gelesen.",
         help = "Von oben nach unten: Die erste Regel, deren Bedingung zutrifft und deren Aktion möglich ist, wird ausgeführt.",
         energy = "Energie", cost = "Energiekosten: %d", locked = "Stufe %d", reset = "Zurücksetzen",
@@ -160,6 +163,7 @@ local G_TEXTS = {
         },
     },
     esES = {
+        panelTitle = "Compañero", tabStats = "Estadísticas",
         gambits = "Gambits", gambitsTip = "Las reglas de tu compañero: objetivo y condición, luego acción, leídas de arriba abajo.",
         help = "De arriba abajo: se juega la primera regla cuya condición se cumple y cuya acción es posible.",
         energy = "Energía", cost = "Coste de energía: %d", locked = "Nivel %d", reset = "Restablecer",
@@ -179,6 +183,7 @@ local G_TEXTS = {
         },
     },
     ruRU = {
+        panelTitle = "Спутник", tabStats = "Характеристики",
         gambits = "Гамбиты", gambitsTip = "Правила вашего спутника: цель и условие, затем действие, сверху вниз.",
         help = "Сверху вниз: выполняется первое правило, условие которого верно, а действие возможно.",
         energy = "Энергия", cost = "Затраты энергии: %d", locked = "Уровень %d", reset = "Сбросить",
@@ -756,823 +761,12 @@ end
 
 AIO.SavePosition(talentFrame, true)
 
--- The Progression window of ForeverUI, carried by the modules: the common copy
--- below is IDENTICAL to the one in Attriboost_Client.lua and ItemUpgrade_Client.lua
--- (taken from mod-item-upgrade); whichever module loads first creates the window.
--- ---------------------------------------------------------------------------
--- DÉBUT DE LA FENÊTRE PROGRESSION -- copie commune, IDENTIQUE dans
--- Attriboost_Client.lua et ItemUpgrade_Client.lua : toute modification se
--- reporte dans l'autre fichier.
--- ---------------------------------------------------------------------------
--- Une fenêtre au thème de Camelot -- le LegacySystemFrame de camelot -- dont
--- les modules du serveur ajoutent les onglets (demande du 2026-09-29 : « si
--- le serveur a le module d'interface de mod-forever-ui d'installé, au lieu
--- d'avoir des boutons autour de la minimap et une interface grise, il faut un
--- bouton dans la barre des micro boutons. cliquer sur le bouton devra ouvrir
--- une fenêtre au thème de Camelot avec un onglet pour "Attriboost" et un
--- autre pour item upgrade (sachant que l'un ou l'autre peut être absent) » ;
--- l'icône : celle du menu Legacy de camelot ; le nom : Progression).
---
--- PORTÉE PAR LES MODULES (choix de l'utilisateur, 2026-09-29) : ce code
--- arrive avec chaque module, par AIO. Le premier module chargé crée la
--- fenêtre ; le suivant la trouve (global Progression) et n'y ajoute que son
--- onglet.
---
--- INDÉPENDANTE DE ForeverUI (règle de l'utilisateur, 2026-09-29 : les
--- modules « détectent si "forever-ui" est installé. Si non -> addon normaux,
--- si oui, ils montent leurs ui chacun avec les sources que "forever-ui" a
--- installé et qu'il lui dise "ajoute ce bouton dans ta micro barre" »).
--- ForeverUI ne connaît ni cette fenêtre ni ces modules, et ce code n'appelle
--- AUCUNE de ses fonctions de dessin : tout ce qui se dessine est écrit ici ou
--- dans la page du module. De ForeverUI, il ne prend que :
---   * ses FICHIERS de textures installés (Interface\ForeverUI\...), avec
---     leurs coordonnées recopiées dans les tables ci-dessous et dans celles
---     des pages ;
---   * sa micro-barre : ForeverUI.AddMicroButton (le bouton, avec le jeu
---     d'icônes « legacy » de ForeverUI) et ForeverUI.UpdateMicro (enfoncé tant
---     que la fenêtre est ouverte).
--- Sans ForeverUI.AddMicroButton, la fenêtre n'existe pas, et les modules
--- gardent leur interface d'origine.
---
--- RELEVÉ -- CAMELOT (blizzard_legacysystem : blizzard_legacysystem.xml /
--- .lua, blizzard_legacysystemtemplates.xml, _bootstrap.lua, _registration
--- .lua ; blizzard_micromenu : mainline/mainmenubarmicrobuttons.lua,
--- camelot/micromenucontaineroverrides.lua ; blizzard_sharedxml :
--- mainline/shareduipaneltemplates.xml, portraitframe.lua,
--- shared/button/threeslicebuttontemplate.xml / .lua) :
---   fenêtre      LegacySystemFrame, PortraitFrameTemplate, 920 x 575 ;
---                RegisterUIPanel : area "left", xoffset 35, pushable 1,
---                largeur 1005 ; ToggleFrame ; sons IG_CHARACTER_INFO_OPEN /
---                _CLOSE ; pas de titre
---   cadre        roche UI-Background-Rock en mosaïque de (2, -21) à
---                (-2, 2) ; stries _UI-Frame-TopTileStreaks de 43 à
---                (6, -21) ; coins du métal à (-13, 16), (2, 16), (-13, -8),
---                (2, -8), bords tendus entre eux ; bandeau du titre de
---                (58, -1) à (-24, -1), 20 de haut, texte GameFontNormal
---                à -5 de son haut
---   croix        UIPanelCloseButton : 24 x 24, RedButton-Exit / -pressed /
---                -disabled, lueur RedButton-Highlight en ADD, à TOPRIGHT
---                (-2, 1) de la fenêtre
---   portrait     SetPortraitAtlasRaw("Legacy-up-c60"), 45 x 62, TOPLEFT
---                (2, 10) ; le CircleMask du gabarit (TempPortraitAlphaMask)
---                le suit de (2, 0) à (-2, 4) ; le portrait (niveau 400)
---                passe sous le métal (500)
---   onglets      LegacySystemTabTemplate (LargeSideTabButtonTemplate,
---                fillToInterior) : le premier TOPLEFT sur le TOPRIGHT
---                (0, -60), chacun sous le précédent (0, -2) ; infobulle
---                tooltipText ; SelectPage : la page montrée, son onglet
---                coché ; les pages au niveau 100
---   bouton rouge ThreeSliceButtonTemplate : Left et Right à leur taille
---                d'atlas mise à l'échelle de la hauteur du bouton, Center
---                tendu entre eux, rognés s'ils ne tiennent pas dans la
---                largeur (UpdateScale) ; états -Pressed et -Disabled ;
---                lueur <atlas>-Highlight en ADD ; texte enfoncé de (-2, -1)
---   micro-bouton LegacyMicroButton : LoadMicroButtonTextures "Legacy",
---                après les talents ; grisé tant que le système est
---                verrouillé, enfoncé tant que la fenêtre est ouverte
---
--- CE QUI DIFFÈRE, ET POURQUOI.
---   * Les pages sont celles que déclarent les modules, par P.Ajouter. Chaque
---     page déclarée demande le micro-bouton : le premier module le crée, le
---     second le trouve déjà là ; sans module, il n'existe pas (demande du
---     2026-09-29). Camelot, lui, le grise.
---   * Un disque noir sous le portrait, dans le cercle (demande du
---     2026-09-29 : « l'icône dans le cercle du portrait de la fenêtre doit
---     avoir un fond noir ») : celui du portrait rond de PortraitFrameTemplate
---     (62 x 62 à (-5, 7), rogné par son CircleMask de (2, 0) à (-2, 4) : 58 x
---     58 à (-3, 7)), TempPortraitAlphaMask noirci, sous l'anneau de métal.
---   * La fenêtre a la taille de celle des métiers de ForeverUI (673 x 594) :
---     la page d'Item Upgrade reprend sa page de fabrication, à ses nombres.
---     La largeur du panneau garde la marge de camelot (1005 pour 920 : 85,
---     onglets compris).
---   * Un titre, « Progression » : le nom retenu par l'utilisateur. Il vient
---     des textes du module qui le donne (nomFenetre), lus à l'affichage : les
---     textes d'un module arrivent après son code.
---   * 3.3.5 n'a pas de masque : le portrait est une image où l'ellipse du
---     CircleMask est cuite. Chaque module installe la sienne (son
---     installeur l'écrit dans l'archive du jeu) et la donne à P.Ajouter ; la
---     fenêtre prend celle du module qui la crée.
---   * 3.3.5 n'a ni atlas ni découpe en neuf : les éléments se posent par
---     leurs coordonnées dans leur feuille (tables ci-dessous), les découpes
---     en morceaux posés à la main.
---   * Le panneau se déclare par ses attributs UIPanelLayout-*, sans toucher
---     à la table UIPanelWindows du client.
---
--- CE QUE LES MODULES APPELLENT (ils testent Progression.Ajouter et
--- Progression.Kit) :
---   P.Ajouter{ cle, ordre, titre, icone, construire, nomFenetre, portrait }
---     -- déclare une page et rend son cadre (toute la fenêtre ;
---     construire(page) le remplit, une fois, à sa première ouverture). titre :
---     un texte, ou une fonction qui le rend. ordre : la place de l'onglet (le
---     plus petit en haut). nomFenetre : le nom de la fenêtre et du
---     micro-bouton (texte ou fonction) ; portrait : le fichier du portrait ;
---     ceux de la page qui crée la fenêtre. Redéclarer une clé (un « .reload
---     ale ») remplace sa page par un cadre neuf.
---   P.Ouvrir(cle), P.Basculer(cle), P.Fermer(), P.Montree(cle).
---   P.Kit : la trousse de dessin écrite ici (voir plus bas) ; une page y
---     ajoute les coordonnées de ses propres éléments par K.AjouterArt.
-if not (Progression and Progression.Ajouter) and ForeverUI and ForeverUI.AddMicroButton then
-    Progression = {}
-    local P = Progression
-    local SEP = string.char(92)
-    local ART = "Interface" .. SEP .. "ForeverUI" .. SEP
-    local BOUTON = "ProgressionMicroButton"
-
-    local N = {
-        fenetre = { 673, 594 },
-        -- l'image du portrait : la région utile de sa toile (198 x 273 sur
-        -- 256 x 512), posée en 45 x 62
-        portrait = { 45, 62, x = 2, y = 10, coords = { 0, 0.773438, 0, 0.533203 } },
-        disque = { 58, x = -3, y = 7, fichier = ART .. "characterframe" .. SEP .. "tempportraitalphamask" },
-        roche = { fichier = "interface" .. SEP .. "ForeverUI" .. SEP .. "framegeneral" .. SEP .. "ui-background-rock", 2, -21, -2, 2 },
-        stries = { 43, x = 6, y = -21, x2 = -2 },
-        metal = {
-            { nom = "ui-frame-portraitmetal-cornertopleft", point = "TOPLEFT", x = -13, y = 16 },
-            { nom = "ui-frame-metal-cornertopright", point = "TOPRIGHT", x = 2, y = 16 },
-            { nom = "ui-frame-metal-cornerbottomleft", point = "BOTTOMLEFT", x = -13, y = -8 },
-            { nom = "ui-frame-metal-cornerbottomright", point = "BOTTOMRIGHT", x = 2, y = -8 },
-        },
-        titre = { x1 = 58, x2 = -24, y = -1, h = 20, texteY = -5 },
-        -- les onglets latéraux (ceux du livre des métiers de ForeverUI)
-        onglet = { cote = 55, y = -60, ecart = -2, icone = 50, iconeX = -3, rognage = 0.03125 },
-        niveaux = { page = 1, onglets = 1, portrait = 19, metal = 20, titre = 21, croix = 22 },
-    }
-
-    -- RegisterUIPanel de camelot, plus whileDead (3.3.5 ne l'ouvre pas sans)
-    local PANNEAU = { area = "left", xoffset = 35, pushable = 1, whileDead = 1, width = N.fenetre[1] + 85 }
-
-    P.pages = {}
-    P.ordre = {}
-
-    -- ------------------------------------------------------------ la trousse
-
-    -- LES ÉLÉMENTS, par leurs coordonnées dans les feuilles que ForeverUI
-    -- installe (les éléments de camelot, aux tailles qu'il leur donne).
-    -- art : { fichier, u1, u2, v1, v2, largeur, hauteur } ; decoupes : les
-    -- éléments qui se découpent en morceaux (bouton rouge, croix, cadre
-    -- intérieur), { fichier, u1, u2, v1, v2, largeur, hauteur, mosaïque
-    -- horizontale, mosaïque verticale, découpe { gauche, haut, droite, bas } }.
-    local K = { art = {}, decoupes = {} }
-    P.Kit = K
-
-    function K.AjouterArt(art, decoupes)
-        for nom, e in pairs(art or {}) do K.art[nom] = e end
-        for nom, e in pairs(decoupes or {}) do K.decoupes[nom] = e end
-    end
-
-    K.AjouterArt({
-        ["!ui-frame-metal-edgeleft"] = { "interface\\ForeverUI\\framegeneral\\uiframemetalvertical2xc60", 0.001953, 0.373047, 0, 1, 95, 128 },
-        ["!ui-frame-metal-edgeright"] = { "interface\\ForeverUI\\framegeneral\\uiframemetalvertical2xc60", 0.376953, 0.748047, 0, 1, 95, 128 },
-        ["_ui-frame-metal-edgebottom"] = { "interface\\ForeverUI\\framegeneral\\uiframemetalhorizontal2xc60", 0, 1, 0.001953, 0.392578, 128, 100 },
-        ["_ui-frame-metal-edgetop"] = { "interface\\ForeverUI\\framegeneral\\uiframemetalhorizontal2xc60", 0, 1, 0.396484, 0.767578, 128, 95 },
-        ["_ui-frame-toptilestreaks"] = { "interface\\ForeverUI\\framegeneral\\uiframehorizontal", 0, 1, 0.007812, 0.34375, 256, 43 },
-        ["common-sidetab"] = { "interface\\ForeverUI\\common\\commonsidetabc60", 0.007812, 0.4375, 0.007812, 0.476562, 55, 60 },
-        ["common-sidetab-hover"] = { "interface\\ForeverUI\\common\\commonsidetabc60", 0.007812, 0.4375, 0.492188, 0.960938, 55, 60 },
-        ["common-sidetab-selected"] = { "interface\\ForeverUI\\common\\commonsidetabc60", 0.453125, 0.882812, 0.007812, 0.476562, 55, 60 },
-        ["common-stat-bar-bg"] = { "interface\\ForeverUI\\common\\commonstatbarc60", 0.003906, 0.265625, 0.539062, 0.765625, 67, 29 },
-        ["ui-frame-metal-cornerbottomleft"] = { "interface\\ForeverUI\\framegeneral\\uiframemetal2xc60", 0.000977, 0.186523, 0.001953, 0.392578, 95, 100 },
-        ["ui-frame-metal-cornerbottomright"] = { "interface\\ForeverUI\\framegeneral\\uiframemetal2xc60", 0.000977, 0.186523, 0.396484, 0.787109, 95, 100 },
-        ["ui-frame-metal-cornertopright"] = { "interface\\ForeverUI\\framegeneral\\uiframemetal2xc60", 0.188477, 0.374023, 0.376953, 0.748047, 95, 95 },
-        ["ui-frame-portraitmetal-cornertopleft"] = { "interface\\ForeverUI\\framegeneral\\uiframemetal2xc60", 0.375977, 0.561523, 0.376953, 0.748047, 95, 95 },
-    }, {
-        ["redbutton-exit"] = { "interface\\ForeverUI\\buttons\\redbuttonsc60", 0.136719, 0.261719, 0.007812, 0.257812, 32, 32, nil, nil },
-        ["redbutton-exit-disabled"] = { "interface\\ForeverUI\\buttons\\redbuttonsc60", 0.136719, 0.261719, 0.273438, 0.523438, 32, 32, nil, nil },
-        ["redbutton-exit-pressed"] = { "interface\\ForeverUI\\buttons\\redbuttonsc60", 0.136719, 0.261719, 0.539062, 0.789062, 32, 32, nil, nil },
-        ["redbutton-highlight"] = { "interface\\ForeverUI\\buttons\\redbuttonsc60", 0.402344, 0.527344, 0.007812, 0.257812, 32, 32, nil, nil },
-    })
-
-    -- la jauge des barres, celle de l'onglet Compétences : common-stat-bar-bg
-    -- découpée à 10, 29 de haut, remplissage bleu de 15
-    K.Jauge = { fond = "common-stat-bar-bg", coin = 10, hauteur = 29, remplissage = 15,
-        fichier = ART .. "Bars" .. SEP .. "statbarfillblue" }
-
-    function K.AtlasEntry(nom)
-        return K.art[nom]
-    end
-
-    -- l'élément sur la texture ; garderTaille : sans lui, la texture prend
-    -- sa taille. Rend vrai s'il est connu.
-    function K.SetAtlas(t, nom, garderTaille)
-        local e = K.art[nom]
-        if not e then return false end
-        t:SetTexture(e[1])
-        t:SetTexCoord(e[2], e[3], e[4], e[5])
-        if not garderTaille then
-            t:SetWidth(e[6])
-            t:SetHeight(e[7])
-        end
-        return true
-    end
-
-    function K.Montrer(r, oui)
-        if oui then r:Show() else r:Hide() end
-    end
-
-    -- 3.3.5 rend 1 / nil, parfois 0 / 1 : zéro est vrai en Lua
-    local function vrai(v)
-        return v and v ~= 0 and true or false
-    end
-
-    -- EN NEUF : les coins gardent leur taille (coin), les bords ne s'étirent
-    -- que dans un sens, le centre dans les deux ; marges { gauche, haut,
-    -- droite, bas } : de combien l'image déborde du cadre. Rend les neuf
-    -- morceaux, en régions du cadre, sur le calque donné.
-    function K.NeufTranches(cadre, nom, coin, marges, calque)
-        local e = K.art[nom]
-        if not e then return nil end
-        local du = (e[3] - e[2]) * coin / e[6]
-        local dv = (e[5] - e[4]) * coin / e[7]
-        local us = { e[2], e[2] + du, e[3] - du, e[3] }
-        local vs = { e[4], e[4] + dv, e[5] - dv, e[5] }
-        local morceaux = {}
-        local function morceau(colonne, ligne)
-            local t = cadre:CreateTexture(nil, calque or "BACKGROUND")
-            t:SetTexture(e[1])
-            t:SetTexCoord(us[colonne], us[colonne + 1], vs[ligne], vs[ligne + 1])
-            morceaux[#morceaux + 1] = t
-            return t
-        end
-        local hg, hd, bg, bd = morceau(1, 1), morceau(3, 1), morceau(1, 3), morceau(3, 3)
-        local haut, bas = morceau(2, 1), morceau(2, 3)
-        local gauche, droite = morceau(1, 2), morceau(3, 2)
-        local centre = morceau(2, 2)
-        for _, t in ipairs({ hg, hd, bg, bd }) do
-            t:SetWidth(coin)
-            t:SetHeight(coin)
-        end
-        haut:SetHeight(coin)
-        bas:SetHeight(coin)
-        gauche:SetWidth(coin)
-        droite:SetWidth(coin)
-        local G, H, D, B = marges[1], marges[2], marges[3], marges[4]
-        hg:SetPoint("TOPLEFT", cadre, "TOPLEFT", -G, H)
-        hd:SetPoint("TOPRIGHT", cadre, "TOPRIGHT", D, H)
-        bg:SetPoint("BOTTOMLEFT", cadre, "BOTTOMLEFT", -G, -B)
-        bd:SetPoint("BOTTOMRIGHT", cadre, "BOTTOMRIGHT", D, -B)
-        haut:SetPoint("TOPLEFT", hg, "TOPRIGHT")
-        haut:SetPoint("TOPRIGHT", hd, "TOPLEFT")
-        bas:SetPoint("BOTTOMLEFT", bg, "BOTTOMRIGHT")
-        bas:SetPoint("BOTTOMRIGHT", bd, "BOTTOMLEFT")
-        gauche:SetPoint("TOPLEFT", hg, "BOTTOMLEFT")
-        gauche:SetPoint("BOTTOMRIGHT", bg, "TOPRIGHT")
-        droite:SetPoint("TOPLEFT", hd, "BOTTOMLEFT")
-        droite:SetPoint("BOTTOMRIGHT", bd, "TOPRIGHT")
-        centre:SetPoint("TOPLEFT", hg, "BOTTOMRIGHT")
-        centre:SetPoint("BOTTOMRIGHT", bd, "TOPLEFT")
-        return morceaux
-    end
-
-    -- UN SÉPARATEUR VERTICAL EN TROIS : un embout en haut et en bas (embout
-    -- pixels de l'image), le milieu tiré entre eux ; étirer l'élément entier
-    -- étalerait ses embouts.
-    function K.SeparateurVertical(parent, nom, embout, niveau)
-        local e = K.art[nom]
-        local cadre = CreateFrame("Frame", nil, parent)
-        if not e then
-            cadre:Hide()
-            return cadre
-        end
-        embout = embout or 4
-        cadre:SetWidth(e[6])
-        cadre:SetFrameLevel(niveau or parent:GetFrameLevel())
-        local dv = (e[5] - e[4]) * embout / e[7]
-        local function tranche(v1, v2)
-            local t = cadre:CreateTexture(nil, "OVERLAY")
-            t:SetTexture(e[1])
-            t:SetTexCoord(e[2], e[3], v1, v2)
-            return t
-        end
-        local haut = tranche(e[4], e[4] + dv)
-        haut:SetHeight(embout)
-        haut:SetPoint("TOPLEFT", cadre, "TOPLEFT")
-        haut:SetPoint("TOPRIGHT", cadre, "TOPRIGHT")
-        local bas = tranche(e[5] - dv, e[5])
-        bas:SetHeight(embout)
-        bas:SetPoint("BOTTOMLEFT", cadre, "BOTTOMLEFT")
-        bas:SetPoint("BOTTOMRIGHT", cadre, "BOTTOMRIGHT")
-        local milieu = tranche(e[4] + dv, e[5] - dv)
-        milieu:SetPoint("TOPLEFT", haut, "BOTTOMLEFT")
-        milieu:SetPoint("BOTTOMRIGHT", bas, "TOPRIGHT")
-        cadre.haut, cadre.milieu, cadre.bas = haut, milieu, bas
-        return cadre
-    end
-
-    -- un élément à découper, posé sur une texture (sans changer sa taille) ;
-    -- rend l'élément
-    local function poserDecoupe(t, nom)
-        local e = K.decoupes[nom]
-        if not e then return nil end
-        t:SetTexture(e[1])
-        t:SetTexCoord(e[2], e[3], e[4], e[5])
-        return e
-    end
-
-    -- L'ÉLÉMENT ÉTIRÉ. Un élément à découpe se pose en morceaux autour d'un
-    -- rectangle invisible (rect) que la page ancre comme elle ancrerait
-    -- l'élément : les marges gardent leur taille, le reste s'étire. Rend
-    -- { rect, Poser(nom), Montrer(oui), Alpha(a) }.
-    local function decouperEtire(obj)
-        local e = obj.e
-        local d = e[10]
-        for _, t in ipairs(obj.morceaux) do t:Hide() end
-        if not d then
-            obj.rect:SetTexture(e[1])
-            obj.rect:SetTexCoord(e[2], e[3], e[4], e[5])
-            return
-        end
-        obj.rect:SetTexture(nil)
-        local W, Ht = e[6], e[7]
-        local g, h, dr, b = d[1], d[2], d[3], d[4]
-        local us = { e[2], e[2] + (e[3] - e[2]) * g / W, e[3] - (e[3] - e[2]) * dr / W, e[3] }
-        local vs = { e[4], e[4] + (e[5] - e[4]) * h / Ht, e[5] - (e[5] - e[4]) * b / Ht, e[5] }
-        local largeurs, hauteurs = { g, nil, dr }, { h, nil, b }
-        local r, n = obj.rect, 0
-        for ligne = 1, 3 do
-            for col = 1, 3 do
-                local lw, lh = largeurs[col], hauteurs[ligne]
-                if (lw == nil or lw > 0) and (lh == nil or lh > 0) then
-                    n = n + 1
-                    local t = obj.morceaux[n]
-                    if not t then
-                        t = obj.hote:CreateTexture(nil, obj.calque)
-                        obj.morceaux[n] = t
-                    end
-                    t:SetTexture(e[1])
-                    t:SetTexCoord(us[col], us[col + 1], vs[ligne], vs[ligne + 1])
-                    t:ClearAllPoints()
-                    if col == 1 then
-                        t:SetPoint("LEFT", r, "LEFT")
-                        t:SetWidth(lw)
-                    elseif col == 3 then
-                        t:SetPoint("RIGHT", r, "RIGHT")
-                        t:SetWidth(lw)
-                    else
-                        t:SetPoint("LEFT", r, "LEFT", g, 0)
-                        t:SetPoint("RIGHT", r, "RIGHT", -dr, 0)
-                    end
-                    if ligne == 1 then
-                        t:SetPoint("TOP", r, "TOP")
-                        t:SetHeight(lh)
-                    elseif ligne == 3 then
-                        t:SetPoint("BOTTOM", r, "BOTTOM")
-                        t:SetHeight(lh)
-                    else
-                        t:SetPoint("TOP", r, "TOP", 0, -h)
-                        t:SetPoint("BOTTOM", r, "BOTTOM", 0, b)
-                    end
-                    if obj.visible ~= false then t:Show() end
-                end
-            end
-        end
-        obj.nombre = n
-    end
-
-    function K.AtlasEtire(hote, nom, calque)
-        local obj = { hote = hote, calque = calque or "ARTWORK", morceaux = {} }
-        obj.rect = hote:CreateTexture(nil, obj.calque)
-        function obj:Poser(n)
-            self.e = K.decoupes[n]
-            decouperEtire(self)
-        end
-        function obj:Montrer(oui)
-            self.visible = oui and true or false
-            if self.e[10] then
-                for i = 1, self.nombre or 0 do K.Montrer(self.morceaux[i], oui) end
-            else
-                K.Montrer(self.rect, oui)
-            end
-        end
-        function obj:Alpha(a)
-            self.rect:SetAlpha(a)
-            for _, t in ipairs(self.morceaux) do t:SetAlpha(a) end
-        end
-        obj:Poser(nom)
-        return obj
-    end
-
-    -- efface l'art que le client 3.3.5 pose sur ses propres boutons
-    local function effacerArt(b)
-        for _, lire in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture", "GetHighlightTexture" }) do
-            local t = b[lire] and b[lire](b)
-            if t then t:SetTexture(nil) end
-        end
-    end
-
-    -- LE BOUTON ROUGE (ThreeSliceButtonTemplate) : voir le relevé plus haut.
-    local function rogner(t, e, gaucheVersDroite, part)
-        local u1, u2 = e[2], e[3]
-        if gaucheVersDroite then
-            t:SetTexCoord(u1, u1 + (u2 - u1) * part, e[4], e[5])
-        else
-            t:SetTexCoord(u2 - (u2 - u1) * part, u2, e[4], e[5])
-        end
-    end
-
-    local function peindreTrois(b, etat)
-        local r = b.trois
-        if not vrai(b:IsEnabled()) then etat = "DISABLED" end
-        local suffixe = (etat == "DISABLED" and "-disabled") or (etat == "PUSHED" and "-pressed") or ""
-        local eg = poserDecoupe(r.gauche, r.atlas .. "-left" .. suffixe)
-        poserDecoupe(r.centre, "_" .. r.atlas .. "-center" .. suffixe)
-        local ed = poserDecoupe(r.droite, r.atlas .. "-right" .. suffixe)
-        -- UpdateScale
-        local hauteur, largeur = b:GetHeight(), b:GetWidth()
-        local echelle = hauteur / eg[7]
-        local lg, ld = eg[6] * echelle, ed[6] * echelle
-        if lg + ld > largeur then
-            local surplus = lg + ld - largeur
-            local ng, nd = lg, ld
-            if (lg - surplus) > ld then
-                ng = lg - surplus
-            elseif (ld - surplus) > lg then
-                nd = ld - surplus
-            else
-                if lg ~= ld then
-                    surplus = surplus - math.abs(lg - ld)
-                    ng = math.min(lg, ld)
-                    nd = ng
-                end
-                ng = ng - surplus / 2
-                nd = nd - surplus / 2
-            end
-            rogner(r.gauche, eg, true, ng / lg)
-            rogner(r.droite, ed, false, nd / ld)
-            lg, ld = ng, nd
-        end
-        r.gauche:SetWidth(lg)
-        r.gauche:SetHeight(hauteur)
-        r.droite:SetWidth(ld)
-        r.droite:SetHeight(hauteur)
-        r.actif = vrai(b:IsEnabled())
-    end
-
-    -- atlas : le nom de l'élément, sans son suffixe (« 128-redbutton ») ;
-    -- polices : { normale, survol, grisée }, des objets police
-    function K.BoutonTroisTranches(b, atlas, polices)
-        effacerArt(b)
-        local r = { atlas = atlas }
-        r.gauche = b:CreateTexture(nil, "BACKGROUND")
-        r.gauche:SetPoint("TOPLEFT", b, "TOPLEFT")
-        r.droite = b:CreateTexture(nil, "BACKGROUND")
-        r.droite:SetPoint("TOPRIGHT", b, "TOPRIGHT")
-        r.centre = b:CreateTexture(nil, "BACKGROUND")
-        r.centre:SetPoint("TOPLEFT", r.gauche, "TOPRIGHT")
-        r.centre:SetPoint("BOTTOMRIGHT", r.droite, "BOTTOMLEFT")
-        b.trois = r
-        -- la lueur, sur tout le bouton, en ADD
-        b:SetHighlightTexture(K.decoupes[atlas .. "-highlight"][1])
-        local lueur = b:GetHighlightTexture()
-        poserDecoupe(lueur, atlas .. "-highlight")
-        lueur:ClearAllPoints()
-        lueur:SetAllPoints(b)
-        lueur:SetBlendMode("ADD")
-        if polices then
-            b:SetNormalFontObject(polices[1])
-            b:SetHighlightFontObject(polices[2] or polices[1])
-            b:SetDisabledFontObject(polices[3] or polices[1])
-        end
-        local texte = b:GetFontString()
-        if texte then
-            texte:ClearAllPoints()
-            texte:SetPoint("CENTER", b, "CENTER", 0, 0)
-        end
-        b:SetPushedTextOffset(-2, -1)
-        b:HookScript("OnMouseDown", function(self)
-            if vrai(self:IsEnabled()) then peindreTrois(self, "PUSHED") end
-        end)
-        b:HookScript("OnMouseUp", function(self) peindreTrois(self, "NORMAL") end)
-        b:HookScript("OnShow", function(self) peindreTrois(self, "NORMAL") end)
-        b:HookScript("OnSizeChanged", function(self) peindreTrois(self, "NORMAL") end)
-        b:HookScript("OnEnable", function(self) peindreTrois(self, "NORMAL") end)
-        b:HookScript("OnDisable", function(self) peindreTrois(self, "NORMAL") end)
-        peindreTrois(b, "NORMAL")
-        return b
-    end
-
-    -- la croix (UIPanelCloseButton) : voir le relevé plus haut
-    local function croix(b, fenetre)
-        b:SetWidth(24)
-        b:SetHeight(24)
-        b:ClearAllPoints()
-        b:SetPoint("TOPRIGHT", fenetre, "TOPRIGHT", -2, 1)
-        for _, v in ipairs({
-            { "SetNormalTexture", "GetNormalTexture", "redbutton-exit" },
-            { "SetPushedTexture", "GetPushedTexture", "redbutton-exit-pressed" },
-            { "SetDisabledTexture", "GetDisabledTexture", "redbutton-exit-disabled" },
-            { "SetHighlightTexture", "GetHighlightTexture", "redbutton-highlight" },
-        }) do
-            b[v[1]](b, K.decoupes[v[3]][1])
-            local t = b[v[2]](b)
-            poserDecoupe(t, v[3])
-            t:ClearAllPoints()
-            t:SetAllPoints(b)
-            if v[1] == "SetHighlightTexture" then t:SetBlendMode("ADD") end
-        end
-        return b
-    end
-
-    -- le cadre (PortraitFrameTemplate) : voir le relevé plus haut
-    local function habiller(f, portrait)
-        local R = N.roche
-        local roche = f:CreateTexture(nil, "BACKGROUND")
-        roche:SetTexture(R.fichier, true)
-        if roche.SetHorizTile then
-            roche:SetHorizTile(true)
-            roche:SetVertTile(true)
-        end
-        roche:SetPoint("TOPLEFT", f, "TOPLEFT", R[1], R[2])
-        roche:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", R[3], R[4])
-        local stries = f:CreateTexture(nil, "BACKGROUND")
-        K.SetAtlas(stries, "_ui-frame-toptilestreaks", true)
-        stries:SetHeight(N.stries[1])
-        stries:SetPoint("TOPLEFT", f, "TOPLEFT", N.stries.x, N.stries.y)
-        stries:SetPoint("TOPRIGHT", f, "TOPRIGHT", N.stries.x2, N.stries.y)
-        local metal = CreateFrame("Frame", nil, f)
-        metal:SetAllPoints(f)
-        metal:SetFrameLevel(f:GetFrameLevel() + N.niveaux.metal)
-        local coins = {}
-        for i, coin in ipairs(N.metal) do
-            local t = metal:CreateTexture(nil, "OVERLAY")
-            K.SetAtlas(t, coin.nom)
-            t:SetPoint(coin.point, metal, coin.point, coin.x, coin.y)
-            coins[i] = t
-        end
-        local function bord(nom, a1, c1, r1, a2, c2, r2)
-            local t = metal:CreateTexture(nil, "OVERLAY")
-            K.SetAtlas(t, nom)
-            t:SetPoint(a1, c1, r1)
-            t:SetPoint(a2, c2, r2)
-        end
-        bord("_ui-frame-metal-edgetop", "TOPLEFT", coins[1], "TOPRIGHT", "TOPRIGHT", coins[2], "TOPLEFT")
-        bord("_ui-frame-metal-edgebottom", "BOTTOMLEFT", coins[3], "BOTTOMRIGHT", "BOTTOMRIGHT", coins[4], "BOTTOMLEFT")
-        bord("!ui-frame-metal-edgeleft", "TOPLEFT", coins[1], "BOTTOMLEFT", "BOTTOMLEFT", coins[3], "TOPLEFT")
-        bord("!ui-frame-metal-edgeright", "TOPRIGHT", coins[2], "BOTTOMRIGHT", "BOTTOMRIGHT", coins[4], "TOPRIGHT")
-        local cadrePortrait = CreateFrame("Frame", nil, f)
-        cadrePortrait:SetAllPoints(f)
-        cadrePortrait:SetFrameLevel(f:GetFrameLevel() + N.niveaux.portrait)
-        local Pt = N.portrait
-        local image = cadrePortrait:CreateTexture(nil, "OVERLAY")
-        image:SetWidth(Pt[1])
-        image:SetHeight(Pt[1])
-        image:SetPoint("TOPLEFT", f, "TOPLEFT", Pt.x, Pt.y)
-        image:SetTexture(portrait)
-        local T = N.titre
-        local bandeau = CreateFrame("Frame", nil, f)
-        bandeau:SetFrameLevel(f:GetFrameLevel() + N.niveaux.titre)
-        bandeau:SetHeight(T.h)
-        bandeau:SetPoint("TOPLEFT", f, "TOPLEFT", T.x1, T.y)
-        bandeau:SetPoint("TOPRIGHT", f, "TOPRIGHT", T.x2, T.y)
-        local titre = bandeau:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        titre:SetPoint("TOP", bandeau, "TOP", 0, T.texteY)
-        titre:SetText("")
-        -- 45 x 62, la région utile de l'image
-        image:SetHeight(Pt[2])
-        image:SetTexCoord(Pt.coords[1], Pt.coords[2], Pt.coords[3], Pt.coords[4])
-        -- le fond noir du cercle, sous le portrait (même cadre, calque inférieur)
-        local D = N.disque
-        local disque = cadrePortrait:CreateTexture(nil, "ARTWORK")
-        disque:SetTexture(D.fichier)
-        disque:SetVertexColor(0, 0, 0, 1)
-        disque:SetWidth(D[1])
-        disque:SetHeight(D[1])
-        disque:SetPoint("TOPLEFT", f, "TOPLEFT", D.x, D.y)
-        return { roche = roche, stries = stries, metal = metal, portrait = image, titre = titre,
-            bandeau = bandeau, cadrePortrait = cadrePortrait, disque = disque }
-    end
-
-    local function poser(r, ...)
-        r:ClearAllPoints()
-        r:SetPoint(...)
-    end
-
-    local function texte(v)
-        if type(v) == "function" then return v() end
-        return v
-    end
-
-    -- LE MICRO-BOUTON, dans la micro-barre de ForeverUI : demandé dès qu'une
-    -- page existe (ForeverUI.AddMicroButton le crée une fois, après les
-    -- talents, avec son jeu d'icônes Legacy ; en combat, à la sortie du
-    -- combat), enfoncé tant que la fenêtre est ouverte.
-    local majMicro
-    local MICRO = {
-        name = BOUTON, atlasSet = "legacy", after = "TalentMicroButton",
-        tooltip = function() return texte(P.nom) or "" end,
-        onClick = function() P.Basculer() end,
-        ready = function() majMicro() end,
-    }
-    majMicro = function()
-        if #P.ordre > 0 then
-            ForeverUI.AddMicroButton(MICRO)
-        end
-        if ForeverUI.UpdateMicro then
-            ForeverUI.UpdateMicro(BOUTON, (P.fenetre and P.fenetre:IsShown()) and true or false)
-        end
-    end
-
-    -- ------------------------------------------------------------ les onglets
-
-    local function creerOnglet(f, k)
-        local O = N.onglet
-        local b = CreateFrame("Button", "ProgressionTab" .. k, f)
-        b:SetWidth(O.cote)
-        b:SetHeight(O.cote)
-        b:SetFrameLevel(f:GetFrameLevel() + N.niveaux.onglets)
-        b:RegisterForClicks("LeftButtonUp")
-        local fond = b:CreateTexture(nil, "BACKGROUND")
-        K.SetAtlas(fond, "common-sidetab", true)
-        fond:SetAllPoints(b)
-        local icone = b:CreateTexture(nil, "ARTWORK")
-        icone:SetWidth(O.icone)
-        icone:SetHeight(O.icone)
-        icone:SetPoint("CENTER", b, "CENTER", O.iconeX, 0)
-        icone:SetTexCoord(O.rognage, 1 - O.rognage, O.rognage, 1 - O.rognage)
-        local choisi = b:CreateTexture(nil, "OVERLAY")
-        K.SetAtlas(choisi, "common-sidetab-selected", true)
-        choisi:SetAllPoints(b)
-        choisi:Hide()
-        local survol = b:CreateTexture(nil, "HIGHLIGHT")
-        K.SetAtlas(survol, "common-sidetab-hover", true)
-        survol:SetAllPoints(b)
-        b.icone, b.choisi = icone, choisi
-        b:SetScript("OnEnter", function(self)
-            local d = P.pages[self.cle or ""]
-            if not d then return end
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -4, -4)
-            GameTooltip:SetText(texte(d.titre) or "")
-            GameTooltip:Show()
-        end)
-        b:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        b:SetScript("OnMouseDown", function(self, bouton)
-            if bouton == "LeftButton" then poser(self.icone, "CENTER", self, "CENTER", O.iconeX + 1, -1) end
-        end)
-        b:SetScript("OnMouseUp", function(self, bouton)
-            if bouton == "LeftButton" then
-                poser(self.icone, "CENTER", self, "CENTER", O.iconeX, 0)
-                PlaySound("igCharacterInfoTab")
-            end
-        end)
-        b:SetScript("OnClick", function(self)
-            if self.cle then P.Choisir(self.cle) end
-        end)
-        if k == 1 then
-            b:SetPoint("TOPLEFT", f, "TOPRIGHT", 0, O.y)
-        else
-            b:SetPoint("TOPLEFT", f.onglets[k - 1], "BOTTOMLEFT", 0, O.ecart)
-        end
-        return b
-    end
-
-    local function majOnglets()
-        local f = P.fenetre
-        if not f then return end
-        for k, cle in ipairs(P.ordre) do
-            local d = P.pages[cle]
-            local b = f.onglets[k] or creerOnglet(f, k)
-            f.onglets[k] = b
-            b.cle = cle
-            b.icone:SetTexture(d.icone)
-            K.Montrer(b.choisi, cle == P.courante)
-            b:Show()
-        end
-        for k = #P.ordre + 1, #f.onglets do f.onglets[k]:Hide() end
-    end
-
-    -- ------------------------------------------------------------ la fenêtre
-
-    function P.Construire(portrait)
-        if P.fenetre then return P.fenetre end
-        local f = CreateFrame("Frame", "ProgressionFrame", UIParent)
-        f:SetWidth(N.fenetre[1])
-        f:SetHeight(N.fenetre[2])
-        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, -104)
-        f:SetToplevel(true)
-        f:EnableMouse(true)
-        f:Hide()
-        -- le panneau, déclaré par ses attributs (GetUIPanelWindowInfo les lit
-        -- avant la table UIPanelWindows)
-        for k, v in pairs(PANNEAU) do
-            f:SetAttribute("UIPanelLayout-" .. k, v)
-        end
-        f:SetAttribute("UIPanelLayout-defined", true)
-        f:SetAttribute("UIPanelLayout-enabled", true)
-        local habit = habiller(f, portrait)
-        f.habit = habit
-        local b = CreateFrame("Button", "ProgressionFrameCloseButton", f, "UIPanelCloseButton")
-        croix(b, f)
-        b:SetFrameLevel(f:GetFrameLevel() + N.niveaux.croix)
-        f.croix = b
-        f.onglets = {}
-        f:SetScript("OnShow", function()
-            habit.titre:SetText(texte(P.nom) or "")
-            PlaySound("igCharacterInfoOpen")
-            majMicro()
-        end)
-        f:SetScript("OnHide", function()
-            PlaySound("igCharacterInfoClose")
-            majMicro()
-        end)
-        P.fenetre = f
-        return f
-    end
-
-    -- SelectPage : la page clé se montre (construite à sa première ouverture),
-    -- les autres se cachent, son onglet est coché
-    function P.Choisir(cle)
-        local d = P.pages[cle]
-        if not d then return end
-        if not d.construite then
-            d.construite = true
-            d.construire(d.page)
-        end
-        for _, c in ipairs(P.ordre) do
-            if c ~= cle then P.pages[c].page:Hide() end
-        end
-        P.courante = cle
-        d.page:Show()
-        majOnglets()
-    end
-
-    -- tri des onglets : ordre, puis clé
-    local function avant(a, b)
-        local x, y = P.pages[a], P.pages[b]
-        if x.ordre ~= y.ordre then return x.ordre < y.ordre end
-        return a < b
-    end
-
-    function P.Ajouter(d)
-        if type(d) ~= "table" or type(d.cle) ~= "string" or type(d.construire) ~= "function" then return nil end
-        local f = P.Construire(d.portrait)
-        P.nom = P.nom or d.nomFenetre
-        local ancienne = P.pages[d.cle]
-        local montree = ancienne and ancienne.page:IsShown() and f:IsShown()
-        if ancienne then
-            ancienne.page:Hide()
-        else
-            table.insert(P.ordre, d.cle)
-        end
-        local page = CreateFrame("Frame", nil, f)
-        page:SetAllPoints(f)
-        page:SetFrameLevel(f:GetFrameLevel() + N.niveaux.page)
-        page:Hide()
-        P.pages[d.cle] = {
-            cle = d.cle, ordre = tonumber(d.ordre) or 100, titre = d.titre or d.cle, icone = d.icone,
-            construire = d.construire, page = page,
-        }
-        table.sort(P.ordre, avant)
-        if montree then P.Choisir(d.cle) end
-        majOnglets()
-        majMicro()
-        return page
-    end
-
-    -- ToggleLegacySystemUI : la page clé (sinon la dernière montrée, sinon la
-    -- première)
-    function P.Ouvrir(cle)
-        if #P.ordre == 0 then return end
-        local f = P.Construire()
-        if not (cle and P.pages[cle]) then
-            cle = (P.courante and P.pages[P.courante]) and P.courante or P.ordre[1]
-        end
-        if not f:IsShown() then ShowUIPanel(f) end
-        if f:IsShown() and not (P.courante == cle and P.pages[cle].page:IsShown()) then
-            P.Choisir(cle)
-        end
-    end
-
-    function P.Fermer()
-        if P.fenetre and P.fenetre:IsShown() then HideUIPanel(P.fenetre) end
-    end
-
-    -- la fenêtre ouverte sur cette page (ou sur toute page, sans clé) se ferme ;
-    -- sinon elle s'ouvre sur elle
-    function P.Basculer(cle)
-        local f = P.fenetre
-        if f and f:IsShown() and (not cle or cle == P.courante) then
-            P.Fermer()
-        else
-            P.Ouvrir(cle)
-        end
-    end
-
-    function P.Montree(cle)
-        local f = P.fenetre
-        return (f and f:IsShown() and P.courante == cle) and true or false
-    end
-end
--- ---------------------------------------------------------------------------
--- FIN DE LA FENÊTRE PROGRESSION (copie commune)
--- ---------------------------------------------------------------------------
-
 -- ---------------------------------------------------------------------------
 -- The sheet of the companion mount
 --
--- Who it is (icon, name, kind, tree), its level and experience, its numbers
--- (the module writes them on request: `.companion snapshot`), its orders, and
--- the doors to its talents and saddlebags. It lives in a tab of the
--- Progression window when ForeverUI is installed (as Attriboost and Item
--- Upgrade do), else in a window of its own opened by a button at the edge of
--- the minimap.
+-- Who it is, its level and experience, its numbers (the module writes them on
+-- request: `.companion snapshot`), and the doors to its talents and
+-- saddlebags: the Statistics tab of the companion panel (below).
 -- ---------------------------------------------------------------------------
 
 local UI = {
@@ -1585,10 +779,6 @@ local UI = {
         FR and "Oiseau" or "Bird", FR and "Dragon" or "Dragon", FR and "Bête ailée" or "Winged beast",
         FR and "Insecte" or "Insect", FR and "Machine" or "Machine",
     },
-    -- The Progression tab: its key, its place (after Attriboost and Item
-    -- Upgrade), its icon (a picture ForeverUI installs).
-    CLE = "companionmount", ORDRE = 3,
-    ONGLET_ICONE = OPath("Interface", "ForeverUI", "tabicons", "ability_hunter_beasttaming"),
     -- The minimap button, the standard 3.3.5 composition, at a fixed angle
     -- (Attriboost takes 120, Item Upgrade 155).
     MM_ANGLE = 190, MM_RAYON = 80, MM_TAILLE = 31,
@@ -1619,7 +809,6 @@ local SL = {
     points     = FR and "Points de talent" or "Talent points",
     orders     = FR and "Ordres" or "Orders",
     stats      = FR and "Caractéristiques" or "Statistics",
-    progression = "Progression",
     mmTip      = FR and "Clic : la fiche de votre monture-compagnon." or "Click: the sheet of your companion mount.",
     bagDrag    = FR and "Clic : ouvre les sacoches. Glissez l'icône dans une barre d'action pour l'y garder."
                      or "Click: opens the saddlebags. Drag the icon to an action bar to keep it there.",
@@ -1627,30 +816,315 @@ local SL = {
 
 local function Percent(v) return string.format("%.2f %%", tonumber(v) or 0) end
 
--- The content, in any frame: the Progression page or the window. On the left
--- the mount in 3D (drag to turn it); on the right who it is, its level and
--- its numbers; below, its name, its saddlebags (a button that can be dragged
--- to an action bar) and its talents.
+-- ---------------------------------------------------------------------------
+-- THE COMPANION PANEL: its own window, "Compagnon", with two tabs -- the 3D
+-- view and the figures, as the character sheet; the gambits.
+--
+-- With ForeverUI, the window wears its theme (the rock, the metal frame, the
+-- round portrait, the red cross, the side tabs, the character sheet's panes)
+-- drawn here from the textures ForeverUI installs (nothing of its drawing code
+-- is called), and opens from a micro button of its bar, as Attriboost's
+-- (ForeverUI.AddMicroButton, the "collections" icons). Without it, the
+-- game's own dialog, tabs at the bottom, opened by a button at the edge of
+-- the minimap.
+-- ---------------------------------------------------------------------------
+
+local FUI = ForeverUI and ForeverUI.AddMicroButton and true or false
+local FUI_ART = OPath("Interface", "ForeverUI") .. string.char(92)
+local PANEL_W, PANEL_H = 673, 594
+local MICRO_NAME = "CompanionMountMicroButton"
+
+-- The pieces of ForeverUI's sheets used here: { file, u1, u2, v1, v2, width, height }.
+local PANEL_ART = {
+    edgeLeft = { "framegeneral" .. string.char(92) .. "uiframemetalvertical2xc60", 0.001953, 0.373047, 0, 1, 95, 128 },
+    edgeRight = { "framegeneral" .. string.char(92) .. "uiframemetalvertical2xc60", 0.376953, 0.748047, 0, 1, 95, 128 },
+    edgeBottom = { "framegeneral" .. string.char(92) .. "uiframemetalhorizontal2xc60", 0, 1, 0.001953, 0.392578, 128, 100 },
+    edgeTop = { "framegeneral" .. string.char(92) .. "uiframemetalhorizontal2xc60", 0, 1, 0.396484, 0.767578, 128, 95 },
+    streaks = { "framegeneral" .. string.char(92) .. "uiframehorizontal", 0, 1, 0.007812, 0.34375, 256, 43 },
+    cornerBL = { "framegeneral" .. string.char(92) .. "uiframemetal2xc60", 0.000977, 0.186523, 0.001953, 0.392578, 95, 100 },
+    cornerBR = { "framegeneral" .. string.char(92) .. "uiframemetal2xc60", 0.000977, 0.186523, 0.396484, 0.787109, 95, 100 },
+    cornerTR = { "framegeneral" .. string.char(92) .. "uiframemetal2xc60", 0.188477, 0.374023, 0.376953, 0.748047, 95, 95 },
+    cornerTL = { "framegeneral" .. string.char(92) .. "uiframemetal2xc60", 0.375977, 0.561523, 0.376953, 0.748047, 95, 95 },
+    tab = { "common" .. string.char(92) .. "commonsidetabc60", 0.007812, 0.4375, 0.007812, 0.476562, 55, 60 },
+    tabHover = { "common" .. string.char(92) .. "commonsidetabc60", 0.007812, 0.4375, 0.492188, 0.960938, 55, 60 },
+    tabSelected = { "common" .. string.char(92) .. "commonsidetabc60", 0.453125, 0.882812, 0.007812, 0.476562, 55, 60 },
+    exit = { "buttons" .. string.char(92) .. "redbuttonsc60", 0.136719, 0.261719, 0.007812, 0.257812, 32, 32 },
+    exitPressed = { "buttons" .. string.char(92) .. "redbuttonsc60", 0.136719, 0.261719, 0.539062, 0.789062, 32, 32 },
+    exitHighlight = { "buttons" .. string.char(92) .. "redbuttonsc60", 0.402344, 0.527344, 0.007812, 0.257812, 32, 32 },
+    -- the character sheet (UIAtlas_05_character_sheet)
+    generalBg = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart2c60", 0.000977, 0.389648, 0.000977, 0.454102, 398, 464 },
+    statBg = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart2c60", 0.621094, 0.848633, 0.376953, 0.750977, 233, 383 },
+    statTitle = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart1c60", 0.283203, 0.479492, 0.056641, 0.087891, 201, 32 },
+    statLight = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart1c60", 0.491211, 0.699219, 0.000977, 0.018555, 213, 18 },
+    statDark = { "paperdollinfoframe" .. string.char(92) .. "paperdollinfopart1c60", 0.263672, 0.462891, 0.000977, 0.021484, 204, 21 },
+}
+
+local function Art(t, name, keepSize)
+    local e = PANEL_ART[name]
+    t:SetTexture(FUI_ART .. e[1])
+    t:SetTexCoord(e[2], e[3], e[4], e[5])
+    if not keepSize then
+        t:SetWidth(e[6])
+        t:SetHeight(e[7])
+    end
+    return t
+end
+
+-- The ForeverUI frame: the rock, the streaks, the metal, the round portrait,
+-- the title on its strip (the Progression window's numbers).
+local function DressForever(f)
+    local rock = f:CreateTexture(nil, "BACKGROUND")
+    rock:SetTexture(FUI_ART .. "framegeneral" .. string.char(92) .. "ui-background-rock", true)
+    if rock.SetHorizTile then rock:SetHorizTile(true) rock:SetVertTile(true) end
+    rock:SetPoint("TOPLEFT", 2, -21)
+    rock:SetPoint("BOTTOMRIGHT", -2, 2)
+    local streaks = Art(f:CreateTexture(nil, "BACKGROUND"), "streaks", true)
+    streaks:SetHeight(43)
+    streaks:SetPoint("TOPLEFT", 6, -21)
+    streaks:SetPoint("TOPRIGHT", -2, -21)
+
+    local metal = CreateFrame("Frame", nil, f)
+    metal:SetAllPoints(f)
+    metal:SetFrameLevel(f:GetFrameLevel() + 20)
+    local function corner(name, point, x, y)
+        local t = Art(metal:CreateTexture(nil, "OVERLAY"), name)
+        t:SetPoint(point, metal, point, x, y)
+        return t
+    end
+    local tl, tr = corner("cornerTL", "TOPLEFT", -13, 16), corner("cornerTR", "TOPRIGHT", 2, 16)
+    local bl, br = corner("cornerBL", "BOTTOMLEFT", -13, -8), corner("cornerBR", "BOTTOMRIGHT", 2, -8)
+    local function edge(name, a1, c1, r1, a2, c2, r2)
+        local t = Art(metal:CreateTexture(nil, "OVERLAY"), name)
+        t:SetPoint(a1, c1, r1)
+        t:SetPoint(a2, c2, r2)
+    end
+    edge("edgeTop", "TOPLEFT", tl, "TOPRIGHT", "TOPRIGHT", tr, "TOPLEFT")
+    edge("edgeBottom", "BOTTOMLEFT", bl, "BOTTOMRIGHT", "BOTTOMRIGHT", br, "BOTTOMLEFT")
+    edge("edgeLeft", "TOPLEFT", tl, "BOTTOMLEFT", "BOTTOMLEFT", bl, "TOPLEFT")
+    edge("edgeRight", "TOPRIGHT", tr, "BOTTOMRIGHT", "BOTTOMRIGHT", br, "TOPRIGHT")
+
+    -- The round portrait: the mount's icon, under the metal ring.
+    local ring = CreateFrame("Frame", nil, f)
+    ring:SetAllPoints(f)
+    ring:SetFrameLevel(f:GetFrameLevel() + 19)
+    local portrait = ring:CreateTexture(nil, "ARTWORK")
+    portrait:SetSize(58, 58)
+    portrait:SetPoint("TOPLEFT", f, "TOPLEFT", -3, 7)
+    f.portrait = portrait
+
+    local strip = CreateFrame("Frame", nil, f)
+    strip:SetFrameLevel(f:GetFrameLevel() + 21)
+    strip:SetHeight(20)
+    strip:SetPoint("TOPLEFT", 58, -1)
+    strip:SetPoint("TOPRIGHT", -24, -1)
+    f.title = strip:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    f.title:SetPoint("TOP", strip, "TOP", 0, -5)
+
+    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+    close:SetSize(24, 24)
+    close:ClearAllPoints()
+    close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, 1)
+    close:SetFrameLevel(f:GetFrameLevel() + 22)
+    for _, v in ipairs({ { "GetNormalTexture", "exit" }, { "GetPushedTexture", "exitPressed" },
+            { "GetHighlightTexture", "exitHighlight" } }) do
+        local t = close[v[1]](close)
+        if t then
+            Art(t, v[2], true)
+            t:ClearAllPoints()
+            t:SetAllPoints(close)
+        end
+    end
+    close:GetHighlightTexture():SetBlendMode("ADD")
+end
+
+-- The game's own frame: the dialog box and its header.
+local function DressDefault(f)
+    f:SetBackdrop({
+        bgFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Background"),
+        edgeFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Border"),
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 },
+    })
+    local header = f:CreateTexture(nil, "ARTWORK")
+    header:SetTexture(OPath("Interface", "DialogFrame", "UI-DialogBox-Header"))
+    header:SetSize(320, 64)
+    header:SetPoint("TOP", 0, 12)
+    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    f.title:SetPoint("TOP", header, "TOP", 0, -14)
+    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -4, -4)
+end
+
+local Panel = { pages = {}, tabs = {}, current = 1 }
+
+local TAB_DEFS = {
+    { text = function() return G.tabStats end, icon = OPath("Interface", "Icons", "Ability_Hunter_BeastTaming") },
+    { text = function() return G.gambits end, icon = OPath("Interface", "Icons", "INV_Misc_Book_09") },
+}
+
+function Panel.Select(index)
+    Panel.current = index
+    for i, page in ipairs(Panel.pages) do
+        if i == index then page:Show() else page:Hide() end
+    end
+    for i, tab in ipairs(Panel.tabs) do
+        if FUI then
+            if i == index then tab.selected:Show() else tab.selected:Hide() end
+        end
+    end
+    if not FUI and Panel.frame then PanelTemplates_SetTab(Panel.frame, index) end
+end
+
+local function SideTab(f, i)
+    local b = CreateFrame("Button", "CompanionMountPanelSideTab" .. i, f)
+    b:SetSize(55, 55)
+    b:SetFrameLevel(f:GetFrameLevel() + 1)
+    Art(b:CreateTexture(nil, "BACKGROUND"), "tab", true):SetAllPoints(b)
+    local icon = b:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(50, 50)
+    icon:SetPoint("CENTER", -3, 0)
+    icon:SetTexCoord(0.03125, 0.96875, 0.03125, 0.96875)
+    icon:SetTexture(TAB_DEFS[i].icon)
+    b.selected = Art(b:CreateTexture(nil, "OVERLAY"), "tabSelected", true)
+    b.selected:SetAllPoints(b)
+    b.selected:Hide()
+    Art(b:CreateTexture(nil, "HIGHLIGHT"), "tabHover", true):SetAllPoints(b)
+    if i == 1 then
+        b:SetPoint("TOPLEFT", f, "TOPRIGHT", 0, -60)
+    else
+        b:SetPoint("TOPLEFT", Panel.tabs[i - 1], "BOTTOMLEFT", 0, -2)
+    end
+    b:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -4, -4)
+        GameTooltip:SetText(TAB_DEFS[i].text())
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    b:SetScript("OnClick", function()
+        PlaySound("igCharacterInfoTab")
+        Panel.Select(i)
+    end)
+    return b
+end
+
+local function BottomTab(f, i)
+    local b = CreateFrame("Button", "CompanionMountPanelTab" .. i, f, "CharacterFrameTabButtonTemplate")
+    b:SetID(i)
+    b:SetText(TAB_DEFS[i].text())
+    if i == 1 then
+        b:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 12, 8)
+    else
+        b:SetPoint("LEFT", Panel.tabs[i - 1], "RIGHT", -16, 0)
+    end
+    PanelTemplates_TabResize(b, 0)
+    b:SetScript("OnClick", function()
+        PlaySound("igCharacterInfoTab")
+        Panel.Select(i)
+    end)
+    return b
+end
+
+function Panel.Create()
+    if Panel.frame then return Panel.frame end
+    local f = CreateFrame("Frame", "CompanionMountPanel", UIParent)
+    f:SetSize(PANEL_W, PANEL_H)
+    f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, -104)
+    f:SetToplevel(true)
+    f:EnableMouse(true)
+    f:Hide()
+    -- A panel of the game, as the character sheet (Progression's numbers).
+    for k, v in pairs({ area = "left", xoffset = 35, pushable = 1, whileDead = 1, width = PANEL_W + 85 }) do
+        f:SetAttribute("UIPanelLayout-" .. k, v)
+    end
+    f:SetAttribute("UIPanelLayout-defined", true)
+    f:SetAttribute("UIPanelLayout-enabled", true)
+    if FUI then DressForever(f) else DressDefault(f) end
+    f.title:SetText(G.panelTitle)
+    Panel.frame = f
+
+    for i = 1, #TAB_DEFS do
+        local page = CreateFrame("Frame", nil, f)
+        page:SetPoint("TOPLEFT", f, "TOPLEFT", 18, FUI and -66 or -40)
+        page:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -18, FUI and 14 or 18)
+        page:SetFrameLevel(f:GetFrameLevel() + 2)
+        page:Hide()
+        Panel.pages[i] = page
+        Panel.tabs[i] = FUI and SideTab(f, i) or BottomTab(f, i)
+    end
+    if not FUI then
+        PanelTemplates_SetNumTabs(f, #TAB_DEFS)
+    end
+
+    f:SetScript("OnShow", function()
+        PlaySound("igCharacterInfoOpen")
+        if FUI and ForeverUI.UpdateMicro then ForeverUI.UpdateMicro(MICRO_NAME, true) end
+    end)
+    f:SetScript("OnHide", function()
+        PlaySound("igCharacterInfoClose")
+        if FUI and ForeverUI.UpdateMicro then ForeverUI.UpdateMicro(MICRO_NAME, false) end
+    end)
+
+    UI.Build(Panel.pages[1])
+    CompanionMount_AttachGambits(Panel.pages[2])
+    Panel.Select(1)
+    return f
+end
+
+function Panel.Open(index)
+    local f = Panel.Create()
+    if not f:IsShown() then ShowUIPanel(f) end
+    Panel.Select(index or Panel.current or 1)
+end
+
+function Panel.Toggle(index)
+    local f = Panel.Create()
+    if f:IsShown() and (not index or index == Panel.current) then
+        HideUIPanel(f)
+    else
+        Panel.Open(index)
+    end
+end
+
+-- The portrait follows the mount chosen.
+function Panel.SetPortrait(mount)
+    if not (Panel.frame and Panel.frame.portrait) then return end
+    local icon = (mount or 0) ~= 0 and select(3, GetSpellInfo(mount)) or UI.MM_ICONE
+    if SetPortraitToTexture then
+        SetPortraitToTexture(Panel.frame.portrait, icon)
+    else
+        Panel.frame.portrait:SetTexture(icon)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- The "Statistics" tab, as the character sheet: on the left the mount in 3D
+-- (drag to turn it) with its name and level, its experience below; on the
+-- right its figures; at the bottom its name, its saddlebags (a button that can
+-- be dragged to an action bar) and its talents.
+-- ---------------------------------------------------------------------------
 function UI.Build(parent)
     local root = CreateFrame("Frame", nil, parent)
-    root:SetPoint("TOPLEFT", parent, "TOPLEFT", 24, -40)
-    root:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -24, 20)
+    root:SetAllPoints(parent)
     UI.root = root
 
-    -- THE 3D VIEW: the creature the mount spell shows, turned by dragging.
+    -- THE 3D VIEW, on the sheet's own background with ForeverUI.
     local view = CreateFrame("Frame", nil, root)
-    view:SetSize(200, 236)
+    view:SetSize(380, 404)
     view:SetPoint("TOPLEFT", 0, 0)
-    view:SetBackdrop({
-        bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
-        edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
-        tile = true, tileSize = 16, edgeSize = 14,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 },
-    })
-    view:SetBackdropColor(0, 0, 0, 0.75)
+    if FUI then
+        Art(view:CreateTexture(nil, "BACKGROUND"), "generalBg", true):SetAllPoints(view)
+    else
+        view:SetBackdrop({
+            bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
+            edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
+            tile = true, tileSize = 16, edgeSize = 14,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        view:SetBackdropColor(0, 0, 0, 0.75)
+    end
     local model = CreateFrame("PlayerModel", nil, view)
-    model:SetPoint("TOPLEFT", 6, -6)
-    model:SetPoint("BOTTOMRIGHT", -6, 6)
+    model:SetPoint("TOPLEFT", 8, -44)
+    model:SetPoint("BOTTOMRIGHT", -8, 8)
     model.rotation = 0.6
     model:EnableMouse(true)
     model:SetScript("OnMouseDown", function(self) self.turning = GetCursorPosition() end)
@@ -1664,21 +1138,17 @@ function UI.Build(parent)
         end
     end)
     UI.model = model
-    -- The view was 280 x 330: the model is shown as large as it was then.
-    UI.MODEL_SCALE = 330 / 236
 
-    -- WHO IT IS, its level and experience.
-    local info = CreateFrame("Frame", nil, root)
-    info:SetPoint("TOPLEFT", view, "TOPRIGHT", 20, 0)
-    info:SetPoint("BOTTOM", view, "BOTTOM", 0, 0)
-    info:SetWidth(296)
-    UI.name = info:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    UI.name:SetPoint("TOPLEFT", 0, -2)
-    UI.levelText = info:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    UI.levelText:SetPoint("TOPLEFT", UI.name, "BOTTOMLEFT", 0, -10)
-    local xp = CreateFrame("StatusBar", nil, info)
-    xp:SetSize(290, 14)
-    xp:SetPoint("TOPLEFT", UI.levelText, "BOTTOMLEFT", 0, -6)
+    -- Its name and level, over the view.
+    UI.name = view:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    UI.name:SetPoint("TOP", view, "TOP", 0, -10)
+    UI.levelText = view:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    UI.levelText:SetPoint("TOP", UI.name, "BOTTOM", 0, -4)
+
+    -- Its experience, under the view.
+    local xp = CreateFrame("StatusBar", nil, root)
+    xp:SetSize(372, 14)
+    xp:SetPoint("TOPLEFT", view, "BOTTOMLEFT", 4, -10)
     xp:SetStatusBarTexture(OPath("Interface", "TargetingFrame", "UI-StatusBar"))
     xp:SetStatusBarColor(0.58, 0.0, 0.55)
     local xpBack = xp:CreateTexture(nil, "BACKGROUND")
@@ -1692,47 +1162,66 @@ function UI.Build(parent)
     UI.xpText:SetPoint("CENTER")
     UI.xp = xp
 
-    -- ITS NUMBERS, label left, value right.
-    local statsTitle = info:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    statsTitle:SetPoint("TOPLEFT", xp, "BOTTOMLEFT", 0, -18)
+    -- ITS FIGURES, in the character sheet's right pane.
+    local stats = CreateFrame("Frame", nil, root)
+    stats:SetSize(233, 383)
+    stats:SetPoint("TOPRIGHT", 0, 0)
+    if FUI then
+        Art(stats:CreateTexture(nil, "BACKGROUND"), "statBg", true):SetAllPoints(stats)
+    else
+        stats:SetBackdrop({
+            bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
+            edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
+            tile = true, tileSize = 16, edgeSize = 14,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        stats:SetBackdropColor(0, 0, 0, 0.6)
+    end
+    local header = stats:CreateTexture(nil, "ARTWORK")
+    header:SetPoint("TOP", stats, "TOP", 0, -10)
+    if FUI then Art(header, "statTitle") else header:SetSize(201, 24) header:SetTexture(1, 1, 1, 0.08) end
+    local statsTitle = stats:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    statsTitle:SetPoint("CENTER", header, "CENTER", 0, 0)
     statsTitle:SetText(SL.stats)
     local labels = { "health", "armor", "power", "damage", "speed", "crit", "dodge", "parry", "points" }
     for i, key in ipairs(labels) do
-        local label = info:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        label:SetPoint("TOPLEFT", statsTitle, "BOTTOMLEFT", 6, -8 - (i - 1) * 18)
+        local y = -50 - (i - 1) * 20
+        local line = stats:CreateTexture(nil, "ARTWORK")
+        line:SetPoint("TOP", stats, "TOP", 0, y + 1)
+        if FUI then
+            Art(line, (i % 2 == 0) and "statDark" or "statLight", true)
+            line:SetSize(213, 20)
+        else
+            line:SetSize(213, 20)
+            line:SetTexture(1, 1, 1, (i % 2 == 0) and 0.04 or 0.08)
+        end
+        local label = stats:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        label:SetPoint("LEFT", line, "LEFT", 8, 0)
         label:SetText(SL[key])
-        local value = info:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        value:SetPoint("RIGHT", label, "LEFT", 284, 0)
+        local value = stats:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        value:SetPoint("RIGHT", line, "RIGHT", -8, 0)
         value:SetJustifyH("RIGHT")
         UI.rows[key] = value
-        local line = info:CreateTexture(nil, "BACKGROUND")
-        line:SetTexture(1, 1, 1, (i % 2 == 0) and 0.04 or 0.08)
-        line:SetPoint("TOPLEFT", label, "TOPLEFT", -6, 3)
-        line:SetSize(290, 18)
     end
 
-    -- BELOW, together on the right: its name, its saddlebags, the reset of its
-    -- gambits (placed with them) and its talents.
-    local talents = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
-    talents:SetSize(110, 26)
-    talents:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 4)
-    UI.talentsButton = talents
-
+    -- BELOW: its name and its saddlebags on the left, its talents on the right.
     local rename = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
-    rename:SetSize(110, 26)
+    rename:SetSize(120, 24)
+    rename:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", 0, 6)
     rename:SetText(L.rename)
     rename:SetScript("OnClick", function() StaticPopup_Show("COMPANIONMOUNT_RENAME") end)
 
     -- The saddlebags: an icon that opens them, and that can be dragged to an
     -- action bar (it becomes the macro /compagnon sacoches).
     local bag = CreateFrame("Button", "CompanionMountSheetBagButton", root)
-    bag:SetSize(32, 32)
+    bag:SetSize(30, 30)
+    bag:SetPoint("LEFT", rename, "RIGHT", 18, 0)
     local bagIcon = bag:CreateTexture(nil, "ARTWORK")
     bagIcon:SetAllPoints()
     bagIcon:SetTexture(OPath("Interface", "Icons", "INV_Misc_Bag_08"))
     local bagBorder = bag:CreateTexture(nil, "OVERLAY")
     bagBorder:SetTexture(OPath("Interface", "Buttons", "UI-Quickslot2"))
-    bagBorder:SetSize(62, 62)
+    bagBorder:SetSize(58, 58)
     bagBorder:SetPoint("CENTER", 0, -1)
     bag:SetHighlightTexture(OPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
     bag:SetPushedTexture(OPath("Interface", "Buttons", "UI-Quickslot-Depress"))
@@ -1747,15 +1236,14 @@ function UI.Build(parent)
     end)
     bag:SetScript("OnLeave", function() GameTooltip:Hide() end)
     local bagLabel = root:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    bagLabel:SetPoint("LEFT", bag, "RIGHT", 8, 0)
     bagLabel:SetText(L.bag)
-    -- Right to left from Talents: Reset (110 wide, 8 apart), the saddlebags, Rename.
-    bagLabel:SetPoint("RIGHT", talents, "LEFT", -(8 + 110 + 14), 0)
-    bag:SetPoint("RIGHT", bagLabel, "LEFT", -6, 0)
-    rename:SetPoint("RIGHT", bag, "LEFT", -14, 0)
 
+    local talents = CreateFrame("Button", nil, root, "UIPanelButtonTemplate")
+    talents:SetSize(120, 24)
+    talents:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 6)
     talents:SetText(L.talents)
     talents:SetScript("OnClick", function() CompanionMount_ToggleTalents() end)
-
 
     -- While it is shown, the numbers follow the fight (every 3 s: each
     -- request has the module write the sheet in the database).
@@ -1769,9 +1257,6 @@ function UI.Build(parent)
         end
     end)
     UI.Refresh()
-
-    -- THE GAMBITS, on the right of the sheet (after its scripts: it hooks OnShow).
-    if CompanionMount_AttachGambits then CompanionMount_AttachGambits(root) end
     return root
 end
 
@@ -1806,6 +1291,7 @@ function UI.Refresh()
     local s = UI.sheet
     local mount = tonumber(s.mount_spell) or 0
     local name = GetSpellInfo(mount)
+    Panel.SetPortrait(mount)
 
     -- The 3D view: the beast's own model when it is out, else the mount's.
     local display, creature = tonumber(s.display) or 0, tonumber(s.creature) or 0
@@ -1817,7 +1303,6 @@ function UI.Refresh()
         elseif creature > 0 then
             UI.model:SetCreature(creature)
         end
-        UI.model:SetModelScale(UI.MODEL_SCALE or 1)
         UI.model:SetRotation(UI.model.rotation)
     end
 
@@ -1853,47 +1338,9 @@ function UI.Refresh()
 end
 
 -- ---------------------------------------------------------------------------
--- The hosts: a tab of the Progression window, or a window and a minimap button
+-- The doors: a micro button with ForeverUI, else a button at the edge of the
+-- minimap.
 -- ---------------------------------------------------------------------------
-
-function UI.CreateWindow()
-    local f = CreateFrame("Frame", "CompanionMountFrame", UIParent)
-    f:SetSize(640, 690)
-    f:SetPoint("CENTER")
-    f:SetMovable(true)
-    f:EnableMouse(true)
-    f:SetClampedToScreen(true)
-    f:SetToplevel(true)
-    f:RegisterForDrag("LeftButton")
-    f:SetScript("OnDragStart", f.StartMoving)
-    f:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        if LibWindow then LibWindow.SavePosition(self) end
-    end)
-    f:SetBackdrop({
-        bgFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Background"),
-        edgeFile = OPath("Interface", "DialogFrame", "UI-DialogBox-Gold-Border"),
-        tile = true, tileSize = 32, edgeSize = 24,
-        insets = { left = 6, right = 6, top = 6, bottom = 6 },
-    })
-    f:Hide()
-    tinsert(UISpecialFrames, "CompanionMountFrame")
-    local header = f:CreateTexture(nil, "ARTWORK")
-    header:SetTexture(OPath("Interface", "DialogFrame", "UI-DialogBox-Header"))
-    header:SetSize(320, 64)
-    header:SetPoint("TOP", 0, 12)
-    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOP", header, "TOP", 0, -14)
-    title:SetText(L.title)
-    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-    close:SetPoint("TOPRIGHT", -2, -2)
-    f:SetScript("OnShow", function() PlaySound("igCharacterInfoOpen") end)
-    f:SetScript("OnHide", function() PlaySound("igCharacterInfoClose") end)
-    UI.Build(f)
-    UI.window = f
-    -- A size is set: LibWindow may read the position.
-    AIO.SavePosition(f, true)
-end
 
 function UI.CreateMinimapButton()
     if not Minimap then return end
@@ -1931,27 +1378,18 @@ function UI.CreateMinimapButton()
     b:SetScript("OnClick", function() CompanionMount_Toggle() end)
 end
 
--- With the Progression window (ForeverUI present), a tab replaces the window
--- and the minimap button.
-if Progression and Progression.Ajouter and Progression.Kit then
-    UI.page = Progression.Ajouter({
-        cle = UI.CLE, ordre = UI.ORDRE, icone = UI.ONGLET_ICONE,
-        titre = function() return L.title end,
-        nomFenetre = function() return SL.progression end,
-        construire = function(page) UI.Build(page) end,
+if FUI then
+    ForeverUI.AddMicroButton({
+        name = MICRO_NAME, atlasSet = "collections", after = "TalentMicroButton",
+        tooltip = function() return G.panelTitle end,
+        onClick = function() Panel.Toggle() end,
     })
-end
-if not UI.page then
-    UI.CreateWindow()
+else
     UI.CreateMinimapButton()
 end
 
 function CompanionMount_Toggle()
-    if UI.page then
-        Progression.Basculer(UI.CLE)
-    elseif UI.window then
-        if UI.window:IsShown() then UI.window:Hide() else UI.window:Show() end
-    end
+    Panel.Toggle(1)
 end
 
 -- ---------------------------------------------------------------------------
@@ -2319,7 +1757,7 @@ AIO.SavePosition(unitFrame, true)
 -- keeps it.
 -- ---------------------------------------------------------------------------
 
-local GAMBIT_ROW_HEIGHT = 27
+local GAMBIT_ROW_HEIGHT = 36
 local gambitData = { rows = {}, slots = 3, max = 10, unlock = {}, spells = {}, custom = false }
 local gambitRows = {}
 
@@ -2438,8 +1876,8 @@ end
 
 local function MakeGambitRow(i)
     local row = CreateFrame("Frame", nil, gambitFrame)
-    row:SetSize(500, GAMBIT_ROW_HEIGHT - 2)
-    row:SetPoint("TOPLEFT", 0, -46 - (i - 1) * GAMBIT_ROW_HEIGHT)
+    row:SetSize(600, GAMBIT_ROW_HEIGHT - 2)
+    row:SetPoint("TOPLEFT", 0, -52 - (i - 1) * GAMBIT_ROW_HEIGHT)
 
     row.number = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     row.number:SetPoint("LEFT", 0, 0)
@@ -2464,7 +1902,7 @@ local function MakeGambitRow(i)
     row.check:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     row.condition = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.condition:SetSize(230, 22)
+    row.condition:SetSize(250, 22)
     row.condition:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
     row.condition:SetScript("OnClick", function(self)
         EasyMenu(ConditionMenu(i), gambitMenu, self, 0, 0, "MENU")
@@ -2475,7 +1913,7 @@ local function MakeGambitRow(i)
     row.arrow:SetText(">")
 
     row.action = CreateFrame("Button", nil, row)
-    row.action:SetSize(176, 24)
+    row.action:SetSize(210, 24)
     row.action:SetPoint("LEFT", row.arrow, "RIGHT", 3, 0)
     row.action.icon = row.action:CreateTexture(nil, "ARTWORK")
     row.action.icon:SetSize(22, 22)
@@ -2552,26 +1990,25 @@ local function RefreshGambits()
     gambitStatus:SetText(gambitData.custom and G.customList or G.defaultList)
 end
 
--- The panel joins the sheet when it is built (its window, or its tab in
--- Progression), right of the figures; it asks for the list as the sheet opens.
-function CompanionMount_AttachGambits(root)
-    gambitFrame:SetParent(root)
+-- The Gambits tab of the panel: the list, its state and Reset at the bottom.
+-- It asks for the list as the tab opens.
+function CompanionMount_AttachGambits(page)
+    gambitFrame:SetParent(page)
     gambitFrame:ClearAllPoints()
-    gambitFrame:SetPoint("TOPLEFT", root, "TOPLEFT", 0, -262)
-    gambitFrame:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", 0, 40)
-    gambitReset:SetParent(root)
-    gambitReset:ClearAllPoints()
-    gambitReset:SetSize(110, 26)
-    if UI.talentsButton then gambitReset:SetPoint("RIGHT", UI.talentsButton, "LEFT", -8, 0) end
+    gambitFrame:SetAllPoints(page)
     gambitFrame:Show()
+    gambitReset:SetParent(gambitFrame)
+    gambitReset:ClearAllPoints()
+    gambitReset:SetSize(130, 24)
+    gambitReset:SetPoint("BOTTOMRIGHT", gambitFrame, "BOTTOMRIGHT", 0, 6)
+    gambitStatus:ClearAllPoints()
+    gambitStatus:SetPoint("BOTTOMLEFT", gambitFrame, "BOTTOMLEFT", 0, 12)
     RefreshGambits()
-    root:HookScript("OnShow", function() AIO.Handle("CompanionMount", "GambitOpen") end)
-    if root:IsVisible() then AIO.Handle("CompanionMount", "GambitOpen") end
+    page:HookScript("OnShow", function() AIO.Handle("CompanionMount", "GambitOpen") end)
 end
-if UI.root then CompanionMount_AttachGambits(UI.root) end
 
 function CompanionMount_ToggleGambits()
-    if not (UI.root and UI.root:IsVisible()) then CompanionMount_Toggle() end
+    Panel.Toggle(2)
 end
 
 function Handlers.Gambits(_, data)
