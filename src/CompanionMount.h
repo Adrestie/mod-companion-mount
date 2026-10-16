@@ -41,6 +41,7 @@
 #include "Player.h"
 #include "SharedDefines.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -100,6 +101,37 @@ namespace CompanionMount
         TEXT_BAG_FULL        = 30,
         TEXT_BAG_HEADER      = 31,
         TEXT_BAG_LINE        = 32,
+        TEXT_TALENT_HEADER   = 33,
+        TEXT_TALENT_LINE     = 34,
+        TEXT_TALENT_NO_POINTS = 35,
+        TEXT_TALENT_OTHER_TREE = 36,
+        TEXT_TALENT_TIER     = 37,
+        TEXT_TALENT_MAXED    = 38,
+        TEXT_TALENT_UNKNOWN  = 39,
+        TEXT_TALENT_RESET    = 40,
+        TEXT_TALENT_TREE_DPS = 41,   // 41 DPS, 42 Tank, 43 Soin
+        TEXT_TALENT_TREE_NONE = 44,
+        TEXT_TALENT_NO_KEY   = 45,
+    };
+
+    // CE QUE L'IA FAIT D'UN SORT DE TALENT (mod_companion_mount_talent.use).
+    enum TalentUse : uint8
+    {
+        TALENT_USE_PASSIVE    = 0,   // une aura posee sur la bete
+        TALENT_USE_VICTIM     = 1,   // lance sur sa cible
+        TALENT_USE_SELF       = 2,   // sur elle-meme, en combat
+        TALENT_USE_SELF_HEAL  = 3,   // sur elle-meme, sous la moitie de ses PV
+        TALENT_USE_OWNER      = 4,   // sur son maitre, en combat
+        TALENT_USE_OWNER_HEAL = 5,   // sur son maitre, sous 80 % de ses PV
+        TALENT_USE_NONE       = 6,   // pas utilise
+    };
+
+    // Un sort que l'IA lance : le rang que son niveau permet.
+    struct ActiveSpell
+    {
+        uint32 spell = 0;
+        uint8 use = TALENT_USE_VICTIM;
+        uint32 cooldown = 0;   // ms ; 0 : celui du sort
     };
 
     // LES ORDRES, comme ceux de la barre du familier.
@@ -162,6 +194,12 @@ namespace CompanionMount
         // LES SACOCHES (CompanionBag.cpp).
         uint32 bagSlots = 16;
         bool bagRequiresOut = true;      // il faut que la bete soit la
+
+        // LES TALENTS (CompanionTalent.cpp).
+        uint32 talentFirstLevel = 20;
+        uint32 talentLevelsPerPoint = 4;
+        uint32 talentPointsPerTier = 3;
+        bool talentOneTree = true;       // un seul arbre par monture
     };
 
     // CE QUE LE JOUEUR A CHOISI, et ou en est sa monture.
@@ -194,6 +232,10 @@ namespace CompanionMount
         uint64 poolSeen = 0;
         uint64 pool = 0;
         std::string name;             // vide : le nom du modele
+
+        // LES TALENTS de la monture choisie, et ce que son IA en lance.
+        std::map<uint32, uint8> talentRanks;
+        std::vector<ActiveSpell> actives;
     };
 
     Config const& GetConfig();
@@ -236,6 +278,21 @@ namespace CompanionMount
     bool BagWithdraw(Player* player, uint32 bagSlot);
     void BagList(ChatHandler* handler, Player* player);
     void BagDeleteAll(ObjectGuid::LowType guid);
+
+    // LES TALENTS (CompanionTalent.cpp).
+    void LoadTalentCatalogue();
+    uint8 MountKind(uint32 mountSpell);
+    uint32 KeySpell(uint32 mountSpell);
+    uint32 SpellRankForLevel(uint32 spellId, uint8 level);
+    uint32 TalentPoints(uint8 level);
+    uint32 TalentPointsSpent(State const& state);
+    int32 TalentTree(State const& state);
+    void LoadTalentRanks(Player* player, State& state);
+    void ApplyTalents(Creature* companion, Player* player, State& state);
+    bool LearnTalent(Player* player, uint32 talentId);
+    void ResetTalents(Player* player);
+    void ListTalents(ChatHandler* handler, Player* player);
+    void DeleteTalents(ObjectGuid::LowType guid);
 
     // LE NOM (CompanionName.cpp).
     void ApplyName(Creature* companion, State const& state);

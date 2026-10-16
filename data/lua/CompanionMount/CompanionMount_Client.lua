@@ -69,6 +69,16 @@ local L = {
                      or "Names the chosen mount (empty: removes the name).",
     renameAsk  = FR and "Nouveau nom de votre monture-compagnon :" or "New name of your companion mount:",
     bag        = FR and "Sacoches" or "Saddlebags",
+    talents    = FR and "Talents" or "Talents",
+    talentsTip = FR and "Ouvre les talents de la monture : un arbre par monture, cliquez pour apprendre un rang."
+                     or "Opens the talents of the mount: one tree per mount, click to learn a rank.",
+    treeDps    = "DPS",
+    treeTank   = "Tank",
+    treeHeal   = FR and "Soin" or "Heal",
+    noTree     = FR and "aucun arbre choisi" or "no tree chosen",
+    points     = FR and "Points : %d/%d - %s" or "Points: %d/%d - %s",
+    reset      = FR and "Réinitialiser" or "Reset",
+    keyTip     = FR and "Sort clé : il dépend du type de la monture." or "Key spell: it depends on the kind of the mount.",
     bagTip     = FR and "Ouvre les sacoches de la monture : glissez-y un objet de vos sacs, cliquez sur un objet pour le reprendre."
                      or "Opens the saddlebags of the mount: drop an item of your bags on them, click an item to take it back.",
 }
@@ -107,6 +117,8 @@ local BUTTONS = {
       popup = "COMPANIONMOUNT_RENAME" },
     { order = "bag",        text = L.bag,        tip = L.bagTip,        icon = "Interface\\Icons\\INV_Misc_Bag_08",
       window = true },
+    { order = "talents",    text = L.talents,    tip = L.talentsTip,    icon = "Interface\\Icons\\Ability_Hunter_BeastTraining",
+      talents = true },
 }
 
 StaticPopupDialogs["COMPANIONMOUNT_RENAME"] = {
@@ -174,6 +186,11 @@ for i, def in ipairs(BUTTONS) do
     b.def = def
 
     b:SetScript("OnClick", function(self)
+        if self.def.talents then
+            self:SetChecked(false)
+            CompanionMount_ToggleTalents()
+            return
+        end
         if self.def.window then
             self:SetChecked(false)
             CompanionMount_ToggleBag()
@@ -353,6 +370,145 @@ end
 -- edges (GetLeft() is nil) and LibWindow.SavePosition fails on it.
 RefreshBag()
 AIO.SavePosition(bagFrame, true)
+
+-- ---------------------------------------------------------------------------
+-- The talents window
+-- ---------------------------------------------------------------------------
+
+local TREES = { L.treeDps, L.treeTank, L.treeHeal }
+local T_SIZE, T_GAP, T_COLS, T_ROWS = 36, 10, 4, 6
+local talentData = { talents = {}, ranks = {}, points = 0, key = 0 }
+local shownTree = 1
+
+local talentFrame = CreateFrame("Frame", "CompanionMountTalentFrame", UIParent)
+talentFrame:SetSize(2 * 20 + T_COLS * T_SIZE + (T_COLS - 1) * T_GAP, 120 + T_ROWS * T_SIZE + (T_ROWS - 1) * T_GAP)
+talentFrame:SetPoint("CENTER", UIParent, "CENTER", -250, 0)
+talentFrame:SetMovable(true)
+talentFrame:EnableMouse(true)
+talentFrame:SetClampedToScreen(true)
+talentFrame:RegisterForDrag("LeftButton")
+talentFrame:SetScript("OnDragStart", talentFrame.StartMoving)
+talentFrame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    if LibWindow then LibWindow.SavePosition(self) end
+end)
+talentFrame:SetBackdrop({
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    tile = true, tileSize = 32, edgeSize = 24,
+    insets = { left = 6, right = 6, top = 6, bottom = 6 },
+})
+talentFrame:Hide()
+tinsert(UISpecialFrames, "CompanionMountTalentFrame")
+
+talentFrame.title = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+talentFrame.title:SetPoint("TOP", 0, -12)
+talentFrame.title:SetText(L.talents)
+
+talentFrame.points = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+talentFrame.points:SetPoint("TOP", 0, -30)
+
+local tclose = CreateFrame("Button", nil, talentFrame, "UIPanelCloseButton")
+tclose:SetPoint("TOPRIGHT", -2, -2)
+
+local tabs = {}
+for i, name in ipairs(TREES) do
+    local tab = CreateFrame("Button", "CompanionMountTalentTab" .. i, talentFrame, "UIPanelButtonTemplate")
+    tab:SetSize(70, 20)
+    tab:SetPoint("TOPLEFT", talentFrame, "TOPLEFT", 16 + (i - 1) * 74, -48)
+    tab:SetText(name)
+    tab:SetScript("OnClick", function() shownTree = i; CompanionMount_RefreshTalents() end)
+    tabs[i] = tab
+end
+
+local reset = CreateFrame("Button", nil, talentFrame, "UIPanelButtonTemplate")
+reset:SetSize(110, 22)
+reset:SetPoint("BOTTOM", 0, 14)
+reset:SetText(L.reset)
+reset:SetScript("OnClick", function() AIO.Handle("CompanionMount", "TalentReset") end)
+
+local cells = {}
+local function Cell(tier, col)
+    local key = tier * 10 + col
+    local b = cells[key]
+    if b then return b end
+    b = CreateFrame("Button", nil, talentFrame)
+    b:SetSize(T_SIZE, T_SIZE)
+    b:SetPoint("TOPLEFT", talentFrame, "TOPLEFT", 20 + col * (T_SIZE + T_GAP), -78 - tier * (T_SIZE + T_GAP))
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetAllPoints()
+    b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    b.rank = b:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+    b.rank:SetPoint("BOTTOMRIGHT", 4, -4)
+    b:SetScript("OnClick", function(self)
+        if self.talent then AIO.Handle("CompanionMount", "TalentLearn", self.talent.id) end
+    end)
+    b:SetScript("OnEnter", function(self)
+        if not self.spell then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetHyperlink("spell:" .. self.spell)
+        if self.talent and self.talent.key then
+            GameTooltip:AddLine(L.keyTip, 1, 0.82, 0, true)
+        end
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    cells[key] = b
+    return b
+end
+
+function CompanionMount_RefreshTalents()
+    local spent, tree = 0, nil
+    for id, rank in pairs(talentData.ranks) do
+        spent = spent + rank
+    end
+    for _, t in ipairs(talentData.talents) do
+        if (talentData.ranks[t.id] or 0) > 0 then tree = t.tree end
+    end
+    talentFrame.points:SetText(string.format(L.points, spent, talentData.points,
+        tree and TREES[tree + 1] or L.noTree))
+    for i, tab in ipairs(tabs) do
+        if i == shownTree then tab:LockHighlight() else tab:UnlockHighlight() end
+    end
+    for _, b in pairs(cells) do b:Hide() end
+    for _, t in ipairs(talentData.talents) do
+        if t.tree == shownTree - 1 then
+            local b = Cell(t.tier, t.col)
+            local rank = talentData.ranks[t.id] or 0
+            local max = t.key and 1 or #t.ranks
+            b.talent = t
+            b.spell = t.key and talentData.key or t.ranks[math.max(1, math.min(rank + 1, max))]
+            local _, _, icon = GetSpellInfo(b.spell or 0)
+            b.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+            b.icon:SetDesaturated(rank == 0)
+            b.rank:SetText(rank .. "/" .. max)
+            b:Show()
+        end
+    end
+end
+
+function CompanionMount_ToggleTalents()
+    if talentFrame:IsShown() then
+        talentFrame:Hide()
+    else
+        AIO.Handle("CompanionMount", "TalentOpen")
+        CompanionMount_RefreshTalents()
+        talentFrame:Show()
+    end
+end
+
+function Handlers.Talents(_, data)
+    if type(data) ~= "table" then return end
+    talentData = data
+    talentData.ranks = talentData.ranks or {}
+    talentData.talents = talentData.talents or {}
+    for _, t in ipairs(talentData.talents) do
+        if (talentData.ranks[t.id] or 0) > 0 then shownTree = t.tree + 1 break end
+    end
+    CompanionMount_RefreshTalents()
+end
+
+AIO.SavePosition(talentFrame, true)
 
 -- ---------------------------------------------------------------------------
 -- The server

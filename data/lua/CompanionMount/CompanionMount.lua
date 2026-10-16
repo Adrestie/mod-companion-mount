@@ -152,6 +152,88 @@ function Handlers.BagTake(player, place)
     SendBagLater(player)
 end
 
+-- ---------------------------------------------------------------------------
+-- The talents. The C++ module decides (`.companion talent learn|reset`); here
+-- the catalogue, the ranks and the points are read for the window.
+-- ---------------------------------------------------------------------------
+
+-- CompanionMount.Talent.FirstLevel and LevelsPerPoint: the points of a level.
+local TALENT_FIRST_LEVEL, TALENT_LEVELS_PER_POINT = 20, 4
+
+local function TalentPoints(level)
+    if level < TALENT_FIRST_LEVEL then return 0 end
+    return 1 + math.floor((level - TALENT_FIRST_LEVEL) / TALENT_LEVELS_PER_POINT)
+end
+
+local catalogue
+local function Catalogue()
+    if catalogue then return catalogue end
+    catalogue = {}
+    local q = WorldDBQuery("SELECT id, tree, tier, col, spell_1, spell_2, spell_3 FROM mod_companion_mount_talent")
+    if q then
+        repeat
+            local ranks = {}
+            for i = 4, 6 do
+                local spell = q:GetUInt32(i)
+                if spell > 0 then ranks[#ranks + 1] = spell end
+            end
+            catalogue[#catalogue + 1] = {
+                id = q:GetUInt32(0), tree = q:GetUInt8(1), tier = q:GetUInt8(2), col = q:GetUInt8(3),
+                ranks = ranks, key = q:GetUInt32(4) == 0,
+            }
+        until not q:NextRow()
+    end
+    return catalogue
+end
+
+local function Talents(player)
+    local guid = player:GetGUIDLow()
+    local data = { talents = Catalogue(), ranks = {}, points = 0, key = 0, level = 0 }
+    local q = CharDBQuery(string.format(
+        "SELECT c.mount_spell, IFNULL(m.level, 1) FROM mod_companion_mount_character c "
+        .. "LEFT JOIN mod_companion_mount_mount m ON m.guid = c.guid AND m.mount_spell = c.mount_spell "
+        .. "WHERE c.guid = %d", guid))
+    if not q or q:GetUInt32(0) == 0 then
+        return data
+    end
+    local mount = q:GetUInt32(0)
+    data.level = math.min(q:GetUInt32(1), player:GetLevel())
+    data.points = TalentPoints(data.level)
+    local r = CharDBQuery(string.format(
+        "SELECT talent_id, `rank` FROM mod_companion_mount_talent_rank WHERE guid = %d AND mount_spell = %d AND `rank` > 0",
+        guid, mount))
+    if r then
+        repeat
+            data.ranks[r:GetUInt32(0)] = r:GetUInt8(1)
+        until not r:NextRow()
+    end
+    local k = WorldDBQuery(string.format(
+        "SELECT s.key_spell FROM mod_companion_mount_kind_spell s "
+        .. "JOIN mod_companion_mount_kind k ON k.kind = s.kind WHERE k.mount_spell = %d", mount))
+    data.key = k and k:GetUInt32(0) or 61685
+    return data
+end
+
+local function SendTalents(player)
+    AIO.Handle(player, "CompanionMount", "Talents", Talents(player))
+end
+
+function Handlers.TalentOpen(player)
+    SendTalents(player)
+end
+
+function Handlers.TalentLearn(player, id)
+    id = tonumber(id)
+    if not id then return end
+    player:RunCommand(string.format("companion talent learn %d", id))
+    SendTalents(player)
+end
+
+function Handlers.TalentReset(player)
+    player:RunCommand("companion talent reset")
+    SendTalents(player)
+end
+
 function Handlers.Order(player, order)
     if type(order) ~= "string" or not ORDERS[order] then
         return

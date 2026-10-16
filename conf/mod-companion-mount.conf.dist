@@ -185,3 +185,33 @@ CompanionMount.Bag.Slots = 16
 #                     0 - (Disabled)
 
 CompanionMount.Bag.RequiresOut = 1
+
+########################################
+# Talents
+########################################
+#
+#    CompanionMount.Talent.FirstLevel
+#    CompanionMount.Talent.LevelsPerPoint
+#        Description: A mount gets its first talent point at FirstLevel, then
+#                     one more every LevelsPerPoint levels (as a hunter pet:
+#                     16 points at level 80).
+#        Default:     20, 4
+
+CompanionMount.Talent.FirstLevel = 20
+CompanionMount.Talent.LevelsPerPoint = 4
+
+#
+#    CompanionMount.Talent.PointsPerTier
+#        Description: Points to spend in a tree to reach each next row.
+#        Default:     3
+
+CompanionMount.Talent.PointsPerTier = 3
+
+#
+#    CompanionMount.Talent.OneTree
+#        Description: A mount learns in one tree only (DPS, Tank or Heal),
+#                     chosen by its first point; a reset frees it.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+CompanionMount.Talent.OneTree = 1

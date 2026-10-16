@@ -47,7 +47,12 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "SpellInfo.h"
+#include "SpellMgr.h"
 #include "TemporarySummon.h"
+
+#include <algorithm>
+#include <unordered_map>
 
 using namespace CompanionMount;
 
@@ -160,9 +165,15 @@ struct npc_companion_mount : public ScriptedAI
                 ReturnToPost(owner, state);
                 return;
             }
+            CastTalents(owner, state, victim, diff);
             DoMeleeAttackIfReady();
         }
-        else if (state.lootTarget)
+        else
+            CastTalents(owner, state, nullptr, diff);
+
+        if (me->GetVictim())
+            return;
+        if (state.lootTarget)
             GoLoot(owner, state);
         else
             KeepPost(owner, state);
@@ -248,6 +259,69 @@ private:
             me->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, FOLLOW_ANGLE, MOTION_SLOT_ACTIVE);
     }
 
+    // LES SORTS DES TALENTS, chacun selon son usage, quand son temps de
+    // recharge est passe. Le cout (focalisation d'un familier, mana) est
+    // ignore : la bete n'a ni l'un ni l'autre.
+    void CastTalents(Player* owner, State const& state, Unit* victim, uint32 diff)
+    {
+        _talentTimer += diff;
+        for (auto& [spell, ready] : _cooldowns)
+            ready = ready > diff ? ready - diff : 0;
+        if (_talentTimer < 1000 || me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+        _talentTimer = 0;
+
+        bool const fighting = victim || me->IsInCombat();
+        for (ActiveSpell const& active : state.actives)
+        {
+            if (_cooldowns[active.spell])
+                continue;
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(active.spell);
+            if (!info)
+                continue;
+
+            Unit* target = nullptr;
+            switch (active.use)
+            {
+                case TALENT_USE_VICTIM:
+                    if (victim && me->IsWithinDistInMap(victim, std::max(info->GetMaxRange(false), 5.0f)))
+                        target = victim;
+                    break;
+                case TALENT_USE_SELF:
+                    if (fighting)
+                        target = me;
+                    break;
+                case TALENT_USE_SELF_HEAL:
+                    if (me->HealthBelowPct(50))
+                        target = me;
+                    break;
+                case TALENT_USE_OWNER:
+                    if (owner->IsInCombat() && me->IsWithinDistInMap(owner, 30.0f))
+                        target = owner;
+                    break;
+                case TALENT_USE_OWNER_HEAL:
+                    if (owner->IsAlive() && owner->HealthBelowPct(80) && me->IsWithinDistInMap(owner, 40.0f))
+                        target = owner;
+                    break;
+                default:
+                    break;
+            }
+            if (!target)
+                continue;
+
+            TriggerCastFlags const flags = TriggerCastFlags(TRIGGERED_IGNORE_POWER_AND_REAGENT_COST | TRIGGERED_IGNORE_GCD);
+            if (me->CastSpell(target, info, flags) == SPELL_CAST_OK)
+            {
+                uint32 cooldown = active.cooldown;
+                if (!cooldown)
+                    cooldown = std::max<uint32>({ info->RecoveryTime, info->CategoryRecoveryTime, 6000 });
+                _cooldowns[active.spell] = cooldown;
+                return;   // un sort par tour
+            }
+            _cooldowns[active.spell] = 3000;   // refuse (portee, cible) : on reessaie plus tard
+        }
+    }
+
     // AU CORPS : arrivee, elle fouille (pour son maitre) et revient.
     void GoLoot(Player* owner, State& state)
     {
@@ -294,6 +368,8 @@ private:
     static constexpr float LOOT_REACH = 4.0f;    // metres
 
     uint32 _decideTimer = 0;
+    uint32 _talentTimer = 0;
+    std::unordered_map<uint32, uint32> _cooldowns;   // sort -> ms avant de pouvoir le relancer
     bool _hasStayPos = false;
     Position _stayPos;
 };

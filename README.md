@@ -100,6 +100,25 @@ AzerothCore Mount mod
   un sac non vide, un objet invoqué ou à durée. La monture doit être dehors (réglable).
 - Un personnage supprimé emporte ses montures et ce qu'elles portaient.
 
+## Jalon 7 : les talents
+
+- Trois arbres, ceux des familiers de chasseur que le client connaît (icônes, infobulles) :
+  DPS = Férocité, Tank = Ténacité, Soin = Astuce dont les coups sont remplacés par des soins
+  (Récupération et Toucher guérisseur sur le maître, Lécher ses plaies). Un seul arbre par monture,
+  choisi par son premier point ; 1 point au niveau 20 puis 1 tous les 4 niveaux (16 au niveau 80),
+  3 points par rangée.
+- En haut de chaque arbre, le **sort clé**, selon le type de la monture (classé d'après le modèle de
+  sa créature) : cheval Charge, mort-vivant Frappe spirituelle, loup Hurlement furieux, félin
+  Griffure, raptor Déchirure sauvage, bête lourde Piétinement, ours Balayer, oiseau Hurlement
+  démoralisant, dragon Souffle de feu, bête ailée Souffle d'éclair, insecte Jet de toile venimeuse,
+  machine Souffle de lave. Il prend le plus haut rang que le niveau de la monture permet.
+- Les talents passifs posent leur aura sur la monture ; les actifs sont lancés par son IA (sur sa
+  cible, sur elle, ou sur le maître selon le talent).
+- Fenêtre Talents (bouton de la barre) : onglets DPS / Tank / Soin, rangs, points, réinitialisation.
+  `.companion talent`, `.companion talent learn <id>`, `.companion talent reset` au clavier.
+- Le catalogue est en base (`mod_companion_mount_talent`, `_kind`, `_kind_spell`), généré depuis les
+  DBC du client.
+
 ## Identifiants provisoires
 
 La tranche 91 (`91000-91999`) est libre dans `ID_RANGES.md` mais **pas encore attribuée** :
@@ -109,7 +128,7 @@ il sert à la ligne de `npc_spellclick_spells`). À changer dans `src/CompanionM
 
 ## Ce qui vient ensuite
 
-Talents DPS / Tank / Heal et sorts des montures — interface en ALE/AIO, sans patch client.
+Réglage fin des talents et des sorts selon les retours en jeu ; équipement des montures (DynamicLoot).
 
 # Installation (développement)
 

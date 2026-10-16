@@ -140,6 +140,7 @@ namespace CompanionMount
         state.poolSeen = state.pool;
 
         SaveMount(player, state);
+        LoadTalentRanks(player, state);
     }
 
     void GiveKillXP(Player* owner, Creature* victim)

@@ -30,6 +30,9 @@
  * .companion bag             (SEC_PLAYER)  ce que portent les sacoches de la monture
  * .companion bag put <sac> <place>   (SEC_PLAYER)  y range un objet des sacs (numeros du serveur)
  * .companion bag take <place>        (SEC_PLAYER)  le reprend (places de 1 a N)
+ * .companion talent          (SEC_PLAYER)  points et talents de la monture choisie
+ * .companion talent learn <id>       (SEC_PLAYER)  un rang de plus
+ * .companion talent reset    (SEC_PLAYER)  rend tous les points
  * .companion debug           (SEC_GAMEMASTER)  la bete vue du serveur : PV, cible, mouvement
  *
  * Elles sont le chemin que prendra l'interface (ALE) : le jeu reste jouable
@@ -67,8 +70,16 @@ public:
             { "",     HandleBagCommand,     SEC_PLAYER, Console::No },
         };
 
+        static ChatCommandTable talentTable =
+        {
+            { "learn", HandleTalentLearnCommand, SEC_PLAYER, Console::No },
+            { "reset", HandleTalentResetCommand, SEC_PLAYER, Console::No },
+            { "",      HandleTalentCommand,      SEC_PLAYER, Console::No },
+        };
+
         static ChatCommandTable companionTable =
         {
+            { "talent",  talentTable },
             { "bag",     bagTable },
             { "summon",  HandleSummonCommand,  SEC_PLAYER, Console::No },
             { "dismiss", HandleDismissCommand, SEC_PLAYER, Console::No },
@@ -172,6 +183,24 @@ public:
             Say(handler, TEXT_LEVEL, uint32(level), state.xp, NextLevelXP(level));
         else
             Say(handler, TEXT_LEVEL_MAX, uint32(level));
+        return true;
+    }
+
+    static bool HandleTalentCommand(ChatHandler* handler)
+    {
+        ListTalents(handler, handler->GetPlayer());
+        return true;
+    }
+
+    static bool HandleTalentLearnCommand(ChatHandler* handler, uint32 talentId)
+    {
+        LearnTalent(handler->GetPlayer(), talentId);
+        return true;
+    }
+
+    static bool HandleTalentResetCommand(ChatHandler* handler)
+    {
+        ResetTalents(handler->GetPlayer());
         return true;
     }
 

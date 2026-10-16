@@ -199,6 +199,9 @@ namespace CompanionMount
             }
             summon->InitSummon();
 
+            // LES TALENTS, une fois dans le monde : leurs auras s'y posent.
+            ApplyTalents(summon, player, state);
+
             if (summon->HasUnitTypeMask(UNIT_MASK_MINION))
                 static_cast<Minion*>(summon)->SetFollowAngle(FOLLOW_ANGLE);
             summon->GetMotionMaster()->Clear(false);
@@ -240,6 +243,10 @@ namespace CompanionMount
         sConfig.levelSharedPercent = std::min<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Level.SharedPercent", 10), 100);
         sConfig.bagSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Bag.Slots", 16), 1, 98);
         sConfig.bagRequiresOut = sConfigMgr->GetOption<bool>("CompanionMount.Bag.RequiresOut", true);
+        sConfig.talentFirstLevel = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Talent.FirstLevel", 20), 1, 255);
+        sConfig.talentLevelsPerPoint = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("CompanionMount.Talent.LevelsPerPoint", 4));
+        sConfig.talentPointsPerTier = sConfigMgr->GetOption<uint32>("CompanionMount.Talent.PointsPerTier", 3);
+        sConfig.talentOneTree = sConfigMgr->GetOption<bool>("CompanionMount.Talent.OneTree", true);
     }
 
     State& GetState(Player* player)
@@ -292,6 +299,7 @@ namespace CompanionMount
     {
         // Le personnage s'en va : ses montures aussi, et ce qu'elles portaient.
         BagDeleteAll(guid);
+        DeleteTalents(guid);
         CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_mount` WHERE `guid` = {}", guid);
         CharacterDatabase.Execute("DELETE FROM `mod_companion_mount_character` WHERE `guid` = {}", guid);
     }
@@ -452,7 +460,10 @@ namespace CompanionMount
             else
             {
                 if (companion->GetLevel() != EffectiveLevel(player, state))
+                {
                     ApplyStats(companion, EffectiveLevel(player, state));
+                    ApplyTalents(companion, player, state);   // les rangs suivent le niveau
+                }
                 UpdateLoot(player, state, companion, elapsed);
             }
         }

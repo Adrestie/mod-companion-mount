@@ -37,8 +37,14 @@ class CompanionMountWorldScript : public WorldScript
 public:
     CompanionMountWorldScript() : WorldScript("CompanionMountWorldScript",
         {
-            WORLDHOOK_ON_AFTER_CONFIG_LOAD
+            WORLDHOOK_ON_AFTER_CONFIG_LOAD,
+            WORLDHOOK_ON_BEFORE_WORLD_INITIALIZED
         }) { }
+
+    void OnBeforeWorldInitialized() override
+    {
+        LoadTalentCatalogue();
+    }
 
     void OnAfterConfigLoad(bool /*reload*/) override
     {

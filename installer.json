@@ -29,12 +29,14 @@
       "tables": [
         "mod_companion_mount_character",
         "mod_companion_mount_mount",
-        "mod_companion_mount_bag"
+        "mod_companion_mount_bag",
+        "mod_companion_mount_talent_rank"
       ],
       "kept_on_update": [
         "mod_companion_mount_character",
         "mod_companion_mount_mount",
-        "mod_companion_mount_bag"
+        "mod_companion_mount_bag",
+        "mod_companion_mount_talent_rank"
       ],
       "rows": [
         {
@@ -44,6 +46,11 @@
       ]
     },
     "world": {
+      "tables": [
+        "mod_companion_mount_talent",
+        "mod_companion_mount_kind",
+        "mod_companion_mount_kind_spell"
+      ],
       "rows": [
         {
           "table": "module_string",
