@@ -579,8 +579,9 @@ talentFrame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
     if LibWindow then LibWindow.SavePosition(self) end
 end)
+-- The border only: the tree's art is the background (the dialog's grey,
+-- translucent one showed around it).
 talentFrame:SetBackdrop({
-    bgFile = TPath("Interface", "DialogFrame", "UI-DialogBox-Background"),
     edgeFile = TPath("Interface", "DialogFrame", "UI-DialogBox-Gold-Border"),
     tile = true, tileSize = 32, edgeSize = 24,
     insets = { left = 6, right = 6, top = 6, bottom = 6 },
