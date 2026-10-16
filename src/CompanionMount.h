@@ -178,6 +178,7 @@ namespace CompanionMount
         uint32 reviveDelay = 60;      // secondes
         float healthRate = 1.0f;
         float damageRate = 1.0f;
+        float attackPowerOwnerShare = 0.0f;   // part de la PA du maitre
         float leashDistance = 40.0f;  // metres
         float clickDistance = 10.0f;  // metres
         bool lootEnabled = true;

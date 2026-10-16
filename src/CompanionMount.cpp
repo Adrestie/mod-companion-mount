@@ -34,6 +34,7 @@
 #include "TemporarySummon.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace CompanionMount
 {
@@ -63,11 +64,32 @@ namespace CompanionMount
             float const damage = stats->GenerateBaseDamage(info) * sConfig.damageRate;
             companion->SetBaseWeaponDamage(BASE_ATTACK, MINDAMAGE, damage);
             companion->SetBaseWeaponDamage(BASE_ATTACK, MAXDAMAGE, damage * 1.5f);
-            companion->SetStatFlatModifier(UNIT_MOD_ATTACK_POWER, BASE_VALUE, float(stats->AttackPower));
+            // LA PUISSANCE D'ATTAQUE dans la part BONUS (TOTAL_VALUE) : la part de
+            // base, Guardian::UpdateAttackPowerAndDamage la recalcule a
+            // « 2 x Force - 20 » (24 pour une bete), et effacerait celle de la
+            // table des creatures. Voir aussi RefreshAttackPower (part du maitre).
+            companion->SetStatFlatModifier(UNIT_MOD_ATTACK_POWER, TOTAL_VALUE, float(stats->AttackPower));
             companion->SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, stats->GenerateArmor(info));
 
             companion->UpdateAllStats();
             companion->SetFullHealth();
+        }
+
+        // LA PART DU MAITRE dans la puissance d'attaque de la bete (comme celle du
+        // familier de chasseur) : celle des creatures de son niveau, plus une part
+        // de celle du maitre, suivie quand son equipement ou ses buffs changent.
+        void RefreshAttackPower(Player* player, Creature* companion)
+        {
+            CreatureBaseStats const* stats = sObjectMgr->GetCreatureBaseStats(companion->GetLevel(),
+                companion->GetCreatureTemplate()->unit_class);
+            if (!stats)
+                return;
+            float const wanted = float(stats->AttackPower)
+                + player->GetTotalAttackPowerValue(BASE_ATTACK) * sConfig.attackPowerOwnerShare;
+            if (std::fabs(companion->GetFlatModifierValue(UNIT_MOD_ATTACK_POWER, TOTAL_VALUE) - wanted) < 1.0f)
+                return;
+            companion->SetStatFlatModifier(UNIT_MOD_ATTACK_POWER, TOTAL_VALUE, wanted);
+            companion->UpdateAttackPowerAndDamage();
         }
 
         // PEUT-ELLE ETRE DEHORS ? Dehors, le maitre vivant, a pied ou sur une
@@ -226,6 +248,7 @@ namespace CompanionMount
         sConfig.reviveDelay = sConfigMgr->GetOption<uint32>("CompanionMount.ReviveDelay", 60);
         sConfig.healthRate = std::max(0.01f, sConfigMgr->GetOption<float>("CompanionMount.HealthRate", 1.0f));
         sConfig.damageRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.DamageRate", 1.0f));
+        sConfig.attackPowerOwnerShare = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.AttackPowerOwnerShare", 0.0f));
         sConfig.leashDistance = std::max(10.0f, sConfigMgr->GetOption<float>("CompanionMount.LeashDistance", 40.0f));
         sConfig.clickDistance = std::max(2.0f, sConfigMgr->GetOption<float>("CompanionMount.ClickDistance", 10.0f));
         // « AutoLoot » et non « Loot » : DynamicLoot lit toute cle <Module>.Loot.<nom>
@@ -466,6 +489,7 @@ namespace CompanionMount
                     ApplyTalents(companion, player, state);   // les rangs suivent le niveau
                 }
                 UpdateLoot(player, state, companion, elapsed);
+                RefreshAttackPower(player, companion);
             }
         }
         else
