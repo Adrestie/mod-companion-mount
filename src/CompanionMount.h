@@ -112,6 +112,7 @@ namespace CompanionMount
         TEXT_TALENT_TREE_DPS = 41,   // 41 DPS, 42 Tank, 43 Soin
         TEXT_TALENT_TREE_NONE = 44,
         TEXT_TALENT_NO_KEY   = 45,
+        TEXT_LEVEL_SET       = 46,
     };
 
     // CE QUE L'IA FAIT D'UN SORT DE TALENT (mod_companion_mount_talent.use).

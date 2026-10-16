@@ -33,6 +33,7 @@
  * .companion talent          (SEC_PLAYER)  points et talents de la monture choisie
  * .companion talent learn <id>       (SEC_PLAYER)  un rang de plus
  * .companion talent reset    (SEC_PLAYER)  rend tous les points
+ * .companion setlevel <n>    (SEC_GAMEMASTER)  le niveau de la monture choisie, pour les tests
  * .companion debug           (SEC_GAMEMASTER)  la bete vue du serveur : PV, cible, mouvement
  *
  * Elles sont le chemin que prendra l'interface (ALE) : le jeu reste jouable
@@ -91,6 +92,7 @@ public:
             { "defensive",  HandleDefensiveCommand,  SEC_PLAYER, Console::No },
             { "aggressive", HandleAggressiveCommand, SEC_PLAYER, Console::No },
             { "rename",     HandleRenameCommand,     SEC_PLAYER, Console::No },
+            { "setlevel",   HandleSetLevelCommand,   SEC_GAMEMASTER, Console::No },
             { "debug",      HandleDebugCommand,      SEC_GAMEMASTER, Console::No },
         };
 
@@ -262,6 +264,25 @@ public:
     static bool HandleAggressiveCommand(ChatHandler* handler)
     {
         SetReact(handler->GetPlayer(), REACT_AGGRESSIVE);
+        return true;
+    }
+
+    // POUR LES TESTS : le niveau de la monture choisie, sans la faire monter.
+    // Il reste borne par le niveau du maitre quand la conf le veut ; la mise a
+    // jour suivante refait ses chiffres et ses talents.
+    static bool HandleSetLevelCommand(ChatHandler* handler, uint8 level)
+    {
+        Player* player = handler->GetPlayer();
+        State& state = GetState(player);
+        if (!state.mountSpell)
+        {
+            Say(handler, TEXT_NO_MOUNT);
+            return true;
+        }
+        state.level = std::max<uint8>(1, level);
+        state.xp = 0;
+        SaveMount(player, state);
+        Say(handler, TEXT_LEVEL_SET, uint32(EffectiveLevel(player, state)));
         return true;
     }
 
