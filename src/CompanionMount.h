@@ -198,8 +198,8 @@ namespace CompanionMount
         bool bagRequiresOut = true;      // il faut que la bete soit la
 
         // LES TALENTS (CompanionTalent.cpp).
-        uint32 talentFirstLevel = 20;
-        uint32 talentLevelsPerPoint = 4;
+        uint32 talentFirstLevel = 4;
+        uint32 talentLevelsPerPoint = 2;
         uint32 talentPointsPerTier = 3;
         bool talentOneTree = true;       // un seul arbre par monture
     };

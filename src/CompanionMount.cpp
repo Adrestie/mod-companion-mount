@@ -266,8 +266,8 @@ namespace CompanionMount
         sConfig.levelSharedPercent = std::min<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Level.SharedPercent", 10), 100);
         sConfig.bagSlots = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Bag.Slots", 50), 1, 98);
         sConfig.bagRequiresOut = sConfigMgr->GetOption<bool>("CompanionMount.Bag.RequiresOut", true);
-        sConfig.talentFirstLevel = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Talent.FirstLevel", 20), 1, 255);
-        sConfig.talentLevelsPerPoint = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("CompanionMount.Talent.LevelsPerPoint", 4));
+        sConfig.talentFirstLevel = std::clamp<uint32>(sConfigMgr->GetOption<uint32>("CompanionMount.Talent.FirstLevel", 4), 1, 255);
+        sConfig.talentLevelsPerPoint = std::max<uint32>(1, sConfigMgr->GetOption<uint32>("CompanionMount.Talent.LevelsPerPoint", 2));
         sConfig.talentPointsPerTier = sConfigMgr->GetOption<uint32>("CompanionMount.Talent.PointsPerTier", 3);
         sConfig.talentOneTree = sConfigMgr->GetOption<bool>("CompanionMount.Talent.OneTree", true);
     }

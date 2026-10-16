@@ -202,12 +202,12 @@ CompanionMount.Bag.RequiresOut = 1
 #    CompanionMount.Talent.FirstLevel
 #    CompanionMount.Talent.LevelsPerPoint
 #        Description: A mount gets its first talent point at FirstLevel, then
-#                     one more every LevelsPerPoint levels (as a hunter pet:
-#                     16 points at level 80).
-#        Default:     20, 4
+#                     one more every LevelsPerPoint levels: 39 points at level
+#                     80 by default (levels 4, 6, ... 80).
+#        Default:     4, 2
 
-CompanionMount.Talent.FirstLevel = 20
-CompanionMount.Talent.LevelsPerPoint = 4
+CompanionMount.Talent.FirstLevel = 4
+CompanionMount.Talent.LevelsPerPoint = 2
 
 #
 #    CompanionMount.Talent.PointsPerTier

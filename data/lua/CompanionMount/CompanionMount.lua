@@ -187,7 +187,7 @@ end
 -- ---------------------------------------------------------------------------
 
 -- CompanionMount.Talent.FirstLevel and LevelsPerPoint: the points of a level.
-local TALENT_FIRST_LEVEL, TALENT_LEVELS_PER_POINT = 20, 4
+local TALENT_FIRST_LEVEL, TALENT_LEVELS_PER_POINT = 4, 2
 
 local function TalentPoints(level)
     if level < TALENT_FIRST_LEVEL then return 0 end

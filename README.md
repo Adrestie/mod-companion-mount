@@ -117,8 +117,8 @@ AzerothCore Mount mod
   Actifs : sorts de PNJ ou à rangs, lancés par l'IA de la monture (Rossée, Enchaînement, Provocation,
   Choc martial, Récupération et Salve de guérison sur le maître…). Liste complète dans
   `data/sql/world/companion_mount_12_new_talents.sql`.
-- Un seul arbre par monture, choisi par son premier point ; 1 point au niveau 20 puis 1 tous les 4
-  niveaux (16 au niveau 80), 3 points par rangée.
+- Un seul arbre par monture, choisi par son premier point ; 1 point au niveau 4 puis 1 tous les 2
+  niveaux (39 au niveau 80), 3 points par rangée. La dernière rangée n'a qu'un talent, l'ultime.
 - En haut de chaque arbre, le **sort clé**, selon le type de la monture (classé d'après le modèle de
   sa créature) et selon l'arbre : une attaque en Fureur, une défense en Rempart, un soin en
   Bienveillance (cheval : Piétinement / Intervention / Lumière sacrée ; kodo : Choc martial / Coup de
