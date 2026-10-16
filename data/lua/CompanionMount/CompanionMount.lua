@@ -291,8 +291,10 @@ local function Sheet(player)
         return {}
     end
     player:RunCommand("companion snapshot")
-    local q = CharDBQuery(string.format("SELECT %s FROM mod_companion_mount_snapshot WHERE guid = %d",
-        table.concat(SHEET_COLUMNS, ", "), player:GetGUIDLow()))
+    -- Every column between backquotes: `out` is a reserved word of MySQL 8,
+    -- and a syntax error stops the server (error 1064).
+    local q = CharDBQuery(string.format("SELECT `%s` FROM mod_companion_mount_snapshot WHERE guid = %d",
+        table.concat(SHEET_COLUMNS, "`, `"), player:GetGUIDLow()))
     local sheet = {}
     if q then
         for i, column in ipairs(SHEET_COLUMNS) do
