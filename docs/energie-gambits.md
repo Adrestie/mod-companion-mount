@@ -48,9 +48,8 @@ Un gambit est une règle : **cible + condition → action**. Le compagnon lit la
 - Chaque arbre fournit sa liste de départ, qui reproduit l'IA actuelle. Par exemple pour Bienveillance : « Toi : PV < 50 % → Lumière sacrée », « Groupe : 3 membres < 70 % → Prière de soins », « Ennemi : ta cible → Attaquer ».
 - Un bouton Réinitialiser remet la liste par défaut.
 
-### Lancement automatique
-- Le clic droit sur un sort de la barre reste disponible.
-- Un sort en lancement automatique sans gambit est lancé en dernier recours, quand aucune règle ne s'applique.
+### Lancement des sorts
+- Les sorts du compagnon n'ont pas de barre : ce sont les gambits qui les lancent, et eux seuls (décision de l'utilisateur, 2026-10-16). Un sort qu'aucun gambit ne nomme n'est pas lancé.
 
 ### Interface
 - L'interface du compagnon est son propre panneau « Compagnon » (décision de l'utilisateur, 2026-10-16) : un onglet pour la vue 3D et les statistiques, comme la feuille de personnage, et un onglet Gambits. Avec Forever UI, au thème de Forever UI et ouvert par un micro-bouton de sa barre (comme Attriboost) ; sans, au thème par défaut de WotLK, ouvert par un bouton. `/compagnon gambits` ouvre l'onglet Gambits.

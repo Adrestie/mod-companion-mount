@@ -49,10 +49,8 @@ AzerothCore Mount mod
 - **La barre des ordres**, comme celle du familier : Appeler, Renvoyer, Attaquer, Suivre, Rester et
   les trois attitudes (ordre et attitude actifs allumés). Maj + glisser la déplace, `/compagnon barre`
   la masque ou la remontre.
-- **Ses sorts** ont leur propre barre (au-dessus de celle des ordres, Maj + glisser la déplace) : les talents actifs appris et le sort clé, au rang qu'elle lance.
-  Clic gauche : elle le lance tout de suite, sur sa cible habituelle. Clic droit : son lancement
-  automatique se coupe ou revient, comme les techniques du familier du chasseur (même halo doré),
-  gardé par monture. Au clavier : `.companion cast <sort>`, `.companion autocast <sort>`.
+- **Ses sorts** n'ont pas de barre : ce sont les gambits qui les lancent (voir le jalon 8). Au clavier,
+  `.companion cast <sort>` en lance un tout de suite.
 - **Mêmes ordres au clavier** : `.companion attack | follow | stay | passive | defensive | aggressive`.
   Passive : n'attaque que sur ordre. Défensive (défaut) : votre cible, ce qui vous attaque, ce qui
   l'attaque. Agressive : en plus, tout ennemi à 20 m. Rester : garde sa place et y revient après un
@@ -155,7 +153,7 @@ Spécification : `docs/energie-gambits.md`.
 - La liste **par défaut** est tirée des sorts appris (ultime, secours, soins, purifications,
   provocation, attaques, puis « ta cible → Attaquer ») et suit les talents tant que le joueur n'y
   touche pas ; la sienne est gardée par monture. Réinitialiser y revient. Un sort en lancement
-  automatique qu'aucun gambit ne nomme sert de dernier recours.
+  Ses sorts n'ont pas de barre : seuls les gambits les lancent.
 - **L'onglet Gambits** du panneau Compagnon (Réinitialiser en bas) ; `/compagnon gambits` l'ouvre ;
   **presets** : « Enregistrer sous... » garde la liste sous un nom (par personnage, pour toutes ses
   montures), le menu Presets en charge un ou en supprime ; `/compagnon preset <nom>` le charge (macro) ; case à cocher, menu cible et

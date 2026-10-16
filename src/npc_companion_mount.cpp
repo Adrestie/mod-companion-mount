@@ -311,21 +311,11 @@ private:
             return;
         _talentTimer = 0;
 
-        // LES GAMBITS d'abord, de haut en bas ; une action par tour.
+        // LES GAMBITS, de haut en bas ; une action par tour. Ses sorts ne
+        // partent que par eux (les sorts n'ont plus de barre).
         std::set<uint32> inGambits;
-        if (RunGambits(owner, state, inGambits))
-            return;
-
-        // EN DERNIER RECOURS, les sorts en lancement automatique qu'aucun
-        // gambit ne nomme, selon leur usage (l'IA d'avant les gambits).
-        for (ActiveSpell const& active : state.actives)
-        {
-            // Le joueur a coupe son lancement automatique (clic droit sur la barre).
-            if (_cooldowns[active.spell] || state.autocastOff.count(active.first) || inGambits.count(active.first))
-                continue;
-            if (TryCast(active, TalentTarget(active, owner, victim, false), true))
-                return;   // un sort par tour
-        }
+        RunGambits(owner, state, inGambits);
+        (void)victim;
     }
 
     // LES GAMBITS : la premiere regle active, dans les emplacements ouverts,

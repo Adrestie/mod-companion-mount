@@ -1576,9 +1576,8 @@ end
 -- ---------------------------------------------------------------------------
 -- THE BAR: the orders, as the pet bar beside the pet's own -- call, send
 -- back, attack, follow, stay, and the three stances, with the pet bar's
--- icons -- then the spells the mount learned. The active order and stance are
--- lit. A spell: left click casts it, right click turns its automatic casting
--- off or on, as a hunter's pet abilities (the same golden shine). Nothing is
+-- icons. The active order and stance are lit. Its spells have no bar: the
+-- gambits cast them. Nothing is
 -- decided here: every button goes to the server, which runs the module's
 -- command as the player and sends the state back. The sheet keeps the rest
 -- (rename, saddlebags, talents).
@@ -1670,112 +1669,7 @@ end
 local barLevel = barButtons[1]:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
 barLevel:SetPoint("BOTTOMRIGHT", barButtons[1], "BOTTOMRIGHT", -1, 2)
 
--- THE SPELL BAR: the spells the mount learned, on a bar of their own, above
--- the orders by default (Shift + drag moves it, kept per character); its
--- buttons are made as the mount learns them.
-local AUTOCASTABLE = OPath("Interface", "Buttons", "UI-AutoCastableOverlay")
-local spellButtons = {}
-
-local spellBar = CreateFrame("Frame", "CompanionMountSpellBar", UIParent)
-spellBar:SetSize(BAR_SIZE + 2 * BAR_GAP, BAR_SIZE + 2 * BAR_GAP)
-spellBar:SetPoint("BOTTOM", bar, "TOP", 0, 4)
-spellBar:SetMovable(true)
-spellBar:SetClampedToScreen(true)
-spellBar:EnableMouse(true)
-spellBar:RegisterForDrag("LeftButton")
-spellBar:SetBackdrop(bar:GetBackdrop())
-spellBar:SetBackdropColor(0, 0, 0, 0.6)
-spellBar:Hide()
-
-local function SpellBarStartMove()
-    if IsShiftKeyDown() then spellBar:StartMoving() end
-end
-
-local function SpellBarStopMove()
-    spellBar:StopMovingOrSizing()
-    if LibWindow then LibWindow.SavePosition(spellBar) end
-end
-
-spellBar:SetScript("OnDragStart", SpellBarStartMove)
-spellBar:SetScript("OnDragStop", SpellBarStopMove)
-
-local function SpellButton(i)
-    if spellButtons[i] then return spellButtons[i] end
-    local b = CreateFrame("Button", "CompanionMountBarSpell" .. i, spellBar)
-    b:SetSize(BAR_SIZE, BAR_SIZE)
-    b:SetPoint("LEFT", spellBar, "LEFT", BAR_GAP + (i - 1) * (BAR_SIZE + BAR_GAP), 0)
-    b.icon = b:CreateTexture(nil, "ARTWORK")
-    b.icon:SetAllPoints()
-    b:SetHighlightTexture(OPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
-    b:SetPushedTexture(OPath("Interface", "Buttons", "UI-Quickslot-Depress"))
-    -- The corners of a spell that can cast itself, as on the pet bar.
-    b.autocastable = b:CreateTexture(nil, "OVERLAY")
-    b.autocastable:SetTexture(AUTOCASTABLE)
-    b.autocastable:SetSize(BAR_SIZE * 2 - 2, BAR_SIZE * 2 - 2)
-    b.autocastable:SetPoint("CENTER")
-    -- The golden shine while it casts itself (the pet bar's, when the client has it).
-    local ok, shine = pcall(CreateFrame, "Frame", "CompanionMountBarSpell" .. i .. "Shine", b, "AutoCastShineTemplate")
-    if ok and shine and AutoCastShine_AutoCastStart then
-        shine:SetAllPoints()
-        b.shine = shine
-    end
-    b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    b:RegisterForDrag("LeftButton")
-    b:SetScript("OnDragStart", SpellBarStartMove)
-    b:SetScript("OnDragStop", SpellBarStopMove)
-    b:SetScript("OnClick", function(self, mouse)
-        if not self.spell then return end
-        if mouse == "RightButton" then
-            AIO.Handle("CompanionMount", "Autocast", self.spell)
-        else
-            AIO.Handle("CompanionMount", "Cast", self.spell)
-        end
-    end)
-    b:SetScript("OnEnter", function(self)
-        if not self.spell then return end
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetHyperlink("spell:" .. self.spell)
-        GameTooltip:AddLine(" ")
-        if (self.cost or 0) > 0 then
-            GameTooltip:AddLine(string.format(G.cost, self.cost), 1, 1, 0)
-        end
-        GameTooltip:AddLine(self.auto and L.autoOn or L.autoOff, 1, 0.82, 0)
-        GameTooltip:AddLine(L.spellTip, 0.5, 0.5, 0.5, true)
-        GameTooltip:Show()
-    end)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    spellButtons[i] = b
-    return b
-end
-
-local function RefreshSpells()
-    local spells = type(state.spells) == "table" and state.spells or {}
-    for i, entry in ipairs(spells) do
-        local b = SpellButton(i)
-        b.spell = tonumber(entry.spell)
-        b.auto = entry.auto and true or false
-        b.cost = tonumber(entry.cost) or 0
-        b.icon:SetTexture(select(3, GetSpellInfo(b.spell)) or OPath("Interface", "Icons", "INV_Misc_QuestionMark"))
-        local usable = state.summoned
-        b.icon:SetDesaturated(not usable)
-        local shade = usable and 1 or 0.6
-        b.icon:SetVertexColor(shade, shade, shade)
-        if b.shine then
-            if b.auto then AutoCastShine_AutoCastStart(b.shine) else AutoCastShine_AutoCastStop(b.shine) end
-        end
-        b:Show()
-    end
-    for i = #spells + 1, #spellButtons do
-        spellButtons[i].spell = nil
-        if spellButtons[i].shine then AutoCastShine_AutoCastStop(spellButtons[i].shine) end
-        spellButtons[i]:Hide()
-    end
-    spellBar:SetWidth(BAR_GAP + math.max(#spells, 1) * (BAR_SIZE + BAR_GAP))
-    spellBar.count = #spells
-end
-
 local barHidden = false
-local RefreshSpellEnergy   -- below, with the portrait that knows the energy
 
 -- No bar in a dungeon, a raid, a battleground or an arena.
 local function InGroupInstance()
@@ -1795,15 +1689,7 @@ local function RefreshBar()
         local shade = usable and 1 or 0.6
         b.icon:SetVertexColor(shade, shade, shade)
     end
-    RefreshSpells()
-    if RefreshSpellEnergy then RefreshSpellEnergy() end
-    if barHidden or (state.mount or 0) == 0 or InGroupInstance() then
-        bar:Hide()
-        spellBar:Hide()
-    else
-        bar:Show()
-        if (spellBar.count or 0) > 0 then spellBar:Show() else spellBar:Hide() end
-    end
+    if barHidden or (state.mount or 0) == 0 or InGroupInstance() then bar:Hide() else bar:Show() end
 end
 
 -- Entering or leaving a dungeon, a raid or a battleground: the bar follows.
@@ -1813,7 +1699,6 @@ barWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 barWatch:SetScript("OnEvent", function() RefreshBar() end)
 
 AIO.SavePosition(bar, true)
-AIO.SavePosition(spellBar, true)
 
 -- ---------------------------------------------------------------------------
 -- THE PORTRAIT: the game shows none for a guardian. Its name, its level, its
@@ -1947,7 +1832,6 @@ portraitWatch:SetScript("OnEvent", function(_, event, prefix, message)
         end
         companionEnergy = portrait.energy or 0
         RefreshPortrait()
-        if RefreshSpellEnergy then RefreshSpellEnergy() end
     elseif event == "PLAYER_REGEN_ENABLED" then
         if pendingVisibility then ApplyPortraitVisibility() end
     else
@@ -2299,19 +2183,6 @@ function Handlers.Gambits(_, data)
 end
 
 
--- The spell bar: a spell the energy can not pay is dimmed blue, as the
--- game dims a spell without mana.
-RefreshSpellEnergy = function()
-    for _, b in ipairs(spellButtons) do
-        if b.spell and b:IsShown() and state.summoned then
-            if (b.cost or 0) > companionEnergy then
-                b.icon:SetVertexColor(0.4, 0.4, 1)
-            else
-                b.icon:SetVertexColor(1, 1, 1)
-            end
-        end
-    end
-end
 
 -- ---------------------------------------------------------------------------
 -- The server
