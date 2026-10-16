@@ -46,8 +46,9 @@ AzerothCore Mount mod
   Talents. Avec Forever UI, c'est un onglet de la fenêtre Progression (comme Attriboost et Item
   Upgrade, même code commun) ; sans, une fenêtre ouverte par un bouton au bord de la minimap.
   `/compagnon` ouvre la fiche, `/compagnon sacoches` les sacoches, `/compagnon talents` les talents.
-- Les ordres (attaquer, suivre, rester, attitudes) se donnent au clavier : `.companion attack`,
-  `follow`, `stay`, `passive`, `defensive`, `aggressive`.
+- **La barre des ordres**, comme celle du familier : Appeler, Renvoyer, Attaquer, Suivre, Rester et
+  les trois attitudes (ordre et attitude actifs allumés). Maj + glisser la déplace, `/compagnon barre`
+  la masque ou la remontre.
 - **Mêmes ordres au clavier** : `.companion attack | follow | stay | passive | defensive | aggressive`.
   Passive : n'attaque que sur ordre. Défensive (défaut) : votre cible, ce qui vous attaque, ce qui
   l'attaque. Agressive : en plus, tout ennemi à 20 m. Rester : garde sa place et y revient après un

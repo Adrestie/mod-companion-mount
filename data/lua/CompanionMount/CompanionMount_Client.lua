@@ -64,6 +64,7 @@ local L = {
     passive       = FR and "Passive" or "Passive",
     passiveTip    = FR and "N'attaque que sur ordre." or "Attacks only when told to.",
     level      = FR and "Niv. %d" or "Lv %d",
+    moveTip    = FR and "Maj + glisser : déplacer la barre" or "Shift + drag: move the bar",
     rename     = FR and "Renommer" or "Rename",
     renameTip  = FR and "Donne un nom à la monture choisie (vide : retire le nom)."
                      or "Names the chosen mount (empty: removes the name).",
@@ -1814,6 +1815,119 @@ function CompanionMount_Toggle()
 end
 
 -- ---------------------------------------------------------------------------
+-- THE BAR: the orders, as the pet bar beside the pet's own -- call, send
+-- back, attack, follow, stay, and the three stances, with the pet bar's
+-- icons. The active order and stance are lit. Nothing is decided here: every
+-- button goes to the server, which runs the module's command as the player
+-- and sends the state back. The sheet keeps the rest (rename, saddlebags,
+-- talents).
+--
+-- Shift + drag moves the bar (kept per character); /compagnon barre shows or
+-- hides it.
+-- ---------------------------------------------------------------------------
+
+local BAR_SIZE, BAR_GAP = 30, 4
+local MOUNT_ICON = OPath("Interface", "Icons", "Ability_Mount_RidingHorse")
+
+local BAR_BUTTONS = {
+    { order = "summon",     text = L.summon,     tip = L.summonTip,     icon = MOUNT_ICON },
+    { order = "dismiss",    text = L.dismiss,    tip = L.dismissTip,    icon = OPath("Interface", "Icons", "Spell_Nature_SpiritWolf") },
+    { order = "attack",     text = L.attack,     tip = L.attackTip,     icon = PET_ATTACK_TEXTURE, needsOut = true },
+    { order = "follow",     text = L.follow,     tip = L.followTip,     icon = PET_FOLLOW_TEXTURE, needsOut = true,
+      lit = function() return state.command == COMMAND_FOLLOW end },
+    { order = "stay",       text = L.stay,       tip = L.stayTip,       icon = PET_WAIT_TEXTURE, needsOut = true,
+      lit = function() return state.command == COMMAND_STAY end },
+    { order = "aggressive", text = L.aggressive, tip = L.aggressiveTip, icon = PET_AGGRESSIVE_TEXTURE,
+      lit = function() return state.react == REACT_AGGRESSIVE end },
+    { order = "defensive",  text = L.defensive,  tip = L.defensiveTip,  icon = PET_DEFENSIVE_TEXTURE,
+      lit = function() return state.react == REACT_DEFENSIVE end },
+    { order = "passive",    text = L.passive,    tip = L.passiveTip,    icon = PET_PASSIVE_TEXTURE,
+      lit = function() return state.react == REACT_PASSIVE end },
+}
+
+local bar = CreateFrame("Frame", "CompanionMountBar", UIParent)
+bar:SetSize(#BAR_BUTTONS * (BAR_SIZE + BAR_GAP) + BAR_GAP, BAR_SIZE + 2 * BAR_GAP)
+bar:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 170)
+bar:SetMovable(true)
+bar:SetClampedToScreen(true)
+bar:EnableMouse(true)
+bar:RegisterForDrag("LeftButton")
+bar:SetBackdrop({
+    bgFile = OPath("Interface", "Tooltips", "UI-Tooltip-Background"),
+    edgeFile = OPath("Interface", "Tooltips", "UI-Tooltip-Border"),
+    tile = true, tileSize = 16, edgeSize = 12,
+    insets = { left = 3, right = 3, top = 3, bottom = 3 },
+})
+bar:SetBackdropColor(0, 0, 0, 0.6)
+bar:Hide()
+
+local function BarStartMove()
+    if IsShiftKeyDown() then bar:StartMoving() end
+end
+
+local function BarStopMove()
+    bar:StopMovingOrSizing()
+    if LibWindow then LibWindow.SavePosition(bar) end
+end
+
+bar:SetScript("OnDragStart", BarStartMove)
+bar:SetScript("OnDragStop", BarStopMove)
+
+local barButtons = {}
+for i, def in ipairs(BAR_BUTTONS) do
+    local b = CreateFrame("CheckButton", "CompanionMountBarButton" .. i, bar)
+    b:SetSize(BAR_SIZE, BAR_SIZE)
+    b:SetPoint("LEFT", bar, "LEFT", BAR_GAP + (i - 1) * (BAR_SIZE + BAR_GAP), 0)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetAllPoints()
+    b.icon:SetTexture(def.icon)
+    b:SetHighlightTexture(OPath("Interface", "Buttons", "ButtonHilight-Square"), "ADD")
+    b:SetCheckedTexture(OPath("Interface", "Buttons", "CheckButtonHilight"))
+    b:SetPushedTexture(OPath("Interface", "Buttons", "UI-Quickslot-Depress"))
+    b:RegisterForDrag("LeftButton")
+    b:SetScript("OnDragStart", BarStartMove)
+    b:SetScript("OnDragStop", BarStopMove)
+    b.def = def
+    b:SetScript("OnClick", function(self)
+        AIO.Handle("CompanionMount", "Order", self.def.order)
+        -- The server answers with the state; until then, the lit button is
+        -- the one that was lit.
+        self:SetChecked(self.def.lit and self.def.lit() or false)
+    end)
+    b:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine(self.def.text, 1, 1, 1)
+        GameTooltip:AddLine(self.def.tip, nil, nil, nil, true)
+        GameTooltip:AddLine(L.moveTip, 0.5, 0.5, 0.5)
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    barButtons[i] = b
+end
+
+-- The level of the mount, on the call button.
+local barLevel = barButtons[1]:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+barLevel:SetPoint("BOTTOMRIGHT", barButtons[1], "BOTTOMRIGHT", -1, 2)
+
+local barHidden = false
+local function RefreshBar()
+    -- The call button wears the face of the chosen mount.
+    local icon = (state.mount or 0) ~= 0 and select(3, GetSpellInfo(state.mount))
+    barButtons[1].icon:SetTexture(icon or MOUNT_ICON)
+    barLevel:SetText((state.level or 0) > 0 and string.format(L.level, state.level) or "")
+    for _, b in ipairs(barButtons) do
+        local usable = not b.def.needsOut or state.summoned
+        b:SetChecked(b.def.lit and b.def.lit() or false)
+        b.icon:SetDesaturated(not usable)
+        local shade = usable and 1 or 0.6
+        b.icon:SetVertexColor(shade, shade, shade)
+    end
+    if barHidden or (state.mount or 0) == 0 then bar:Hide() else bar:Show() end
+end
+
+AIO.SavePosition(bar, true)
+
+-- ---------------------------------------------------------------------------
 -- The server
 -- ---------------------------------------------------------------------------
 
@@ -1821,6 +1935,7 @@ function Handlers.State(_, newState)
     if type(newState) ~= "table" then return end
     state = newState
     UI.Refresh()
+    RefreshBar()
 end
 
 function Handlers.Sheet(_, sheet)
@@ -1830,6 +1945,7 @@ function Handlers.Sheet(_, sheet)
     state.react = tonumber(sheet.react_state) or state.react
     state.mount = tonumber(sheet.mount_spell) or state.mount
     UI.Refresh()
+    RefreshBar()
 end
 
 SLASH_COMPANIONMOUNT1 = "/companion"
@@ -1840,6 +1956,9 @@ SlashCmdList["COMPANIONMOUNT"] = function(msg)
         CompanionMount_ToggleBag()
     elseif msg == "talents" then
         CompanionMount_ToggleTalents()
+    elseif msg == "barre" or msg == "bar" then
+        barHidden = not barHidden
+        RefreshBar()
     else
         CompanionMount_Toggle()
     end
