@@ -1057,6 +1057,23 @@ function Panel.Select(index)
     if not FUI and Panel.frame then PanelTemplates_SetTab(Panel.frame, index) end
 end
 
+-- A tab dragged onto an action bar (request of 2026-10-19: "le joueur doit
+-- pouvoir drag & drop l'icone d'un onglet dans sa barre d'action. si le joueur
+-- clique sur ces icones, il faut ouvrir l'interface correspondante"): with
+-- ForeverUI.TabMacros, a macro that toggles the window on that tab
+-- (CompanionMount_TogglePanel), showing the tab's icon on the bar.
+local function TabMacroBody(i)
+    return "/run if CompanionMount_TogglePanel then CompanionMount_TogglePanel(" .. i .. ") end"
+end
+local function TabMacroInfo(i)
+    return { name = TAB_DEFS[i].text, icon = TAB_DEFS[i].icon }
+end
+if FUI and ForeverUI.TabMacros then
+    for i = 1, #TAB_DEFS do
+        ForeverUI.TabMacros.Register(TabMacroBody(i), TabMacroInfo(i))
+    end
+end
+
 local function SideTab(f, i)
     local b = CreateFrame("Button", "CompanionMountPanelSideTab" .. i, f)
     b:SetSize(55, 55)
@@ -1086,6 +1103,9 @@ local function SideTab(f, i)
         PlaySound("igCharacterInfoTab")
         Panel.Select(i)
     end)
+    if ForeverUI.TabMacros then
+        ForeverUI.TabMacros.EnableDrag(b, TabMacroBody(i), TabMacroInfo(i))
+    end
     return b
 end
 
@@ -1173,6 +1193,8 @@ function Panel.Toggle(index)
         Panel.Open(index)
     end
 end
+-- for the tab macros (SideTab)
+CompanionMount_TogglePanel = Panel.Toggle
 
 -- The portrait follows the mount chosen.
 function Panel.SetPortrait(mount)
