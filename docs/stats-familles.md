@@ -40,7 +40,8 @@ faible 3 ; Soin fort 3, moyen 4, faible 5.
 
 ## Ce qui vient du joueur
 
-- Part de la puissance d'attaque du maître : 22 % aujourd'hui, proposée à 10 % (ou 0 %).
+- Part de la puissance d'attaque du maître : **0 %** (décision de l'utilisateur, 2026-10-24 : le compagnon
+  aura son propre équipement, la part du maître le rendrait surpuissant). 22 % aujourd'hui.
 - Force des soins (`CompanionMount.HealingRate`) : 40 % aujourd'hui, proposée à 50 %, la Puissance
   des soins s'y ajoutant.
 
