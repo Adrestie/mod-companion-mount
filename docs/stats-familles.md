@@ -9,7 +9,7 @@ affinité par rôle (DPS, Tank, Soin) : forte, moyenne ou faible.
 
 | Rôle | Gain par niveau | Effet |
 |---|---|---|
-| DPS | +2 Force, +1 Agilité | puissance d'attaque, critique |
+| DPS | +2 Force, +1 Agilité, +2 Dégâts des sorts | puissance d'attaque, critique, force de ses sorts offensifs (Drain de vie, Souffle de feu...) |
 | Tank | +3 Endurance, +12 Armure | PV, réduction des dégâts |
 | Soin | +3 Puissance des soins | force de ses soins |
 
@@ -52,4 +52,4 @@ faible 3 ; Soin fort 3, moyen 4, faible 5.
   multiplicateurs dans la conf.
 - Appliqué avec les statistiques de son niveau (`ApplyStats`).
 - Fiche : Force, Agilité, Endurance dans « Caractéristiques principales » ; la catégorie « Sorts »
-  affiche la Puissance des soins.
+  affiche les **Dégâts des sorts** et la **Puissance des soins** (demande de l'utilisateur, 2026-10-24).
