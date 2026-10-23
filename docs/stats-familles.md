@@ -9,11 +9,23 @@ affinité par rôle (DPS, Tank, Soin) : forte, moyenne ou faible.
 
 | Rôle | Gain par niveau | Effet |
 |---|---|---|
-| DPS | +2 Force, +1 Agilité, +2 Dégâts des sorts | puissance d'attaque, critique, force de ses sorts offensifs (Drain de vie, Souffle de feu...) |
+| DPS physique | +2 Force, +1 Agilité | puissance d'attaque, critique |
+| DPS magique | +3 Dégâts des sorts | force de ses sorts offensifs (Drain de vie, Souffle de feu...) |
 | Tank | +3 Endurance, +12 Armure | PV, réduction des dégâts |
 | Soin | +3 Puissance des soins | force de ses soins |
 
 Multiplicateurs : fort ×1,5, moyen ×1, faible ×0,5 (79 niveaux de gains au niveau 80).
+
+## DPS physique ou magique (proposition du 2026-10-24, à valider)
+
+Le DPS est séparé en physique et magique (demande de l'utilisateur). Chaque famille a une **nature** :
+son affinité DPS s'applique au DPS de cette nature, l'autre ne lui apporte rien (×0), pour que les
+familles DPS ne gagnent pas plus de statistiques que les autres.
+
+| Nature | Familles | Pourquoi |
+|---|---|---|
+| Magique | Mort-vivant, Dragon, Bête ailée, Oiseau | sorts clés Drain de vie, Souffle de feu ; créatures « arcaniques » |
+| Physique | Loup, Raptor, Félin, Bête lourde, Machine, Ours, Insecte, Cheval | coups, piétinements, morsures |
 
 ## Affinités
 
