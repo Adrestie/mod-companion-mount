@@ -28,15 +28,18 @@ Multiplicateurs : fort ×1,5, moyen ×1, faible ×0,5 (79 niveaux de gains au ni
 | Ours | faible | fort | moyen |
 | Insecte | faible | fort | moyen |
 | Cheval | faible | moyen | fort |
-| Bête ailée | faible | moyen | fort |
+| Bête ailée | moyen | faible | fort |
 | Oiseau | moyen | faible | fort |
 | Dragon | fort | moyen | faible |
 
 Dragon : DPS fort, Tank moyen, Soin faible (choix de l'utilisateur, 2026-10-24 ; la proposition
 d'origine était DPS moyen, Tank faible, Soin fort).
 
-Répartition qui en résulte : DPS fort dans 5 familles, moyen 3, faible 4 ; Tank fort 4, moyen 5,
-faible 3 ; Soin fort 3, moyen 4, faible 5.
+Bête ailée : DPS moyen, Tank faible, Soin fort (choix de l'utilisateur, 2026-10-24 ; à l'origine DPS
+faible, Tank moyen, Soin fort).
+
+Répartition qui en résulte : DPS fort dans 5 familles, moyen 4, faible 3 ; Tank fort 4, moyen 4,
+faible 4 ; Soin fort 3, moyen 4, faible 5.
 
 ## Ce qui vient du joueur
 
