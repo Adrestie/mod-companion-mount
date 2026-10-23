@@ -5,16 +5,18 @@ Proposition du 2026-10-23, en cours de validation par l'utilisateur. Pas encore 
 Chaque famille de compagnon gagne, à chaque niveau, des montants fixes de statistiques. Elle a une
 affinité par rôle (DPS, Tank, Soin) : forte, moyenne ou faible.
 
-## Paquets par niveau (affinité moyenne ×1)
+## Paquets par niveau (décision de l'utilisateur, 2026-10-24)
 
-| Rôle | Gain par niveau | Effet |
-|---|---|---|
-| DPS physique | +2 Force, +1 Agilité | puissance d'attaque, critique |
-| DPS magique | +3 Dégâts des sorts | force de ses sorts offensifs (Drain de vie, Souffle de feu...) |
-| Tank | +3 Endurance, +12 Armure | PV, réduction des dégâts |
-| Soin | +3 Puissance des soins | force de ses soins |
+À chaque montée de niveau :
 
-Multiplicateurs : fort ×1,5, moyen ×1, faible ×0,5 (79 niveaux de gains au niveau 80).
+| Rôle | Gain par niveau |
+|---|---|
+| Tank | +3 Endurance, +2 Force, +1 Agilité |
+| Soin | +1 Endurance, +2 à 4 Puissance des soins |
+| DPS physique | +3 Force, +2 Agilité, +1 à 2 Endurance |
+| DPS magique | +2 à 4 Dégâts des sorts, +1 Endurance |
+
+(Lecture des fourchettes et des multiplicateurs par affinité : à préciser.)
 
 ## DPS physique ou magique (proposition du 2026-10-24, à valider)
 
