@@ -235,7 +235,7 @@ namespace CompanionMount
         uint32 reviveDelay = 60;      // secondes
         float healthRate = 1.0f;
         float damageRate = 1.0f;
-        float healingRate = 0.4f;     // force des soins qu'elle lance
+        float healingRate = 0.33f;    // force des soins qu'elle lance
         float attackPowerOwnerShare = 0.22f;   // part de la PA du maitre
         float leashDistance = 40.0f;  // metres
         float clickDistance = 10.0f;  // metres

@@ -69,9 +69,9 @@ CompanionMount.DamageRate = 1.0
 #        Description: Multiplier of the heals the companion mount casts (its
 #                     talents and key spell, at the rank of its level). 1.0 is
 #                     the full spell, as strong as a healer's without gear.
-#        Default:     0.4
+#        Default:     0.33
 
-CompanionMount.HealingRate = 0.4
+CompanionMount.HealingRate = 0.33
 
 #
 #    CompanionMount.AttackPowerOwnerShare

@@ -48,7 +48,7 @@ combat, ramasse le butin, progresse, apprend des talents et suit les règles que
   les 2 niveaux), 5 points par rangée, tous les arbres à la fois (un seul en option).
 - Dans chaque arbre, un **sort clé** qui dépend du type de monture (cheval, loup, félin, kodo,
   oiseau, dragon...) et un **ultime** : Tempête de lames, Cri de défi, Tranquillité.
-- Les sorts sont lancés au rang que permet son niveau ; ses soins valent 40 % du sort (réglable).
+- Les sorts sont lancés au rang que permet son niveau ; ses soins valent 33 % du sort (`CompanionMount.HealingRate`).
 
 ### Énergie et Gambits
 
