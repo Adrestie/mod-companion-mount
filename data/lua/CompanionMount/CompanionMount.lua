@@ -269,6 +269,13 @@ local function Talents(player)
     -- The key spell of each tree, for this kind of mount (a horse if unknown).
     local kq = WorldDBQuery(string.format("SELECT kind FROM mod_companion_mount_kind WHERE mount_spell = %d", mount))
     local kind = kq and kq:GetUInt8(0) or 1
+    -- Its first tree: Fury (0) for a physical family, Sorcery (3) for a magic one.
+    data.firstTree = 0
+    if HasWorldTable("mod_companion_mount_kind_stats") then
+        local fq = WorldDBQuery(string.format(
+            "SELECT `first_tree` FROM `mod_companion_mount_kind_stats` WHERE `kind` = %d", kind))
+        if fq and fq:GetUInt8(0) == 3 then data.firstTree = 3 end
+    end
     local k = WorldDBQuery(string.format(
         "SELECT tree, key_spell FROM mod_companion_mount_key_spell WHERE kind = %d", kind))
     if k then
@@ -542,19 +549,37 @@ local SHEET_COLUMNS = {
     "attack_power", "min_damage", "max_damage", "attack_time", "crit", "dodge", "parry", "tree",
     "points_spent", "points_total", "command_state", "react_state",
 }
+-- The stats of the family (companion_mount_13_snapshot_stats.sql): read once the
+-- columns exist -- a missing column stops the server (error 1054).
+local SHEET_FAMILY_COLUMNS = { "strength", "agility", "stamina", "spell_damage", "healing_power" }
+
+local function HasCharColumn(tableName, column)
+    local key = "characters." .. tableName .. "." .. column
+    if known[key] then return true end
+    local q = CharDBQuery(string.format(
+        "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() "
+        .. "AND TABLE_NAME = '%s' AND COLUMN_NAME = '%s'", tableName, column))
+    known[key] = q ~= nil
+    return known[key]
+end
 
 local function Sheet(player)
     if not HasCharTable("mod_companion_mount_snapshot") then
         return {}
     end
     player:RunCommand("companion snapshot")
+    local columns = {}
+    for _, column in ipairs(SHEET_COLUMNS) do columns[#columns + 1] = column end
+    if HasCharColumn("mod_companion_mount_snapshot", "healing_power") then
+        for _, column in ipairs(SHEET_FAMILY_COLUMNS) do columns[#columns + 1] = column end
+    end
     -- Every column between backquotes: `out` is a reserved word of MySQL 8,
     -- and a syntax error stops the server (error 1064).
     local q = CharDBQuery(string.format("SELECT `%s` FROM mod_companion_mount_snapshot WHERE guid = %d",
-        table.concat(SHEET_COLUMNS, "`, `"), player:GetGUIDLow()))
+        table.concat(columns, "`, `"), player:GetGUIDLow()))
     local sheet = {}
     if q then
-        for i, column in ipairs(SHEET_COLUMNS) do
+        for i, column in ipairs(columns) do
             if column == "name" then
                 sheet[column] = q:GetString(i - 1)
             elseif column == "crit" or column == "dodge" or column == "parry" then

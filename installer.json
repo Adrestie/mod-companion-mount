@@ -58,7 +58,8 @@
         "mod_companion_mount_kind",
         "mod_companion_mount_kind_spell",
         "mod_companion_mount_key_spell",
-        "mod_companion_mount_rank_level"
+        "mod_companion_mount_rank_level",
+        "mod_companion_mount_kind_stats"
       ],
       "rows": [
         {

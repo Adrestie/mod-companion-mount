@@ -77,6 +77,24 @@ namespace CompanionMount
         std::unordered_map<uint32, uint8> sMountKind;        // sort de monture -> type
         std::unordered_map<uint16, KindSpell> sKindSpell;    // type x arbre -> sort cle
 
+        // Ce que gagne une famille a chaque niveau : une fourchette par
+        // caracteristique, la haute aux niveaux pairs ; et son premier arbre.
+        struct KindStats
+        {
+            uint8 firstTree = TREE_FURY;
+            uint8 low[MAX_FAMILY_STAT] = {};
+            uint8 high[MAX_FAMILY_STAT] = {};
+        };
+        std::unordered_map<uint8, KindStats> sKindStats;
+
+        // Un talent de l'autre arbre de degats que celui de sa famille.
+        bool WrongTree(uint32 mountSpell, uint8 tree)
+        {
+            if (tree != TREE_FURY && tree != TREE_MAGIC)
+                return false;
+            return tree != FirstTree(mountSpell);
+        }
+
         uint16 KindTree(uint8 kind, uint8 tree)
         {
             return uint16(kind) << 8 | tree;
@@ -150,6 +168,7 @@ namespace CompanionMount
         sTalents.clear();
         sMountKind.clear();
         sKindSpell.clear();
+        sKindStats.clear();
         sPassiveSpells.clear();
 
         if (QueryResult result = WorldDatabase.Query(
@@ -172,7 +191,7 @@ namespace CompanionMount
                 talent.cooldown = fields[10].Get<uint32>();
                 talent.energy = std::min<uint8>(fields[11].Get<uint8>(), MAX_ENERGY_CLASS - 1);
                 talent.key = !fields[4].Get<uint32>();
-                if (talent.tree > 2 || (!talent.key && talent.ranks.empty()))
+                if (talent.tree > TREE_MAGIC || (!talent.key && talent.ranks.empty()))
                     continue;
                 if (talent.use == TALENT_USE_PASSIVE)
                     sPassiveSpells.insert(talent.ranks.begin(), talent.ranks.end());
@@ -194,6 +213,23 @@ namespace CompanionMount
                         { fields[2].Get<uint32>(), fields[3].Get<uint8>() };
             } while (result->NextRow());
 
+        if (QueryResult result = WorldDatabase.Query(
+                "SELECT `kind`, `first_tree`, `strength_low`, `strength_high`, `agility_low`, `agility_high`, "
+                "`stamina_low`, `stamina_high`, `spell_damage_low`, `spell_damage_high`, `healing_low`, `healing_high` "
+                "FROM `mod_companion_mount_kind_stats`"))
+            do
+            {
+                Field* fields = result->Fetch();
+                KindStats stats;
+                stats.firstTree = fields[1].Get<uint8>() == TREE_MAGIC ? TREE_MAGIC : TREE_FURY;
+                for (uint8 i = 0; i < MAX_FAMILY_STAT; ++i)
+                {
+                    stats.low[i] = fields[2 + 2 * i].Get<uint8>();
+                    stats.high[i] = std::max(stats.low[i], fields[3 + 2 * i].Get<uint8>());
+                }
+                sKindStats[fields[0].Get<uint8>()] = stats;
+            } while (result->NextRow());
+
         PublishRankLevels();
 
         LOG_INFO("module", "CompanionMount: {} talent(s), {} mount kind(s), {} key spell(s) loaded.",
@@ -204,6 +240,54 @@ namespace CompanionMount
     {
         auto itr = sMountKind.find(mountSpell);
         return itr == sMountKind.end() ? 1 : itr->second;   // inconnue : un cheval
+    }
+
+    uint8 FirstTree(uint32 mountSpell)
+    {
+        auto itr = sKindStats.find(MountKind(mountSpell));
+        return itr == sKindStats.end() ? TREE_FURY : itr->second.firstTree;
+    }
+
+    // Le total gagne au niveau donne : la valeur basse a chaque niveau apres le
+    // premier, plus l'ecart aux niveaux pairs (« 1 a 2 » : 1, 2, 1, 2...).
+    uint32 FamilyStatTotal(uint32 mountSpell, uint8 stat, uint8 level)
+    {
+        auto itr = sKindStats.find(MountKind(mountSpell));
+        if (itr == sKindStats.end() || stat >= MAX_FAMILY_STAT || level < 2)
+            return 0;
+        uint32 const low = itr->second.low[stat], high = itr->second.high[stat];
+        return low * (level - 1u) + (high - low) * (level / 2u);
+    }
+
+    // LES GAINS DE SA FAMILLE : force, agilite, endurance en caracteristiques
+    // (le coeur en tire la puissance d'attaque, l'armure, les PV d'un gardien),
+    // degats des sorts et puissance des soins sur une aura dont les montants
+    // sont remplaces. Ses PV restent a la meme part de leur maximum.
+    void ApplyFamilyStats(Creature* companion, uint32 mountSpell)
+    {
+        uint8 const level = companion->GetLevel();
+        float const healthPct = companion->GetHealthPct();
+        companion->SetStatFlatModifier(UNIT_MOD_STAT_STRENGTH, TOTAL_VALUE,
+            float(FamilyStatTotal(mountSpell, FAMILY_STRENGTH, level)));
+        companion->SetStatFlatModifier(UNIT_MOD_STAT_AGILITY, TOTAL_VALUE,
+            float(FamilyStatTotal(mountSpell, FAMILY_AGILITY, level)));
+        companion->SetStatFlatModifier(UNIT_MOD_STAT_STAMINA, TOTAL_VALUE,
+            float(FamilyStatTotal(mountSpell, FAMILY_STAMINA, level)));
+
+        companion->RemoveAurasDueToSpell(SPELL_FAMILY_POWER);
+        int32 const spellDamage = int32(FamilyStatTotal(mountSpell, FAMILY_SPELL_DAMAGE, level));
+        int32 const healing = int32(FamilyStatTotal(mountSpell, FAMILY_HEALING, level));
+        if (spellDamage || healing)
+            if (Aura* aura = companion->AddAura(SPELL_FAMILY_POWER, companion))
+                for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+                    if (AuraEffect* effect = aura->GetEffect(i))
+                    {
+                        effect->SetCanBeRecalculated(false);
+                        effect->ChangeAmount(effect->GetAuraType() == SPELL_AURA_MOD_HEALING_DONE ? healing : spellDamage);
+                    }
+
+        companion->UpdateAllStats();
+        companion->SetHealth(std::max<uint32>(1, companion->CountPctFromMaxHealth(healthPct)));
     }
 
     uint32 KeySpell(uint32 mountSpell, uint8 tree)
@@ -312,14 +396,28 @@ namespace CompanionMount
             do
             {
                 Field* fields = result->Fetch();
-                if (TalentEntry const* talent = FindTalent(fields[0].Get<uint32>()))
-                    state.talentRanks[talent->id] = std::min(fields[1].Get<uint8>(), MaxRank(*talent));
+                TalentEntry const* talent = FindTalent(fields[0].Get<uint32>());
+                if (!talent)
+                    continue;
+                // Appris avant que sa famille montre l'autre arbre de degats :
+                // le rang est rendu (les points se recomptent).
+                if (WrongTree(state.mountSpell, talent->tree))
+                {
+                    CharacterDatabase.Execute(
+                        "DELETE FROM `mod_companion_mount_talent_rank` WHERE `guid` = {} AND `mount_spell` = {} AND `talent_id` = {}",
+                        player->GetGUID().GetCounter(), state.mountSpell, talent->id);
+                    continue;
+                }
+                state.talentRanks[talent->id] = std::min(fields[1].Get<uint8>(), MaxRank(*talent));
             } while (result->NextRow());
         }
     }
 
     void ApplyTalents(Creature* companion, Player* player, State& state)
     {
+        // Ce que sa famille lui donne a son niveau (dans le monde : l'aura s'y pose).
+        ApplyFamilyStats(companion, state.mountSpell);
+
         // Tout ce que les talents ont pu poser part, puis le rang appris revient.
         for (uint32 spell : sPassiveSpells)
             companion->RemoveAurasDueToSpell(spell);
@@ -417,6 +515,12 @@ namespace CompanionMount
             return false;
         }
 
+        if (WrongTree(state.mountSpell, talent->tree))
+        {
+            Say(player, TEXT_TALENT_WRONG_TREE);
+            return false;
+        }
+
         uint32 const needed = talent->tier * GetConfig().talentPointsPerTier;
         if (SpentIn(state, talent->tree) < needed)
         {
@@ -464,7 +568,8 @@ namespace CompanionMount
         }
 
         int32 const tree = TalentTree(state);
-        std::string const* treeName = handler->GetModuleString(MODULE, tree < 0 ? TEXT_TALENT_TREE_NONE : TEXT_TALENT_TREE_DPS + tree);
+        std::string const* treeName = handler->GetModuleString(MODULE, tree < 0 ? TEXT_TALENT_TREE_NONE
+            : tree == TREE_MAGIC ? TEXT_TALENT_TREE_MAGIC : TEXT_TALENT_TREE_DPS + tree);
         Say(handler, TEXT_TALENT_HEADER, TalentPointsSpent(state), TalentPoints(EffectiveLevel(player, state)),
             treeName ? *treeName : "");
 

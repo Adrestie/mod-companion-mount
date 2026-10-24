@@ -81,6 +81,7 @@ local L = {
     treeDps    = FR and "Fureur" or "Fury",
     treeTank   = FR and "Rempart" or "Rampart",
     treeHeal   = FR and "Bienveillance" or "Benevolence",
+    treeMagic  = FR and "Sorcellerie" or "Sorcery",
     noTree     = FR and "aucun arbre choisi" or "no tree chosen",
     points     = FR and "Points : %d/%d - %s" or "Points: %d/%d - %s",
     reset      = FR and "Réinitialiser" or "Reset",
@@ -539,11 +540,15 @@ AIO.SavePosition(bagFrame, true)
 local TP = string.char(92)
 local function TPath(...) return table.concat({ ... }, TP) end
 
+-- By the server's tree number + 1. Three tabs: the first shows Fury (0) or,
+-- for a magic family, Sorcery (3); then Rampart and Benevolence.
 local TREES = {
     { name = L.treeDps,  art = "WarriorFury" },
     { name = L.treeTank, art = "WarriorProtection" },
     { name = L.treeHeal, art = "DruidRestoration" },
+    { name = L.treeMagic, art = "MageFire" },
 }
+local TALENT_TABS = 3
 -- The tree's art, as PlayerTalentFrame draws it: of its four pictures (256 +
 -- 64 wide, 256 + 128 high) only 256 + 44 by 256 + 75 is painted, the rest is
 -- empty. Drawn larger (T_ART_SCALE) so that six rows fit in it.
@@ -638,7 +643,8 @@ reset:SetScript("OnClick", function() AIO.Handle("CompanionMount", "TalentReset"
 
 -- The tabs, under the window, as the game's.
 local tabs = {}
-for i, tree in ipairs(TREES) do
+for i = 1, TALENT_TABS do
+    local tree = TREES[i]
     local tab = CreateFrame("Button", "CompanionMountTalentFrameTab" .. i, talentFrame, "CharacterFrameTabButtonTemplate")
     tab:SetID(i)
     tab:SetText(tree.name)
@@ -654,7 +660,7 @@ for i, tree in ipairs(TREES) do
     end)
     tabs[i] = tab
 end
-PanelTemplates_SetNumTabs(talentFrame, #TREES)
+PanelTemplates_SetNumTabs(talentFrame, TALENT_TABS)
 PanelTemplates_SetTab(talentFrame, 1)
 
 local cells = {}
@@ -743,8 +749,17 @@ local function Paint(b, state)
     b.rank:SetTextColor(c[1], c[2], c[3])
 end
 
+-- The tree a tab shows: the family's first tree, then Rampart and Benevolence.
+local function TabTree(tab)
+    if tab == 1 then return talentData.firstTree == 3 and 3 or 0 end
+    return tab - 1
+end
+
 function CompanionMount_RefreshTalents()
-    local tree = TREES[shownTree]
+    local treeId = TabTree(shownTree)
+    local tree = TREES[treeId + 1]
+    tabs[1]:SetText(TREES[TabTree(1) + 1].name)
+    PanelTemplates_TabResize(tabs[1], 0)
     for _, p in ipairs(pieces) do
         p.texture:SetTexture(TPath("Interface", "TalentFrame", tree.art .. "-" .. p[1]))
         p.texture:SetTexCoord(0, p[4], 0, p[5])
@@ -759,7 +774,7 @@ function CompanionMount_RefreshTalents()
         if rank > 0 then
             spent = spent + rank
             chosen = t.tree
-            if t.tree == shownTree - 1 then inTree = inTree + rank end
+            if t.tree == treeId then inTree = inTree + rank end
         end
     end
     local left = math.max(0, (talentData.points or 0) - spent)
@@ -771,7 +786,7 @@ function CompanionMount_RefreshTalents()
 
     for _, b in pairs(cells) do b:Hide() end
     for _, t in ipairs(talentData.talents) do
-        if t.tree == shownTree - 1 then
+        if t.tree == treeId then
             local b = TalentCell(t.tier, t.col)
             local rank = talentData.ranks[t.id] or 0
             local max = t.key and 1 or #t.ranks
@@ -825,7 +840,7 @@ function Handlers.Talents(_, data)
     -- On opening, the tab of the tree already chosen.
     if first then
         for _, t in ipairs(talentData.talents) do
-            if (talentData.ranks[t.id] or 0) > 0 then shownTree = t.tree + 1 break end
+            if (talentData.ranks[t.id] or 0) > 0 then shownTree = (t.tree == 3) and 1 or (t.tree + 1) break end
         end
     end
     CompanionMount_RefreshTalents()
@@ -879,6 +894,11 @@ local SL = {
     dodge      = FR and "Esquive" or "Dodge",
     parry      = FR and "Parade" or "Parry",
     points     = FR and "Points de talent" or "Talent points",
+    strength   = FR and "Force" or "Strength",
+    agility    = FR and "Agilité" or "Agility",
+    stamina    = FR and "Endurance" or "Stamina",
+    spellDamage  = FR and "Dégâts des sorts" or "Spell damage",
+    healingPower = FR and "Puissance des soins" or "Healing power",
     orders     = FR and "Ordres" or "Orders",
     stats      = FR and "Caractéristiques" or "Statistics",
     mainStats  = FR and "Caractéristiques principales" or "Main Stats",
@@ -1376,7 +1396,8 @@ function UI.Build(parent)
     local main = Header(y)
     main.text:SetText(SL.mainStats)
     UI.mainRows = {}
-    for i, key in ipairs({ "health", "armor" }) do
+    local MAIN_STATS = { "health", "armor", "strength", "agility", "stamina" }
+    for i, key in ipairs(MAIN_STATS) do
         local r = Row(y - 34 - (i - 1) * STEP, i)
         r.label:SetText(SL[key])
         r.key = key
@@ -1387,7 +1408,7 @@ function UI.Build(parent)
     -- Spell, Defense, Misc.
     UI.groups = {}
     local defaults = { "melee" }
-    y = y - 34 - 2 * STEP - 14
+    y = y - 34 - #MAIN_STATS * STEP - 14
     for g = 1, 1 do
         local header = Header(y)
         local group = { header = header, rows = {}, category = UI.groupChoice and UI.groupChoice[g] or defaults[g] }
@@ -1447,7 +1468,7 @@ end
 -- The categories of the dropdowns and their figures (Spell: none yet).
 UI.CATEGORIES = {
     { key = "melee", stats = { "power", "speed", "crit" } },
-    { key = "spell", stats = {} },
+    { key = "spell", stats = { "spellDamage", "healingPower" } },
     { key = "defense", stats = { "dodge", "parry" } },
     { key = "misc", stats = { "points" } },
 }
@@ -1557,6 +1578,11 @@ function UI.Refresh()
         dodge = out and Percent(s.dodge) or nil,
         parry = out and Percent(s.parry) or nil,
         points = (s.points_spent or 0) .. " / " .. (s.points_total or 0),
+        strength = out and s.strength or nil,
+        agility = out and s.agility or nil,
+        stamina = out and s.stamina or nil,
+        spellDamage = out and s.spell_damage or nil,
+        healingPower = out and s.healing_power or nil,
     }
     UI.RenderStats()
 end

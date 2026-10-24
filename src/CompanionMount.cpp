@@ -258,7 +258,7 @@ namespace CompanionMount
         sConfig.healthRate = std::max(0.01f, sConfigMgr->GetOption<float>("CompanionMount.HealthRate", 1.0f));
         sConfig.damageRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.DamageRate", 1.0f));
         sConfig.healingRate = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.HealingRate", 0.33f));
-        sConfig.attackPowerOwnerShare = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.AttackPowerOwnerShare", 0.22f));
+        sConfig.attackPowerOwnerShare = std::max(0.0f, sConfigMgr->GetOption<float>("CompanionMount.AttackPowerOwnerShare", 0.0f));
         sConfig.leashDistance = std::max(10.0f, sConfigMgr->GetOption<float>("CompanionMount.LeashDistance", 40.0f));
         sConfig.clickDistance = std::max(2.0f, sConfigMgr->GetOption<float>("CompanionMount.ClickDistance", 10.0f));
         // « AutoLoot » et non « Loot » : DynamicLoot lit toute cle <Module>.Loot.<nom>

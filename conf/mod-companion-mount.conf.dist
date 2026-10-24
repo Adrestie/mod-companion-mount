@@ -76,11 +76,12 @@ CompanionMount.HealingRate = 0.33
 #
 #    CompanionMount.AttackPowerOwnerShare
 #        Description: Share of its master's attack power the companion mount
-#                     adds to that of the creatures of its level (as a hunter
-#                     pet takes a share of its master's). 0.22 = 22 %.
-#        Default:     0.22
+#                     adds to its own (as a hunter pet takes a share of its
+#                     master's). 0: none -- it grows by the stats of its family
+#                     (mod_companion_mount_kind_stats) and, later, its own gear.
+#        Default:     0
 
-CompanionMount.AttackPowerOwnerShare = 0.22
+CompanionMount.AttackPowerOwnerShare = 0
 
 #
 #    CompanionMount.LeashDistance

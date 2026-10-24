@@ -42,6 +42,7 @@ namespace CompanionMount
         uint8 const level = EffectiveLevel(player, state);
 
         uint32 health = 0, maxHealth = 0, armor = 0, attackPower = 0, minDamage = 0, maxDamage = 0, attackTime = 0;
+        uint32 strength = 0, agility = 0, stamina = 0, spellDamage = 0, healing = 0;
         float crit = 0.0f, dodge = 0.0f, parry = 0.0f;
         if (companion)
         {
@@ -55,6 +56,11 @@ namespace CompanionMount
             crit = companion->GetUnitCriticalChance(BASE_ATTACK, companion);
             dodge = companion->GetUnitDodgeChance();
             parry = companion->GetUnitParryChance();
+            strength = uint32(companion->GetStat(STAT_STRENGTH));
+            agility = uint32(companion->GetStat(STAT_AGILITY));
+            stamina = uint32(companion->GetStat(STAT_STAMINA));
+            spellDamage = uint32(std::max(0, companion->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC)));
+            healing = uint32(std::max(0, companion->SpellBaseHealingBonusDone(SPELL_SCHOOL_MASK_ALL)));
         }
 
         // La vue 3D montre la creature du sort de monture, au modele de la bete
@@ -68,11 +74,13 @@ namespace CompanionMount
         CharacterDatabase.DirectExecute(
             "REPLACE INTO `mod_companion_mount_snapshot` (`guid`, `mount_spell`, `name`, `kind`, `creature`, `display`, `level`, `xp`, `xp_next`, "
             "`out`, `health`, `max_health`, `armor`, `attack_power`, `min_damage`, `max_damage`, `attack_time`, "
-            "`crit`, `dodge`, `parry`, `tree`, `points_spent`, `points_total`, `command_state`, `react_state`) "
-            "VALUES ({}, {}, '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {:.2f}, {:.2f}, {:.2f}, {}, {}, {}, {}, {})",
+            "`crit`, `dodge`, `parry`, `tree`, `points_spent`, `points_total`, `command_state`, `react_state`, "
+            "`strength`, `agility`, `stamina`, `spell_damage`, `healing_power`) "
+            "VALUES ({}, {}, '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {:.2f}, {:.2f}, {:.2f}, {}, {}, {}, {}, {}, "
+            "{}, {}, {}, {}, {})",
             player->GetGUID().GetCounter(), state.mountSpell, name, uint32(MountKind(state.mountSpell)), creature, display, uint32(level),
             state.xp, NextLevelXP(level), companion ? 1 : 0, health, maxHealth, armor, attackPower, minDamage, maxDamage,
             attackTime, crit, dodge, parry, tree < 0 ? 255 : tree, TalentPointsSpent(state), TalentPoints(level),
-            uint32(state.command), uint32(state.react));
+            uint32(state.command), uint32(state.react), strength, agility, stamina, spellDamage, healing);
     }
 }

@@ -63,6 +63,21 @@ namespace CompanionMount
     // celles du loup fantome. Elles font un gardien sans prendre la place du
     // familier.
     constexpr uint32 SPELL_HEALING_RATE = 16178;   // Purification : seul effet, soins prodigues en %
+    // « Increase Healing » : puissance des soins (effet 0) et degats des sorts de
+    // toutes les ecoles magiques (effet 1), deux montants que le module pose.
+    constexpr uint32 SPELL_FAMILY_POWER = 7675;
+
+    // LES ARBRES : 0 Fureur (DPS physique), 1 Rempart, 2 Bienveillance, 3
+    // Sorcellerie (DPS magique). Une famille montre Fureur ou Sorcellerie.
+    constexpr uint8 TREE_FURY = 0;
+    constexpr uint8 TREE_MAGIC = 3;
+
+    // CE QU'UNE FAMILLE GAGNE A CHAQUE NIVEAU (mod_companion_mount_kind_stats).
+    enum FamilyStat : uint8
+    {
+        FAMILY_STRENGTH = 0, FAMILY_AGILITY, FAMILY_STAMINA, FAMILY_SPELL_DAMAGE, FAMILY_HEALING,
+        MAX_FAMILY_STAT,
+    };
     // Le plus grand sort du client 3.3.5 : les rangs au-dela viennent d'autres
     // modules (spell_dbc, ex. mod-spheregrid), plus forts et inconnus du client.
     constexpr uint32 MAX_CLIENT_SPELL = 80864;
@@ -118,6 +133,8 @@ namespace CompanionMount
         TEXT_TALENT_TREE_NONE = 44,
         TEXT_TALENT_NO_KEY   = 45,
         TEXT_LEVEL_SET       = 46,
+        TEXT_TALENT_TREE_MAGIC = 47,  // le nom de l'arbre de degats magiques
+        TEXT_TALENT_WRONG_TREE = 48,
     };
 
     // CE QUE L'IA FAIT D'UN SORT DE TALENT (mod_companion_mount_talent.use).
@@ -236,7 +253,7 @@ namespace CompanionMount
         float healthRate = 1.0f;
         float damageRate = 1.0f;
         float healingRate = 0.33f;    // force des soins qu'elle lance
-        float attackPowerOwnerShare = 0.22f;   // part de la PA du maitre
+        float attackPowerOwnerShare = 0.0f;    // part de la PA du maitre (0 : ses gains de famille)
         float leashDistance = 40.0f;  // metres
         float clickDistance = 10.0f;  // metres
         bool lootEnabled = true;
@@ -369,6 +386,9 @@ namespace CompanionMount
     int32 TalentTree(State const& state);
     void LoadTalentRanks(Player* player, State& state);
     void ApplyTalents(Creature* companion, Player* player, State& state);
+    uint8 FirstTree(uint32 mountSpell);
+    uint32 FamilyStatTotal(uint32 mountSpell, uint8 stat, uint8 level);
+    void ApplyFamilyStats(Creature* companion, uint32 mountSpell);
     bool LearnTalent(Player* player, uint32 talentId);
     void ResetTalents(Player* player);
     void ListTalents(ChatHandler* handler, Player* player);
