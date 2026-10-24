@@ -2,8 +2,9 @@
 
 Proposition du 2026-10-23, en cours de validation par l'utilisateur. Pas encore implémentée.
 
-Chaque famille de compagnon gagne, à chaque niveau, des montants fixes de statistiques. Elle a une
-affinité par rôle (DPS, Tank, Soin) : forte, moyenne ou faible.
+Chaque famille de compagnon gagne, à chaque niveau, des montants fixes de statistiques, propres à
+la famille (tableau ci-dessous). Le premier jet (paquets par rôle, affinités forte / moyenne /
+faible, nature physique ou magique) est remplacé par ce tableau.
 
 ## Gains par niveau, par famille (décision de l'utilisateur, 2026-10-24)
 
@@ -25,43 +26,6 @@ Le total au niveau N vaut donc la moyenne de la fourchette × (N - 1), arrondie 
 
 Les rôles donnent l'arbre de talents affiché en premier : Fureur pour le DPS physique, l'arbre de
 dégâts magiques pour le DPS magique (Tank et Soin : à préciser, Fureur par défaut).
-
-## DPS physique ou magique (proposition du 2026-10-24, à valider)
-
-Le DPS est séparé en physique et magique (demande de l'utilisateur). Chaque famille a une **nature** :
-son affinité DPS s'applique au DPS de cette nature, l'autre ne lui apporte rien (×0), pour que les
-familles DPS ne gagnent pas plus de statistiques que les autres.
-
-| Nature | Familles | Pourquoi |
-|---|---|---|
-| Magique | Mort-vivant, Dragon, Bête ailée, Oiseau | sorts clés Drain de vie, Souffle de feu ; créatures « arcaniques » |
-| Physique | Loup, Raptor, Félin, Bête lourde, Machine, Ours, Insecte, Cheval | coups, piétinements, morsures |
-
-## Affinités
-
-| Famille | DPS | Tank | Soin |
-|---|---|---|---|
-| Loup | fort | moyen | faible |
-| Raptor | fort | moyen | faible |
-| Félin | fort | faible | moyen |
-| Mort-vivant | fort | faible | moyen |
-| Bête lourde | moyen | fort | faible |
-| Machine | moyen | fort | faible |
-| Ours | faible | fort | moyen |
-| Insecte | faible | fort | moyen |
-| Cheval | faible | moyen | fort |
-| Bête ailée | moyen | faible | fort |
-| Oiseau | moyen | faible | fort |
-| Dragon | fort | moyen | faible |
-
-Dragon : DPS fort, Tank moyen, Soin faible (choix de l'utilisateur, 2026-10-24 ; la proposition
-d'origine était DPS moyen, Tank faible, Soin fort).
-
-Bête ailée : DPS moyen, Tank faible, Soin fort (choix de l'utilisateur, 2026-10-24 ; à l'origine DPS
-faible, Tank moyen, Soin fort).
-
-Répartition qui en résulte : DPS fort dans 5 familles, moyen 4, faible 3 ; Tank fort 4, moyen 4,
-faible 4 ; Soin fort 3, moyen 4, faible 5.
 
 ## Ce qui vient du joueur
 
